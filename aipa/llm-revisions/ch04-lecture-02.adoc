@@ -1,0 +1,143 @@
+=== 4.2: Linear Models and Gradient Descent
+:leveloffset: 2
+
+Imagine you have a dataset of house prices and you fit a simple linear model. After a few updates the loss suddenly stops improving—your optimizer seems stuck. Why does this happen, and how can we make the learning process keep moving toward a better solution?
+
+[.epigraph]
+"The gradient points toward the steepest ascent—but the optimum may lie elsewhere."
+— Boyd & Vandenberghe, _Convex Optimization_ <<Boyd2004>> (adapted)
+
+*Gradient descent: follow the local slope. The landscape matters.*
+
+==== Example Prompts
+
+* "Minimize the loss on this training data." — _Gradient descent: follow negative gradient; local vs. global optimum_
+* "Train this model." — _Training loop: forward, loss, backward, update—SGD, Adam_
+* "Why did training get stuck?" — _Non-convex landscape; initialization; learning rate_
+
+==== Conceptual Core
+
+[.algorithm]
+****
+*Gradient Descent*
+.Input: Loss function L(θ), initial parameters θ₀, learning rate α
+.Output: Parameters θ that (locally) minimize L
++
+1. θ ← θ₀
+2. Repeat until convergence (or max iterations):
+   a. Compute gradient g ← ∇_θ L(θ)
+   b. Update θ ← θ − α·g
+3. Return θ
++
+*Variants*: *SGD* (one example per update), *minibatch* (small subset), *Adam* (adaptive α per parameter). See AIMA <<RussellNorvig2020>>.
+****
+
+Linear regression predicts a continuous target, while logistic regression predicts a probability for binary classification.  For regression we typically use **Mean Squared Error (MSE)** as the loss; for classification we use **cross‑entropy**.  Gradient descent starts from random weights, computes the gradient of the chosen loss with respect to the weights, and steps opposite the gradient.  Repeating this process drives the parameters toward a minimum of the loss surface.
+
+The shape of the loss surface determines what the optimizer can achieve.  In **convex** problems—such as ordinary least‑squares linear regression—the loss has a single global minimum, and any gradient‑descent trajectory converges to it.  In **non‑convex** problems—typical of deep neural networks—the surface contains many valleys, saddles, and plateaus; the algorithm may settle in a local minimum or wander around a saddle point.
+
+The **training loop** is universal across model families.  Each iteration loads a batch, performs a forward pass to compute predictions, evaluates the loss, runs a backward pass to obtain gradients, and finally updates the parameters.  This same scaffold underlies linear models, boosted trees, and deep nets.  Our `ml_trainer` will embody this loop, exposing the model, loss, and optimizer as configurable components.
+
+The gradient points toward steepest ascent; we move in the opposite direction.  Yet the local optimum we reach may not be the lowest valley.  Understanding the loss landscape—and how our choices of learning rate, batch size, and optimizer shape the trajectory—gives us the tools to steer toward better solutions.
+
+===== Key Points
+
+* Linear regression (MSE) and logistic regression (cross‑entropy)  
+* Gradient descent steps opposite the gradient  
+* Convex loss → guaranteed global minimum; non‑convex → possible local minima or saddles  
+* Training loop: load batch → forward → loss → backward → update  
+* Optimizer variants: SGD, minibatch, momentum, Adam  
+* Landscape awareness guides hyper‑parameter choices  
+
+==== Technical Example
+
+Implement gradient descent for linear regression.  Initialize the weight vector, then iterate: compute predictions, evaluate MSE loss, compute the gradient, and update the weights.  Visualize the learning process by plotting loss versus iteration and by drawing the trajectory on a 2‑D contour map of the loss surface.
+
+* **Predict**:  ŷ = X·θ  
+* **Loss**:  L(θ) = (1/2n)‖y − Xθ‖²  
+* **Gradient**:  ∇L(θ) = (1/n)Xᵀ(Xθ − y)  
+* **Update**:  θ ← θ − α·∇L(θ)  
+
+Key observations to explore:
+
+* Plot loss vs. iteration for several learning‑rate values (too small → slow, too large → divergence).  
+* Render a contour plot of the loss surface in the (θ₁, θ₂) plane and overlay the descent trajectory.  
+* Compare **batch gradient descent** (full‑batch) with **stochastic gradient descent** (single example) and **mini‑batch** (e.g., 32 examples).  
+* Experiment with a **learning‑rate schedule** (e.g., decay) and observe its effect on convergence speed.  
+* Contrast the behavior of **SGD** versus **Adam** on the same problem.  
+
+Lab 2 asks you to turn this pattern into a generic `ml_trainer` that can plug in any model, loss, and optimizer, logging loss per epoch and saving checkpoints.
+
+===== Key Points
+
+* Implement predict, loss, gradient, update steps  
+* Visualize loss convergence and descent path on a contour map  
+* Test learning‑rate values, schedules, and optimizer choices (SGD vs. Adam)  
+* Lab 2: build a configurable training loop with logging and checkpointing  
+
+==== Philosophical Reflection
+
+Local vs. global optimum: gradient descent follows the steepest downhill direction, but in a rugged landscape it may settle in a valley that is not the deepest.  The distinction between **local minima** and **saddle points** matters—saddles can trap naive optimizers, while modern methods (e.g., momentum, Adam) help escape them.
+
+Optimization as a metaphor for learning: we improve incrementally, measuring loss (error) and adjusting our hypotheses.  Yet we rarely achieve a perfect, globally optimal theory; instead we **satisfic**—find a solution good enough for the task at hand.  This raises ethical questions: when is a satisficing model acceptable, and when does the cost of sub‑optimality outweigh the benefits?
+
+The shape of the loss surface is not accidental; it reflects our **inductive biases** (model architecture, regularization, feature engineering).  By reshaping the landscape—adding regularization, changing activation functions—we can make the optimization problem easier and guide the gradient toward more desirable solutions.
+
+===== Key Points
+
+* Local minima vs. saddle points – gradient descent may stall at either  
+* Optimization as an incremental learning metaphor; satisficing vs. optimizing  
+* Ethical considerations of deploying satisficing models  
+* Inductive bias shapes the loss landscape and influences convergence  
+
+.Figure 4.2: Training‑loop diagram
+[plantuml,ch04-l02,png,theme=sketchy-outline]
+....
+@startuml
+start
+:Initialize θ₀;
+repeat
+  :Forward pass → compute L(θ);
+  :∇L(θ) = gradient(L,θ);
+  :θ ← θ – α·∇L(θ);
+  :Log loss;
+repeat while (not converged?)
+stop
+@enduml
+....
+
+.Figure 4.2b: Loss surface and descent trajectory
+[plantuml,ch04-l02-surface,png,theme=sketchy-outline]
+....
+@startuml
+skinparam backgroundColor #FDF6E3
+scale 1.2
+title Loss surface (θ₁, θ₂) with GD trajectory
+rectangle "Contour plot\n(θ₁,θ₂)" as C
+rectangle "Descent arrow\n→" as A
+C -right-> A
+@enduml
+....
+
+==== Discussion Prompts
+
+* When does gradient descent get stuck? How do we escape?
+* Is "following the gradient" a good metaphor for learning?
+* Why does Adam often work better than vanilla SGD?
+* When is satisficing acceptable vs. optimizing?
+* How does the training loop in Lab 2 connect to the ml tool architecture?
+* For what problems is convex optimization sufficient?
+
+==== Lab Prep
+
+Lab 2 (ML — Model Training and Evaluation): implement the training loop for the `ml_trainer`. The loop should support a configurable model, loss, and optimizer. Log loss per epoch, save checkpoints, and optionally plot loss curves. See the Lab 2 specification for detailed requirements.
+
+===== Key Points
+
+* Lab 2: generic training loop—model, loss, optimizer  
+* Log loss each epoch, save checkpoints, visualize convergence  
+
+In the next lecture we will explore how **regularization** reshapes the loss surface, often turning a non‑convex problem into one that behaves more like a convex one.
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch04,Chapter 4>>).

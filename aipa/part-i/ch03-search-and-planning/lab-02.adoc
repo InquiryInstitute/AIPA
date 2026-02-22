@@ -1,0 +1,44 @@
+=== Lab 2: Search — Uninformed and Informed Algorithms
+:leveloffset: 2
+
+*Milestone toward: Search Engine (tool)*
+
+==== Tool Deliverable
+
+Extends tool server `search` with BFS, DFS, A* implementations. Agent invokes `search` tool with algorithm and problem spec via tool invocation.
+
+==== Prerequisites
+
+* Complete Lab 1 (problem formulation)
+* Review 3.2–3.3: BFS, DFS, A*; heuristics; admissibility
+
+==== Objectives
+
+* Implement BFS, DFS, iterative deepening
+* Implement A* with admissible heuristics
+* Compare performance on benchmark problems
+
+==== Steps
+
+. Implement BFS and DFS using a generic graph interface (frontier as queue or stack). Use the problem formulations from Lab 1.
+. Implement iterative deepening: for depth d = 1, 2, 3, ... run DFS with depth limit; return first solution found.
+. Implement A* with an admissible heuristic. For grid navigation, use Manhattan distance; for 8-puzzle, use misplaced tiles or similar.
+. Run benchmark problems: measure nodes expanded, solution length, runtime. Compare BFS vs DFS vs A*.
+. Optionally: implement minimax with alpha-beta for a simple game (e.g., tic-tac-toe).
+. Submit: search algorithm implementations, benchmark results and analysis, submodule into student-ai/.
+
+==== Deliverables
+
+* Search algorithm implementations
+* Benchmark results and analysis
+* Submodule into student-ai/
+
+*Acceptance criteria:*
+* BFS finds shortest path (when applicable); DFS finds a path
+* A* returns optimal solution for at least one domain with admissible heuristic
+* Benchmark results document nodes expanded and solution quality for 2+ algorithms
+* Code integrates with Lab 1 problem interface
+
+==== Lab Prep
+
+* Review 3.2–3.3: BFS, DFS, A*; admissibility

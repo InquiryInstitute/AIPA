@@ -1,0 +1,7 @@
+=== Exercises
+
+. *Conceptual* Explain the bias-variance tradeoff. When would you increase model capacity? When would you add regularization?
+. *Conceptual* Why do we need a separate validation set? What happens if we use the test set for model selection?
+. *Computational* Fit a linear model to synthetic data. Plot training vs. validation loss over epochs. Add polynomial features and observe overfitting.
+. *Computational* Implement stratified train/val/test split for a classification dataset. Verify class ratios are preserved.
+. *Design* Design an ml_trainer config schema: model_type, data_path, hyperparameters, metrics. What would an agent need to specify to request training?

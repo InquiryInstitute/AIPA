@@ -1,0 +1,4 @@
+= Part I: Foundations of Intelligence as System
+:part:
+
+This part establishes what intelligence is—historically, structurally, and practically. It introduces the classical foundations of AI while seeding the capstone vision: the student's own AI agent.

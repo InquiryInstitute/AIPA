@@ -1,0 +1,28 @@
+python
+def anytime_a_star(start, goal, graph, h, max_time=None):
+    open_set = PriorityQueue()
+    open_set.put((h(start), start, []))   # (f‑value, node, path)
+    best_path = None
+    start_time = time.time()
+
+    while not open_set.empty():
+        # Enforce a hard timeout if requested
+        if max_time is not None and time.time() - start_time > max_time:
+            break
+
+        f, node, path = open_set.get()
+        path = path + [node]
+
+        if node == goal:
+            best_path = path               # first goal is the current best
+            # continue searching for better paths
+        # expand neighbours
+        for succ, cost in graph.neighbours(node):
+            g = sum(edge_cost for edge_cost in path_costs(path + [succ]))
+            open_set.put((g + h(succ), succ, path))
+
+        # Periodic early‑return check (every 10 expansions)
+        if open_set.qsize() % 10 == 0 and best_path is not None:
+            yield best_path, f               # current best quality
+
+    return best_path

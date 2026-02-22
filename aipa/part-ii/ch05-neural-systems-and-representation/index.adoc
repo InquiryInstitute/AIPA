@@ -1,0 +1,51 @@
+= Chapter 5: Neural Systems and Representation
+
+This chapter covers neural systems: perceptrons and linear boundaries, multilayer networks and backpropagation, training dynamics (vanishing gradients, initialization, batch norm), convolutional networks, regularization (dropout, augmentation), GPU acceleration, and the neural_classifier as a tool. The neural classifier—create_architecture, train, predict, export—integrates into student-ai/ and bridges to Ch6 (LLM). Representation is learned, not programmed. Labs 1–3 build architecture, training with init and regularization, and the end-to-end neural classifier. By chapter end, the agent can train and use neural classifiers for custom tasks.
+
+==== Learning Objectives
+After this chapter you will be able to:
+* Explain perceptrons, linear separability, and multilayer networks
+* Implement backpropagation and understand vanishing gradients, initialization, batch norm
+* Use CNNs, dropout, and data augmentation
+* Build the neural_classifier tool (create_architecture, train, predict, export)
+
+==== Course Learning Outcomes (CLOs)
+By the end of this course, you will be able to:
+* Explain perceptrons, linear separability, and multilayer networks (PLO 1).
+* Implement backpropagation and understand vanishing gradients, initialization, batch norm (PLO 2).
+* Use CNNs, dropout, and data augmentation (PLO 2).
+* Build the neural_classifier tool (create_architecture, train, predict, export) (PLO 2).
+
+include::lecture-01.adoc[]
+include::lecture-02.adoc[]
+****
+include::lab-01.adoc[]
+****
+
+include::lecture-03.adoc[]
+include::lecture-04.adoc[]
+include::lecture-05.adoc[]
+****
+include::lab-02.adoc[]
+****
+
+include::lecture-06.adoc[]
+include::lecture-07.adoc[]
+****
+include::lab-03.adoc[]
+****
+
+include::lecture-08.adoc[]
+
+==== Chapter Summary
+Neural networks learn representations rather than following programmed rules. Perceptrons, multilayer nets, backprop, and CNNs form the substrate. The neural_classifier tool extends the agent. These representations bridge to language models (Ch6) and embeddings for memory (Ch7).
+
+==== Further Reading
+Readings for this chapter are collected in the <<reading-list,Reading List>> (<<reading-ch05,Chapter 5>>).
+
+* LeCun, Bengio & Hinton, "Deep Learning" <<LeCun2015>> — Survey of deep learning.
+* Rumelhart et al., "Back-Propagating Errors" <<Rumelhart1986>> — Backprop algorithm.
+* Krizhevsky et al., "ImageNet" <<Krizhevsky2012>> — CNNs for vision.
+* Rosenblatt, "Perceptron" <<Rosenblatt1958>> — Original perceptron.
+
+include::exercises.adoc[]

@@ -1,0 +1,208 @@
+=== 11.1: Governance — Policies and Constraints
+:leveloffset: 2
+
+[.epigraph]
+"Power is exercised through norms."
+— Foucault, _Discipline and Punish_ <<Foucault1975>>
+
+*Governance structures what the AI can and cannot do.*
+
+==== Example Prompts
+
+* "Don't output PII." — _Policies: rules, constraints; compliance check_
+* "Rate limit to 10 requests per minute." — _Governance: what is allowed, what is prohibited_
+* "Check if this action is allowed." — _Before/after compliance; policies define the system_
+
+==== Conceptual Core
+
+Imagine a popular health‑advice chatbot that, during a routine conversation, accidentally returns a user’s full Social Security Number because a developer forgot to enable the “no‑PII” rule. The breach makes headlines, regulators issue fines, and the provider’s reputation collapses overnight. The question that follows is not *how* to block the offending output, but *what* rule should have existed in the first place and *who* should have been responsible for writing it. This incident illustrates the core claim of this chapter: governance does not sit on the periphery of an AI system—it *constitutes* the system by defining the very actions it may or may not perform.
+
+Policies are the explicit statements of what an AI system is permitted to do and what it is forbidden to do. They can be expressed as allow‑lists (e.g., “permit calls to the weather API”) or block‑lists (e.g., “prohibit any output that matches a PII regex”). A policy’s **scope** determines which components, users, or data domains it applies to, while its **type** (allow vs. block) determines whether the default behavior is permissive or restrictive. The moment a policy is loaded into the system, the system’s *behavioural envelope* is reshaped; a chatbot that cannot emit PII is fundamentally a different artifact than one that can.
+
+Compliance is the operational check that the system respects its policies. Two complementary moments exist: *pre‑action* compliance, where a request is evaluated before any computation or output occurs, and *post‑action* compliance, where the result is audited after the fact. Pre‑action checks can prevent harmful actions at the cost of added latency; post‑action checks preserve responsiveness but require robust logging and remediation mechanisms. The trade‑off between safety and latency is a central design tension that every governance engineer must negotiate.
+
+Representing policies in a machine‑readable form is a prerequisite for automated enforcement. Three broad families exist:
+
+1. **Formal logical rules** (e.g., first‑order logic) that are mathematically precise but brittle when the world changes.
+2. **Structured declarative formats** such as JSON, YAML, or domain‑specific languages (DSLs) that strike a balance between readability and executability.
+3. **Embedded code** (e.g., Python functions) that offers maximal flexibility but blurs the line between policy and implementation.
+
+In practice, most production systems adopt a hybrid approach: a declarative schema defines the policy metadata (id, type, condition, scope), while a lightweight interpreter executes the condition as code or a rule engine. The schema you will design in the lab becomes the contract between policy authors and the enforcement engine.
+
+Finally, the political dimension of governance cannot be ignored. Who writes the policies? Designers, corporate legal teams, external regulators, or end‑users? Each stakeholder brings different priorities—risk mitigation, market agility, compliance, or personal autonomy. The governance tool you build will encode these choices, making the power dynamics visible and, ideally, subject to democratic oversight.
+
+===== Key Points
+
+* Governance *constitutes* the AI system, not merely constrains it.  
+* Policies are allow‑/block‑lists with explicit scope and type.  
+* Compliance can be pre‑action (preventive) or post‑action (audit).  
+* Representation choices: formal logic, declarative DSL, embedded code.  
+* Trade‑off matrix: safety vs. latency, precision vs. flexibility.  
+* Policy authorship is a political decision that shapes power relations.
+
+==== Technical Example
+
+Below is a minimal policy engine written in pseudo‑Python. The engine loads a JSON policy store, evaluates a request against each applicable policy, and returns a decision together with an audit record.
+
+```python
+# policy_engine.py
+import json, re, time
+from collections import defaultdict
+
+class PolicyEngine:
+    def __init__(self, policy_path):
+        with open(policy_path) as f:
+            self.policies = json.load(f)          # list of policy dicts
+        self.rate_counters = defaultdict(list)   # user_id → timestamps
+
+    def _match_condition(self, policy, request):
+        cond = policy["condition"]
+        if cond["type"] == "no_pii":
+            return not re.search(r'\b\d{3}-\d{2}-\d{4}\b', request["output"])
+        if cond["type"] == "rate_limit":
+            now = time.time()
+            window = cond["window_seconds"]
+            limit = cond["max_requests"]
+            timestamps = self.rate_counters[request["user_id"]]
+            # keep only recent timestamps
+            timestamps = [t for t in timestamps if now - t < window]
+            self.rate_counters[request["user_id"]] = timestamps
+            return len(timestamps) < limit
+        if cond["type"] == "tool_blocklist":
+            return request["tool"] not in cond["blocked_tools"]
+        return True   # default allow
+
+    def evaluate(self, request):
+        """Pre‑action check: returns (allowed: bool, violations: list)"""
+        violations = []
+        for p in self.policies:
+            if request["component"] not in p["scope"]:
+                continue
+            if not self._match_condition(p, request):
+                violations.append(p["policy_id"])
+        allowed = len(violations) == 0
+        audit = {"request_id": request["id"], "allowed": allowed,
+                 "violations": violations, "timestamp": time.time()}
+        return allowed, audit
+```
+
+Consider three policies stored in `policies.json`:
+
+```json
+[
+  {
+    "policy_id": "p1",
+    "type": "block",
+    "condition": {"type": "no_pii"},
+    "scope": ["chatbot"]
+  },
+  {
+    "policy_id": "p2",
+    "type": "block",
+    "condition": {"type": "rate_limit", "max_requests": 10, "window_seconds": 60},
+    "scope": ["chatbot"]
+  },
+  {
+    "policy_id": "p3",
+    "type": "block",
+    "condition": {"type": "tool_blocklist", "blocked_tools": ["web_scraper"]},
+    "scope": ["orchestrator"]
+  }
+]
+```
+
+A request from user *alice* that asks the chatbot to output “My SSN is 123‑45‑6789” triggers the `no_pii` policy, causing the engine to return `allowed = False` and record a violation. Conversely, a rapid burst of 12 requests within a minute will violate the rate‑limit policy *p2*; the engine will still let the first ten pass (pre‑action allowed) and then block the remainder. Finally, if the orchestrator attempts to invoke the prohibited `web_scraper` tool, policy *p3* blocks the call before any external request is made. In each case, the audit record can be persisted for post‑action analysis, enabling compliance teams to trace who violated which rule and when.
+
+The lab will ask you to extend this engine with a *post‑action* audit hook that flags violations discovered after output generation (e.g., a downstream profanity filter that fires after the main model response). You will also implement conflict resolution when two policies disagree (e.g., an allow‑list that permits a tool that a block‑list forbids).
+
+===== Key Points
+
+* Policy schema includes `policy_id`, `type`, `condition`, `scope`.  
+* Pre‑action evaluation prevents violations at the cost of latency.  
+* Post‑action audit captures missed violations and supports remediation.  
+* Rate‑limit counters illustrate stateful policies.  
+* Conflict resolution strategies (priority, last‑write‑wins) are required.  
+* Lab extension: add post‑action hook and conflict handling.
+
+==== Philosophical Reflection
+
+If a system cannot output PII because the rule is baked into its definition, the system is *ontologically* different from one that could. Governance, therefore, is not a peripheral safety net; it is a constitutive force that shapes the very identity of the AI artifact. This view aligns with Foucault’s insight that power operates through norms that become internalized, making the governed subject act as if the constraint were self‑imposed.
+
+Who wields that power? In a corporate setting, policy authors are typically legal counsel or product managers, guided by regulatory mandates such as the EU AI Act or sector‑specific standards (HIPAA, PCI‑DSS). In open‑source ecosystems, the community may vote on policy defaults, but the final enforcement code resides in the hands of maintainers. The distribution of authorship therefore determines whose values are encoded—risk‑averse compliance, market‑driven agility, or user‑centric autonomy. A contentious scenario emerges when an emergency user requests the system to reveal a hidden piece of personal data to avert harm; should a rigid “no‑PII” policy be overridden, and who decides that exception?
+
+These tensions foreshadow the next dimensions of governance we will explore: cost constraints (how budget limits become policy decisions), fairness and bias (who bears the burden of policy failures), and rigorous evaluation (how we know a policy works). By recognizing that every rule is a political act, we can design governance tools that make those decisions transparent, auditable, and, where possible, contestable.
+
+===== Key Points
+
+* Governance *creates* the AI’s ontology, not merely *limits* it.  
+* Power resides in the actors who author policies (designers, regulators, users).  
+* Norms become internalized constraints that shape system behaviour.  
+* Emergency overrides raise ethical dilemmas about rigidity vs. flexibility.  
+* Upcoming sections will connect policies to cost, fairness, and evaluation.  
+* Transparency and auditability are essential for democratic oversight.
+
+.Figure 11.1: Policy evaluation and compliance flow
+[plantuml,ch11-l01,png,theme=sketchy-outline]
+....
+@startuml
+skinparam rectangle {
+  BackgroundColor<<PolicyStore>> LightYellow
+  BorderColor Black
+}
+skinparam diamond {
+  BackgroundColor LightBlue
+}
+skinparam arrow {
+  FontColor Black
+}
+title Policy Evaluation and Compliance Flow
+
+rectangle "Policy Store\n(JSON/DSL)" <<PolicyStore>> as PS
+rectangle "Request\n(user_id, component, …)" as REQ
+diamond "Policy satisfied?" as DEC
+rectangle "Allow\n(proceed to model)" as ALLOW
+rectangle "Block\n(return error)" as BLOCK
+rectangle "Post‑action Audit\n(log, report)" as AUDIT
+
+REQ --> PS : load applicable policies
+REQ --> DEC : evaluate conditions
+DEC --> ALLOW : yes
+DEC --> BLOCK : no
+ALLOW --> AUDIT : log success
+BLOCK --> AUDIT : log violation
+AUDIT --> REQ : response to caller
+@enduml
+....
+
+==== Discussion Prompts
+
+* Who should write AI governance policies, and how can we ensure diverse perspectives are represented?  
+* How do we decide which policies deserve pre‑action enforcement versus post‑action auditing?  
+* In a latency‑sensitive service, when is it acceptable to sacrifice safety for speed?  
+* How does governance interact with the orchestrator mechanisms described in Chapter 10?  
+* In what ways can the guardrails from Chapter 9 be unified with the policy engine introduced here?  
+* When might external, third‑party governance (e.g., regulatory certification) be preferable to an internal, built‑in solution?
+
+==== Lab Prep
+
+In Lab 1 you will implement a **Policy Schema** and a **Policy Engine** that can load, evaluate, and audit policies defined in a JSON DSL. Your tasks include:
+
+* Defining a schema with fields `policy_id`, `type` (allow/block), `condition` (structured expression), `scope`, and optional `priority`.  
+* Implementing pre‑action checks for the three example policies (PII, rate‑limit, tool blocklist).  
+* Extending the engine with a post‑action audit hook that records any violations discovered after model generation.  
+* Designing a conflict‑resolution strategy when multiple policies apply to the same request.  
+* Writing unit tests that simulate both compliant and non‑compliant scenarios, and measuring the latency impact of pre‑action checks.
+
+These deliverables will give you a concrete artifact that you will reuse in later labs when we explore cost‑governance, fairness constraints, and automated evaluation pipelines.
+
+===== Key Points
+
+* Build a JSON‑based policy schema (id, type, condition, scope, priority).  
+* Implement pre‑action evaluation for PII, rate‑limit, and tool blocklist.  
+* Add post‑action audit logging and violation reporting.  
+* Resolve policy conflicts with a deterministic priority rule.  
+* Test compliance paths and measure latency overhead.  
+* Prepare the engine for integration with cost and fairness modules.
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch11,Chapter 11>>).

@@ -1,0 +1,113 @@
+=== 11.8: Lab Integration — AI Governance Simulator
+:leveloffset: 2
+
+[.epigraph]
+"To govern is to anticipate."
+— Foucault, _Power/Knowledge_ <<Foucault1980>> (governance as future‑oriented)
+
+*What if your agent, on its very first day of launch, accidentally exceeds a hard cost cap and triggers a costly shutdown?* The governance simulator lets you **run that scenario before you ever deploy**, so you can redesign policies, adjust limits, and avoid costly surprises.
+
+==== Example Prompts
+
+* "Deploy with governance." — _Capstone: policies, compliance, scenarios—governed agent_
+* "Run institutional scenarios." — _governance tool: define, check, simulate, report_
+* "What does governed deployment mean?" — _Governance built in; future‑oriented_
+
+==== Conceptual Core
+
+The simulator lets you run governance before you deploy. Instead of discovering policy gaps in production, you define policies, run scenarios (cost, fairness, epistemic impact), and integrate the governance simulator into the agent so it can check itself. This lecture recaps the chapter, ties the governance simulator to the capstone, and frames governed deployment as building governance in—not bolting it on. Ch12 will deploy the full stack; here we complete the institutional layer.
+
+*Recap:* Chapter 11 has covered policies and constraints, cost control and rate limiting, responsible AI (fairness, bias, transparency), experimental rigor (A/B testing), GPU‑backed evaluation (latency, cost, quantization), and epistemology and infrastructure. The *governance simulator*—`define_policy`, `check_compliance`, `simulate`, `report`—embodies these in a single interface the agent (and operator) can invoke. It belongs in `student-ai/` alongside memory, reasoning, and the orchestrator. The capstone does not “add” governance at the end; it deploys with governance integrated from the start.
+
+*The governed agent*: governance is not external—it is built in. The agent calls `check_compliance` before sensitive actions; it can run `simulate` to test scenarios; it can `report`. From tool to institution: the governance simulator encodes institutional requirements (policies, limits, epistemic and fairness considerations). The agent operates within a structure of accountability. To govern is to anticipate (Foucault, <<Foucault1980>>): we define policies for scenarios we foresee, and the simulator lets us test those scenarios before deployment. Governance is future‑oriented—and the capstone is the place where it becomes concrete.
+
+*Step‑by‑step use case*: First, you **define a policy** (e.g., “no more than $5 K of API spend per day”). Next, you **run a high‑traffic simulation** that stresses the agent with a burst of requests. The simulator **generates a compliance report** showing where the policy was violated, the associated cost, latency, and fairness metrics. Finally, you **iterate**—adjust the policy thresholds or add rate‑limiting logic, re‑run the simulation, and repeat until the report shows zero violations. When you are satisfied, the governed agent is ready for the capstone deployment.
+
+===== Key Points
+
+* Recap: policies, cost, fairness, A/B, evaluation, epistemology, governance simulator
+* Governance simulator in `student-ai/`: `define_policy`, `check_compliance`, `simulate`, `report`
+* Ch12: capstone deploys with governance integrated
+* Governed agent: governance built in, not bolted on
+* Simulator: run governance before deploy; anticipate scenarios
+* Future‑oriented; capstone = governed system
+
+==== Technical Example
+
+End‑to‑end: the agent uses the governance simulator for compliance checks. Before sensitive actions (e.g. paid API call, user data write), it calls `check_compliance`; if blocked, it does not proceed or escalates. Run institutional scenarios in the simulator: e.g. audit (who did what), oversight (did we stay within policy?), redress (what if a user disputes?). The simulator reports outcomes—violations, cost, latency—so you can tune policies and document assumptions.
+
+Lab 3: Complete Labs 1–3 for Chapter 11. Submit the governance simulator. Integrate it with the agent so the agent invokes governance in the loop. Prepare for Ch12: the capstone deploys the full stack—orchestrator, tools, memory, reasoning—with governance integrated. The deliverable is a **live governed system**, not a system with governance added later.
+
+===== Key Points
+
+* Agent checks compliance before sensitive actions; block → do not proceed or escalate
+* Log every compliance decision for auditability
+* Visualize simulator output (cost, latency, fairness dashboards)
+* Version policies and retain change history
+* Automated testing pipeline re‑runs simulations on every code change
+* Run institutional scenarios: audit, oversight, redress; tune policies from outcomes
+* Lab 3: complete Labs 1–3, submit simulator, integrate; prepare Ch12
+* Capstone = full stack with governance integrated
+
+==== Philosophical Reflection
+
+The governed agent is one that has governance built in—we do not bolt it on after the fact. The governance simulator encodes institutional norms: what is allowed, what is capped, what must be checked. The agent operates within that structure; it can refuse to act when policy forbids it. Ch12 deploys this: the capstone is a governed system. Evidence‑based governance means we use the simulator to test scenarios and document what we expect—latency, cost, fairness, epistemic impact—before we deploy. That is what “governed deployment” means: not compliance as an afterthought, but governance as part of the design. **Governance thus becomes a form of ethical self‑regulation rather than external policing.**
+
+===== Key Points
+
+* Governance built in; not compliance as afterthought
+* Governance simulator encodes institutional norms; agent operates within structure
+* Evidence‑based: simulator tests scenarios, documents expectations before deploy
+* Capstone = governed system; Ch12 completes the arc
+* Governance as ethical self‑regulation, not merely external policing
+
+.Figure 11.8: governance and capstone deployment
+[plantuml,ch11-l08,png,theme=sketchy-outline]
+....
+@startuml
+skinparam backgroundColor #F9F9F9
+start
+:Define policies;
+:Initialize Governance Simulator;
+partition Agent {
+    :check_compliance();
+    if (Compliant?) then (yes)
+        :Proceed with action;
+    else (no)
+        :Escalate / Block;
+    endif
+}
+:Run Simulation (scenario);
+:Generate Report;
+if (Policy tweak needed?) then (yes)
+    :Update policies;
+    repeat
+        :Re‑run Simulation;
+    repeat while (still violations?)
+endif
+:Capstone Deploy (governed);
+stop
+@enduml
+....
+
+==== Discussion Prompts
+
+* What does "governed deployment" mean?
+* How does governance change the capstone?
+* Who is accountable when the governed agent errs?
+* How does the capstone integrate governance requirements?
+* How does governance complete the institutional layer for `student-ai/`?
+* When does governed deployment limit vs. enable the capstone?
+
+==== Lab Prep
+
+Complete Labs 1–3 for Chapter 11. Submit the governance simulator. Integrate with the agent. Prepare for the Ch12 capstone—the capstone deploys the full stack with a **live governance layer** that the agent calls automatically. See Lab 3 for requirements.
+
+===== Key Points
+
+* Complete Labs 1–3
+* Submit governance simulator
+* Prepare Ch12 capstone with live governance layer
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch11,Chapter 11>>).

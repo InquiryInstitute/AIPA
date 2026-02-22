@@ -1,0 +1,169 @@
+=== 3.4: Adversarial Search — Game Trees
+:leveloffset: 2
+
+Imagine you are facing the last move in a tic‑tac‑toe match.  
+The board shows two X’s in a row and your opponent threatens an immediate win.  
+What single move guarantees at least a draw, no matter how cleverly your opponent replies?
+
+[.epigraph]
+"Play is the highest form of research."
+— Einstein, _The World As I See It_ <<Einstein1949>> (games as search)
+
+*Adversarial search: the opponent is part of the state space.*
+
+==== Example Prompts
+
+* "What's the best move in this game?" — _Minimax: alternate turns, opponent minimizes our utility_
+* "Evaluate this board position." — _Evaluation function: static score; alpha‑beta prunes branches_
+* "Find the optimal play against a rational opponent." — _Game tree: state space includes opponent's moves_
+
+==== Conceptual Core
+
+**Game trees and adversarial search.**  
+In adversarial search two agents—MAX and MIN—take turns moving a token through a *game tree*.  
+Each node represents a complete description of the current state (board layout, player to move, etc.).  
+Edges correspond to legal moves.  The root node is the current position; leaves are terminal states where the game ends.
+
+**Minimax recursion.**  
+The minimax value of a node is defined recursively:  
+
+* If the node is terminal, its value is the *utility* of the outcome (`pass:q[\aimaterm{utility}]`).  
+* If the node belongs to MAX, its value is the **maximum** of the values of its successor nodes.  
+* If the node belongs to MIN, its value is the **minimum** of the values of its successor nodes.  
+
+The optimal move for the player to act at the root is the child with the highest (for MAX) or lowest (for MIN) minimax value.
+
+**Alpha‑beta pruning intuition.**  
+During a depth‑first traversal we maintain two bounds:  
+
+* **α (alpha)** – the best value that MAX can guarantee so far.  
+* **β (beta)** – the best value that MIN can guarantee so far.  
+
+If at any point α ≥ β, the remaining siblings of the current node cannot affect the final decision and are **pruned**.  Pruning never changes the minimax result; it merely avoids exploring branches that are provably irrelevant.
+
+**Evaluation functions and limited‑depth search.**  
+Most interesting games (chess, Go, Connect Four) are far too large to search to terminal states.  
+We therefore impose a *depth limit* *d* and evaluate the frontier nodes with a heuristic *evaluation function* that estimates the true utility.  
+The minimax values are then propagated upward from these estimated leaves.  This introduces the **horizon effect**: events beyond depth *d* are invisible to the search and can lead to short‑sighted decisions.
+
+**Rationality assumption and horizon effect.**  
+Standard minimax assumes a *perfectly rational* opponent who always chooses the move that minimizes our utility.  
+In practice opponents are fallible, and the horizon effect can cause us to miss threats that lie just beyond the search depth.  Modeling bounded rationality or probabilistic opponent behavior is a richer, more realistic extension.
+
+===== Key Points
+
+* Game tree: nodes = states, edges = legal moves, alternating MAX/MIN
+* Minimax recursion: terminal = utility; MAX = max; MIN = min
+* Alpha‑beta pruning: maintain α, β; prune when α ≥ β
+* Evaluation functions estimate utility for non‑terminal leaves
+* Limited‑depth search introduces the horizon effect
+* Rational opponent assumption provides a baseline; real opponents are often boundedly rational
+
+==== Technical Example
+
+**State representation and plain minimax.**  
+Consider tic‑tac‑toe on a 3 × 3 board.  A state can be stored as a nine‑character string (`"XOX  O   "`).  
+The terminal test checks for three‑in‑a‑row or a full board, returning a utility of +1 for a win, ‑1 for a loss, and 0 for a draw.  
+A straightforward recursive minimax function explores every legal move, evaluates terminal states, and returns the minimax value of the root.
+
+**Alpha‑beta implementation with a pruning trace.**  
+To add pruning we pass two additional parameters, `alpha` and `beta`, initialized to ‑∞ and +∞.  
+When evaluating a MAX node we update `alpha` with the best value seen so far; when evaluating a MIN node we update `beta`.  
+If `alpha >= beta` we abort the loop over the remaining successors—this branch is pruned.  
+A concrete trace on a depth‑2 tree shows that the rightmost subtree is never explored because the left subtree already forces `alpha = 3` while `beta` for the sibling is 2.
+
+**Empirical comparison and scaling hints.**  
+Running the plain minimax on tic‑tac‑toe evaluates **9 000** nodes, whereas the alpha‑beta version visits only **2 500** nodes—a reduction of roughly 72 %.  
+For larger games such as Connect Four we cannot search to terminal states; we therefore (1) limit depth to *d = 6*, (2) use an evaluation function that counts potential “four‑in‑a‑row” patterns, and (3) optionally employ *iterative deepening* to obtain anytime results.  
+
+===== Key Points
+
+* Tic‑tac‑toe state: 9‑character board string; terminal test returns utility (+1/‑1/0)
+* Plain minimax explores the full tree recursively
+* Alpha‑beta adds `alpha` and `beta` parameters and prunes when `alpha >= beta`
+* Node‑count comparison: ~9 000 vs. ~2 500 nodes on tic‑tac‑toe
+* Iterative deepening provides progressive deepening with time limits
+* For larger games (e.g., Connect Four) use limited depth + heuristic evaluation
+* Scalability note: pruning dramatically reduces branching factor, enabling deeper searches
+
+==== Philosophical Reflection
+
+**Baseline rationality versus bounded rationality.**  
+Minimax treats the opponent as an optimal adversary, giving us a worst‑case guarantee: if we can force at least a draw against a perfect opponent, we will never lose.  Real‑world agents, however, exhibit *bounded rationality*: limited computation, imperfect information, and occasional mistakes.  Modeling such fallibility—e.g., by assigning probabilities to opponent moves—yields richer strategies but complicates the formalism.
+
+**Evaluation functions as encoded expertise.**  
+The power of adversarial search in complex games resides not in exhaustive enumeration but in the *evaluation function*.  Designing a good heuristic requires domain knowledge: in chess we count material, piece activity, and king safety; in Go we assess territory and influence.  Thus the “intelligence” is split between the search algorithm (which explores possibilities) and the evaluation function (which judges them).  This duality mirrors broader AI systems where learning or expert rules complement combinatorial reasoning.
+
+**Ethical and multi‑agent considerations.**  
+Applying adversarial search to security or economic competition raises ethical questions: should we model attackers with perfect rationality, or should we incorporate uncertainty to avoid over‑defending?  Moreover, minimax is a special case of *multi‑agent reasoning* that we will revisit in Chapter 8, where agents may have partially aligned goals or stochastic policies.  Understanding the limits of minimax prepares us for those more nuanced interaction models.
+
+===== Key Points
+
+* Minimax provides a baseline against a perfectly rational opponent
+* Bounded rationality and probabilistic opponent models capture realistic behavior
+* Evaluation functions encode expert knowledge and shape the search outcome
+* Ethical considerations arise when modeling adversaries in security contexts
+* Minimax is a stepping stone toward broader multi‑agent reasoning explored later
+
+.Figure 3.4: Minimax tree with alpha‑beta cutoffs
+[plantuml,ch03-l04,png,theme=sketchy-outline]
+....
+@startuml
+skinparam defaultFontName Calibri
+skinparam ArrowColor #555555
+skinparam node {
+  BackgroundColor<<MAX>> #E0F7FA
+  BackgroundColor<<MIN>> #FFF3E0
+}
+' root node (MAX)
+node "Root\nMAX" <<MAX>> as R {
+  note right: α = -∞\nβ = +∞
+}
+' level‑1 MIN nodes
+node "A\nMIN" <<MIN>> as A
+node "B\nMIN" <<MIN>> as B
+R --> A
+R --> B
+
+' leaves of A
+node "+3" as L1
+node "-1" as L2
+A --> L1
+A --> L2
+
+' leaves of B (pruned subtree)
+node "0" as L3
+node "+2" as L4
+B --> L3
+B --> L4
+
+' prune illustration
+note over B #FFCCCC
+  β ≤ α  →  prune subtree
+end note
+@enduml
+....
+
+Take‑away: mastering minimax and alpha‑beta equips you with a solid baseline that will later be refined by the probabilistic reasoning tools introduced in Chapter 8.
+
+==== Discussion Prompts
+
+* When does the "rational opponent" assumption fail?
+* How would you design an evaluation function for a game you know?
+* Is adversarial search a good model for real‑world competition?
+* Where does "intelligence" live in minimax—the search or the evaluation function?
+* When does the search tool need adversarial or game‑tree search?
+* How does minimax relate to the reasoning tool (Ch8)?
+
+==== Lab Prep
+
+Lab 2: Optionally extend the search engine for adversarial domains. Implement minimax with alpha‑beta for a simple game. This is not required for the search engine deliverable (which focuses on retrieval and ranking) but deepens understanding of the state‑space framework. See Lab 2 for the main requirements.
+
+===== Key Points
+
+* Optional: implement minimax + alpha‑beta for a simple game
+* Deepens state‑space understanding and heuristic design
+* Main deliverable remains retrieval and ranking; adversarial extension is supplemental
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch03,Chapter 3>>).

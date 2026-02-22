@@ -1,0 +1,2 @@
+bash
+minisat kb.cnf result.txt

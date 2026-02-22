@@ -1,0 +1,2 @@
+Parent(x, y)      // x is a parent of y
+Ancestor(x, y)    // x is an ancestor of y

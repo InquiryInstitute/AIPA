@@ -1,0 +1,43 @@
+=== Lab 1: Knowledge Graph — Data Model and Ingestion
+:leveloffset: 2
+
+*Milestone toward: Knowledge Graph Explorer (tool)*
+
+==== Tool Deliverable
+
+Builds toward tool server `knowledge_graph` — tools: `query_graph`, `traverse`, `add_node`, `add_edge`. Agent invokes via tool invocation to explore and extend knowledge structures.
+
+==== Prerequisites
+
+* Review 1.1–1.3: representation vs. process; knowledge as structure; symbolic and connectionist views
+
+==== Objectives
+
+* Define nodes, edges, and properties
+* Load sample data (CSV, JSON, or RDF)
+* Validate graph structure
+
+==== Steps
+
+. Choose a domain (e.g., concepts from the course, entities from a small dataset, or a simple ontology).
+. Define a schema: node types, edge types, and properties. Document the schema in a text file or ontology definition.
+. Create or obtain sample data in CSV, JSON, or RDF format. Ensure it fits the schema.
+. Implement an ingestion script that reads the data and loads it into a graph structure (use NetworkX, Neo4j, or another graph library).
+. Validate the loaded graph: check that nodes and edges match the schema, and that the graph is connected or has expected components.
+. Submit the schema, ingestion script, and sample data to GitHub Classroom repo (ch01-lab-01).
+
+==== Deliverables
+
+* Schema or ontology definition
+* Ingestion script
+* GitHub Classroom repo (ch01-lab-01)
+
+*Acceptance criteria:*
+* Schema clearly defines at least two node types and one edge type
+* Ingestion script runs without errors on the sample data
+* Loaded graph can be queried (e.g., list nodes, list edges, count)
+* README documents the schema and how to run the ingestion script
+
+==== Lab Prep
+
+* Review 1.1–1.3: representation vs. process; knowledge as structure

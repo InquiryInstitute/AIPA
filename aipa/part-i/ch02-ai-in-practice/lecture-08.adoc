@@ -1,0 +1,11 @@
+yaml
+# agent.yaml
+tools:
+  - name: search
+    endpoint: http://localhost:8000/search
+  - name: memory
+    endpoint: http://localhost:8000/memory
+  - name: reasoning
+    endpoint: http://localhost:8000/reasoning
+  - name: audit
+    endpoint: http://localhost:8001/audit   # <─ new entry

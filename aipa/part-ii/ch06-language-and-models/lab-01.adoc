@@ -1,0 +1,45 @@
+=== Lab 1: LLMs — Embeddings and Similarity
+:leveloffset: 2
+
+*Milestone toward: Prompt/LLM Pipeline (tool)*
+
+==== Tool Deliverable
+
+Builds toward tool server `llm` — tools: `embed`, `similarity`, `retrieve`. Agent computes embeddings and similarity via tool invocation.
+
+==== Prerequisites
+
+* Review 6.1–6.2: word embeddings; attention; embedding space
+
+==== Objectives
+
+* Use embedding models (OpenAI, Sentence-BERT, etc.)
+* Compute similarity and retrieval
+* Explore embedding space
+
+==== Steps
+
+. Choose an embedding model: OpenAI API, Sentence-BERT, HuggingFace, or local model. Set up access (API key or local load).
+. Implement embed(text) or embed(texts): given text or list of texts, return embedding vector(s).
+. Implement similarity(a, b): compute cosine similarity between two embeddings.
+. Implement retrieve(query, corpus, k): embed query and corpus, return top-k by similarity.
+. Run benchmarks: compute similarity for known similar/dissimilar pairs. Document results.
+. Optionally: visualize embedding space (PCA or t-SNE) for a small set of terms.
+. Submit: embedding utilities, similarity benchmarks, GitHub Classroom repo (ch06-lab-01).
+
+==== Deliverables
+
+* Embedding utilities
+* Similarity benchmarks
+* GitHub Classroom repo (ch06-lab-01)
+
+*Acceptance criteria:*
+* embed() returns vectors of expected dimension
+* similarity() returns value in [-1, 1] for cosine
+* retrieve() returns top-k by similarity
+* At least 5 similarity benchmarks documented (query, corpus, expected vs actual)
+* README documents model choice and usage
+
+==== Lab Prep
+
+* Review 6.1–6.2: embeddings; similarity; semantic space

@@ -1,0 +1,43 @@
+=== Lab 2: Memory — RAG Assembly
+:leveloffset: 2
+
+*Milestone toward: Vector Memory System (tool)*
+
+==== Tool Deliverable
+
+Extends tool server `memory` with `rag_retrieve`, `rerank`. Agent augments LLM context via RAG through tool invocation.
+
+==== Prerequisites
+
+* Complete Lab 1 (index, search)
+* Review 7.3: RAG; retrieve → context → generate
+
+==== Objectives
+
+* Retrieve relevant chunks for a query
+* Assemble context for LLM
+* Implement reranking (optional)
+
+==== Steps
+
+. Implement rag_retrieve(query, k): call search(query, k), format chunks as context string (e.g., "Context: ... \n\nQuery: ...").
+. Integrate with llm.generate: pass rag_retrieve output as prompt. Compare generation with vs without RAG on a few queries.
+. Optionally: add reranking. Retrieve top-2k, rerank with cross-encoder or another model, return top-k.
+. Evaluate retrieval quality: manual relevance check for 5–10 queries, or use a small labeled set.
+. Submit: RAG pipeline (retrieve → format → generate), evaluation notes, submodule into student-ai/.
+
+==== Deliverables
+
+* RAG pipeline
+* Evaluation on retrieval quality
+* Submodule into student-ai/
+
+*Acceptance criteria:*
+* rag_retrieve(query, k) returns formatted context
+* RAG-augmented generation runs without errors
+* At least 3 queries compared: with vs without RAG (qualitative or metric)
+* README documents RAG workflow and evaluation
+
+==== Lab Prep
+
+* Review 7.3: RAG; retrieve; context assembly

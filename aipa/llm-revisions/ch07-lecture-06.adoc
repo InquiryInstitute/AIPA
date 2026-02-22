@@ -1,0 +1,20 @@
+python
+# 1. Receive user input
+query = user_input
+
+# 2. Retrieve relevant context
+context = rag_retrieve(query)          # optional: doc vs. snippet granularity
+
+# 3. Generate answer with LLM
+answer = llm(prompt + context)
+
+# 4. Optional tool calls (e.g., database lookup, API request)
+#    tool_result = tool_call(...)
+
+# 5. Store observation for future turns
+memory.add({
+    "query": query,
+    "context": context,
+    "answer": answer,
+    # "tool_result": tool_result   # if applicable
+})

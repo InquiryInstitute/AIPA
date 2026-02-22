@@ -1,0 +1,51 @@
+= Chapter 11: AI in Institutions
+
+This chapter covers governance: policies and constraints, cost control and rate limiting, responsible AI (fairness, bias, transparency), A/B testing, GPU-backed evaluation, epistemology and infrastructure, and the governance tool. The governance tool—define_policy, check_compliance, simulate, report—enables the agent to check itself. It integrates into student-ai/ and completes the institutional layer. Labs 1–3 build the governance simulator with policies, cost tracking, bias audit, A/B testing, and epistemic scenarios. By chapter end, the agent operates under governance. Ch12 deploys the governed capstone.
+
+==== Learning Objectives
+After this chapter you will be able to:
+* Define governance policies, constraints, and compliance checks
+* Implement cost control, rate limiting, and responsible AI practices
+* Conduct A/B testing and bias audit
+* Build the governance tool (define_policy, check_compliance, simulate, report)
+
+==== Course Learning Outcomes (CLOs)
+By the end of this course, you will be able to:
+* Define governance policies, constraints, and compliance checks (PLO 4).
+* Implement cost control, rate limiting, and responsible AI practices (PLO 4).
+* Conduct A/B testing and bias audit (PLO 3).
+* Build the governance tool (define_policy, check_compliance, simulate, report) (PLO 4).
+
+include::lecture-01.adoc[]
+****
+include::lab-01.adoc[]
+****
+
+include::lecture-02.adoc[]
+include::lecture-03.adoc[]
+include::lecture-04.adoc[]
+****
+include::lab-02.adoc[]
+****
+
+include::lecture-05.adoc[]
+include::lecture-06.adoc[]
+include::lecture-07.adoc[]
+****
+include::lab-03.adoc[]
+****
+
+include::lecture-08.adoc[]
+
+==== Chapter Summary
+Governance structures what the AI can and cannot do. Policies, cost control, fairness, and evaluation form the institutional layer. The governance tool lets the agent check itself. Ch12 deploys the governed capstone.
+
+==== Further Reading
+Readings for this chapter are collected in the <<reading-list,Reading List>> (<<reading-ch11,Chapter 11>>).
+
+* EU AI Act <<EU2024>> — Regulatory framework.
+* NIST AI RMF <<NIST2023>> — Risk management.
+* Buolamwini & Gebru, "Gender Shades" <<Buolamwini2018>> — Bias in classification.
+* Mehrabi et al., "Bias and Fairness in ML" <<Mehrabi2019>> — Survey.
+
+include::exercises.adoc[]

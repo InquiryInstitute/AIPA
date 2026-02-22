@@ -1,0 +1,122 @@
+=== 2.5: Observability and Accountability
+:leveloffset: 2
+
+[.epigraph]
+"Visibility is a trap."
+— Foucault, _Discipline and Punish_ <<Foucault1975>>
+
+*To observe is to intervene. Observability is not neutral—it shapes what can be known and governed.*
+
+==== Example Prompts
+
+* "What happened when this request failed?" — _Traces: request ID across services—reconstruct the full path_
+* "Who is responsible for this wrong decision?" — _Audit trails: inputs, outputs, model version—observability enables accountability_
+* "Log this for compliance." — _What we log shapes what we can govern—logging design = governance design_
+
+==== Conceptual Core
+
+Observability—logging, metrics, traces—is the infrastructure for knowing how a system behaves. Logs record discrete events; metrics aggregate counts and latencies; traces follow requests across services. Without observability, we are blind. But Foucault's "visibility is a trap" cautions: to observe is to intervene. What we log shapes what we can see; what we can see shapes what we govern; what we govern shapes behavior. Observability is therefore a form of power. The panopticon makes inmates visible to a central observer; algorithmic observability makes systems visible to operators, auditors, and regulators. In both cases, visibility enables control.
+
+Each observability signal answers a distinct governance question. **Logs** provide the immutable, fine‑grained record needed for forensic reconstruction—who did what, when, and with which model version. **Metrics** give a high‑level health view that supports Service‑Level‑Agreement (SLA) compliance and early‑warning alerts—what is the system’s performance trend? **Traces** bind logs and metrics together across service boundaries, allowing us to answer *how* a request traversed a micro‑service mesh and to pinpoint responsibility when multiple components are involved.
+
+Because observability is a lever of governance, its design must balance competing constraints. Storing every raw input can violate privacy regulations; excessive granularity inflates storage costs and can obscure signal with noise. A governance‑by‑design approach therefore selects a minimal yet sufficient set of fields, applies hashing or summarisation where appropriate, and defines retention policies that satisfy both auditability and legal compliance.
+
+Consider a content‑moderation pipeline that ingests user‑generated images, runs a classifier, and then forwards flagged items to a human reviewer. Logging the image hash, classifier version, confidence score, and reviewer decision creates a transparent trail that can be audited for bias or error. At the same time, the system’s latency metrics trigger alerts if the pipeline slows, protecting user experience. The very act of making this pipeline observable changes how developers and reviewers behave—they are incentivised to maintain quality because they know the trail is visible. Thus the Foucaultian trap becomes a concrete design decision in AI practice.
+
+===== Key Points
+
+* Observability comprises logs, metrics, and traces
+* Logs enable forensic reconstruction; metrics enable SLA compliance; traces enable cross‑service responsibility
+* What we log shapes what we see; what we see shapes what we govern
+* Foucault: visibility as trap—observability enables control
+* Governance‑by‑design: selective logging, hashing, retention policies
+* Content‑moderation vignette illustrates panoptic effect in AI
+* Audit trails depend on logs + traces; alerts depend on metrics
+* Logging design = governance design—what we log shapes what we can govern
+
+==== Technical Example
+
+Implement structured logging for an AI endpoint. Each request: `{request_id, timestamp, model_version, input_hash, output_hash, latency_ms, status}`. Use correlation IDs so a request can be traced across API, model, and database. Structured logs enable querying: find all requests where latency > 1 s, or where a given model version was used. Traces extend across services: if the AI calls a retrieval system, both should log the same `request_id`. End‑to‑end, we reconstruct: user request → API → model → retrieval → model → response. When a user complains, we trace the request and see exactly what happened.
+
+A practical consideration is **log retention**. For most regulated AI services, raw logs should be retained for at least 90 days for operational debugging, while an immutable, tamper‑evident audit archive (e.g., write‑once storage) must keep logs for the statutory period (often 2–7 years). Retention policies must be codified in the logging configuration and enforced by the observability platform.
+
+The observability stack diagram: Application forks to Logs, Metrics, Traces; Logs + Traces feed Audit, Metrics feed Alerts. The audit tool (Lab 2) implements a trace schema—the structure of what gets logged. Lab 3 will generate reports from those traces. Design the schema now: what fields does the audit report need? Log those.
+
+===== Key Points
+
+* Structured logging: request_id, timestamp, model_version, input/output hash, latency, status
+* Correlation IDs across services
+* Trace: request → API → model → retrieval → response
+* Log retention: 90 days operational, immutable archive for compliance
+* Observability stack: logs + traces → audit; metrics → alerts
+* Lab 2: Implement trace schema for audit tool
+
+==== Philosophical Reflection
+
+The panopticon—Bentham's design, Foucault's analysis—is a prison where inmates are visible to a central observer but cannot see the observer. The result: self‑discipline. One need not be watched constantly; the possibility of being watched shapes behavior. Algorithmic observability is panoptic in structure. Systems are instrumented; operators (or auditors) can inspect. The system "knows" it is observable. Whether that shapes behavior depends on what is logged and who reviews it. Observability as governance: we govern what we can see. If we do not log it, we cannot govern it. If we log everything, we create a surveillance problem. The design of observability is the design of governance.
+
+Accountability requires more than logs. It requires assignment: who is responsible? Logs provide evidence; organizational structures and policies assign responsibility. The audit trail does not replace human judgment—it supports it. Your audit tool will produce trails that enable assignment. The trace schema (Lab 2) and report (Lab 3) are governance infrastructure.
+
+A further dimension is **algorithmic self‑discipline**: when models are instrumented to emit metrics about their own confidence or drift, they can be programmed to defer to human review once a threshold is crossed. Knowing that such self‑monitoring data will be examined later can cause developers to adopt more cautious training practices, and can cause models to trigger safe‑mode behaviours automatically. Thus observability can feed back into the system’s own decision loop, not just external oversight.
+
+===== Key Points
+
+* Panopticon: visibility enables control, self‑discipline
+* Observability as governance—we govern what we see
+* Design of observability = design of governance
+* Logs provide evidence; assignment requires policy
+* Audit tool: governance infrastructure
+* Algorithmic self‑discipline: systems adapt because they are observable
+
+.Figure 2.4: Observability stack (logs, metrics, traces, alerts)
+[plantuml,ch02-l04,png,theme=sketchy-outline]
+....
+@startuml
+skinparam backgroundColor #FDF6E3
+actor User
+rectangle Application
+rectangle Logs
+rectangle Metrics
+rectangle Traces
+rectangle Audit
+rectangle Alerts
+
+User --> Application : request
+Application --> Logs : emit log entry
+Application --> Metrics : emit metric
+Application --> Traces : emit trace ID
+Logs --> Audit : log data (errors, inputs)
+Traces --> Audit : trace data (request_id)
+Metrics --> Alerts : latency > SLA
+note right of Audit
+  Produces immutable
+  compliance trail
+end note
+@enduml
+....
+
+==== Take‑away
+
+Observability is never neutral; it is a deliberately engineered lever of governance that makes accountability possible—but also creates the very power structures it is meant to monitor.
+
+==== Discussion Prompts
+
+* When has observability (or its absence) mattered in a system you used?
+* What should *not* be logged? Privacy, security, abuse potential?
+* Does "visibility is a trap" apply to AI systems? How?
+* Who should have access to audit trails?
+* How do we balance "log everything" for audit vs. privacy and surveillance concerns?
+* Design a minimal logging schema for a recommendation engine that must support both error debugging and regulatory audit. Which fields are essential, and why?
+
+==== Lab Prep
+
+Lab 2: Implement the trace schema for the audit tool. Define the structure: what fields will each trace record? Ensure the schema supports: tracing a request end‑to‑end, identifying model version, and reconstructing inputs and outputs (or sufficient summary for accountability). The schema will be used by Lab 3 to generate audit reports. See Lab 2 (Traceability and Observability) for requirements.
+
+===== Key Points
+
+* Define trace schema: fields for each request
+* Support: end‑to‑end trace, model version, input/output summary
+* Schema feeds Lab 3 report generation
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch02,Chapter 2>>).

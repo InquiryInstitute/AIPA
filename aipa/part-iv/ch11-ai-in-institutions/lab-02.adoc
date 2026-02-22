@@ -1,0 +1,44 @@
+=== Lab 2: Governance — Scenario Simulation
+:leveloffset: 2
+
+*Milestone toward: AI Governance Simulator (tool)*
+
+==== Tool Deliverable
+
+Extends tool server `governance` with `simulate_scenario`, `evaluate_impact`. Agent runs governance simulations via tool invocation.
+
+==== Prerequisites
+
+* Complete Lab 1 (policies, compliance)
+* Review 11.3–11.4: bias audit; A/B testing; simulation
+
+==== Objectives
+
+* Simulate AI decisions under different policies
+* Model stakeholder impacts
+* Explore governance tradeoffs
+
+==== Steps
+
+. Implement simulate_scenario(scenario_spec): run a scenario (e.g., "Agent recommends X; users adopt X; data reflects X"). Apply policies; record outcomes.
+. Add bias audit scenario: compare metrics across groups. Document limitations ("Not validated for use case X").
+. Add A/B testing scenario: split traffic, compare metrics, compute significance. Support control/treatment.
+. Implement evaluate_impact(scenario_results): summarize stakeholder impact, policy violations, tradeoffs.
+. Run 2–3 example scenarios. Document results.
+. Submit: simulation engine, scenario library, submodule into student-ai/.
+
+==== Deliverables
+
+* Simulation engine
+* Scenario library
+* Submodule into student-ai/
+
+*Acceptance criteria:*
+* simulate_scenario runs without errors for at least 2 scenarios
+* Bias audit or A/B scenario is implemented
+* evaluate_impact returns structured summary
+* README documents scenarios and how to add new ones
+
+==== Lab Prep
+
+* Review 11.3–11.4: bias audit; A/B testing; simulation

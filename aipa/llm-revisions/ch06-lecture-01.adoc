@@ -1,0 +1,11 @@
+python
+import gensim.downloader as api
+model = api.load("glove-wiki-gigaword-100")   # 100‑dim vectors
+def cosine(a, b):
+    return model.similarity(a, b)
+
+print("similarity('king','queen') =", cosine('king', 'queen'))
+
+# Analogy: king - man + woman ≈ ?
+result = model.most_similar(positive=['king', 'woman'], negative=['man'], topn=1)
+print("king - man + woman →", result[0][0])

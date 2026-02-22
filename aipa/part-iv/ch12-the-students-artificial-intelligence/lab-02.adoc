@@ -1,0 +1,44 @@
+=== Lab 2: Capstone — Interface and Deployment
+:leveloffset: 2
+
+*Milestone toward: Final AI Agent Repo (tool-integrated)*
+
+==== Tool Deliverable
+
+Adds interface and deployment. Agent exposes tool-backed capabilities via CLI, API, or chat UI. Deploy with tool servers as sidecar or remote.
+
+==== Prerequisites
+
+* Complete Lab 1 (repo assembly)
+* Review 12.3–12.4: implementation; interface; deployment
+
+==== Objectives
+
+* Build user interface (CLI, API, or chat UI)
+* Deploy locally or to cloud
+* Document usage and architecture
+
+==== Steps
+
+. Build interface: CLI (e.g., `agent ask "question"`) or API (e.g., POST /ask with body) or simple chat UI.
+. Connect interface to orchestrator. User input → orchestrator → tools → response.
+. Deploy: run locally (Docker Compose) or deploy to cloud. Ensure tool servers are reachable (sidecar or remote).
+. Document: how to run the agent, endpoints (if API), environment variables, architecture diagram.
+. Test: run agent via interface. Complete a representative task. Document usage.
+. Submit: interface implementation, deployment config (Docker, etc.), user documentation.
+
+==== Deliverables
+
+* Interface implementation
+* Deployment config (Docker, etc.)
+* User documentation
+
+*Acceptance criteria:*
+* Interface accepts user input and returns response
+* At least one deployment option works (local or cloud)
+* Documentation explains how to run and use
+* Agent completes a task via the interface
+
+==== Lab Prep
+
+* Review 12.3–12.4: implementation; interface; deployment

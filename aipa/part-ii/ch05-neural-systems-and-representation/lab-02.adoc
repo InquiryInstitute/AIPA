@@ -1,0 +1,45 @@
+=== Lab 2: Neural Nets — Training and Regularization
+:leveloffset: 2
+
+*Milestone toward: Neural Classifier (tool)*
+
+==== Tool Deliverable
+
+Extends tool server `neural_classifier` with `train`, `regularize`. Agent trains neural nets via tool invocation (GPU-backed).
+
+==== Prerequisites
+
+* Complete Lab 1 (architecture, forward pass)
+* Review 5.3–5.5: backprop; training dynamics; dropout; batch norm; regularization
+
+==== Objectives
+
+* Backpropagation and optimization (SGD, Adam)
+* Dropout, batch norm, early stopping
+* Diagnose overfitting and underfitting
+
+==== Steps
+
+. Implement backward pass: given loss, compute gradients for all parameters. Use autograd or manual chain rule.
+. Implement training loop: for each batch, forward → loss → backward → update. Support SGD and Adam.
+. Add dropout: configurable rate per layer. Compare training with and without dropout on a small task.
+. Add batch normalization (or layer norm). Compare convergence with and without.
+. Add early stopping: stop when validation loss does not improve for N epochs.
+. Run on a small dataset (e.g., MNIST subset). Plot loss curves. Document overfitting/underfitting observations.
+. Submit: training loop, regularization experiments (dropout, batch norm), submodule into student-ai/.
+
+==== Deliverables
+
+* Training loop
+* Regularization experiments
+* Submodule into student-ai/
+
+*Acceptance criteria:*
+* Training loop runs; loss decreases
+* Dropout and batch norm are configurable
+* At least one experiment compares with/without regularization
+* Code supports GPU when available (PyTorch .cuda() or equivalent)
+
+==== Lab Prep
+
+* Review 5.3–5.5: backprop; optimization; dropout; batch norm

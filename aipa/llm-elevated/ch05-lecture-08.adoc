@@ -1,0 +1,211 @@
+=== 8.1: From Spam to Insight – Building a Tiny Transformer Email Classifier
+
+[.epigraph]
+____
+“Imagine your inbox flooded with 200 messages a day, 30 % of which are phishing. Your company wants a model that runs on every employee’s laptop, offline, and still catches the bad ones. Can a *tiny* transformer do the job?”
+____
+
+==== Hook – The Real‑World Tension
+
+You open your email client each morning and are immediately greeted by a mixture of newsletters, work updates, and a handful of suspicious messages that look almost legitimate. The cost of a single successful phishing email can be thousands of dollars, yet the solution cannot rely on a cloud service that constantly streams data to a remote server—privacy regulations, bandwidth limits, and latency concerns forbid it.  
+
+The question that drives today’s lecture is therefore two‑fold:  
+
+* How can we design a model that is **small enough** to ship on a laptop or a mobile device, yet **accurate enough** to flag the majority of malicious emails?  
+* Once the model is trained, how do we **export** it into a platform‑agnostic format that can be executed by any runtime, including edge‑optimized inference engines?
+
+We will answer these questions by walking through the complete lifecycle of a lightweight transformer‑based email classifier, from data preprocessing to ONNX export, and we will finish by reflecting on the broader ethical implications of deploying such a system.
+
+---
+
+==== Conceptual Core
+
+The core ideas that underpin a tiny transformer email classifier can be grouped into six thematic pillars. Each pillar answers a question raised in the hook and builds on the previous one, creating a step‑wise narrative that leads naturally to the technical implementation.
+
+. **Why Transformers for Text?**  
+   *Self‑attention* allows a model to weigh the importance of each token relative to every other token, capturing long‑range dependencies that traditional bag‑of‑words or n‑gram models miss. Even a *small* transformer (few layers, limited hidden size) retains this expressive power, making it ideal for nuanced tasks like phishing detection where subtle phrasing matters.
+
+. **What Does “Small” Mean?**  
+   A *small* transformer typically has 2–4 encoder layers, 2–4 attention heads per layer, and a hidden dimension of 128–256. This reduces the parameter count from tens of millions (e.g., BERT‑base) to under one million, dramatically shrinking memory footprint and inference latency.
+
+. **How Do We Prepare Email Data?**  
+   Raw emails must be cleaned (HTML stripping, header removal), tokenized (subword tokenizers such as Byte‑Pair Encoding), and padded/truncated to a fixed length (e.g., 128 tokens). Class imbalance is addressed through *weighted* loss functions or *oversampling* of the minority (phishing) class.
+
+. **Which Training Objective Is Appropriate?**  
+   *Cross‑entropy* loss paired with a softmax output layer directly optimizes for classification accuracy. When class imbalance is severe, we augment the loss with class weights or focal loss to penalize mis‑classifications of the rare class more heavily.
+
+. **How Do We Export for Portability?**  
+   ONNX (Open Neural Network Exchange) provides a framework‑agnostic representation of the trained model. Exporting to ONNX decouples the model from the training library (PyTorch, TensorFlow) and enables execution on a wide range of runtimes, including ONNX Runtime, TensorRT, and mobile‑optimized inference engines.
+
+. **What Are the Deployment Constraints?**  
+   Edge devices impose strict limits on *memory* (≤ 200 MB), *compute* (≤ 2 GFLOPs), and *power* (battery life). Quantization (e.g., 8‑bit integer) and pruning are common post‑training optimizations that further shrink the model while preserving most of its accuracy.
+
+[NOTE]
+====
+These six pillars answer the hook’s questions: a tiny transformer can capture the necessary linguistic nuance, and ONNX export makes the model portable to constrained environments.
+====
+
+---
+
+==== Technical Example
+
+Below we walk through a concrete implementation of the ideas above. The code is deliberately broken into logical blocks, each accompanied by an explanatory paragraph and a set of key points.
+
+[source,python]
+----
+# 1️⃣  Imports & configuration
+from neural_classifier import create_architecture, train, predict, export
+import torch
+
+config = {
+    "arch": "transformer_small",   # 2 encoder layers, 4 heads, hidden=128
+    "lr": 3e-4,
+    "epochs": 10,
+    "batch_size": 32,
+    "loss": "cross_entropy",
+    "weight_decay": 1e-5,
+    "class_weights": [0.3, 0.7]    # lower weight for abundant ham class
+}
+----
+*Key Points – Imports & Configuration*  
+
+* The `arch` key selects a pre‑defined small transformer architecture.  
+* Learning rate `3e-4` balances convergence speed with stability for Adam.  
+* `class_weights` mitigates the typical 70 % ham / 30 % phishing imbalance.  
+* `weight_decay` adds L2 regularization to prevent over‑fitting on a modest dataset.
+
+[source,python]
+----
+# 2️⃣  Model creation
+model = create_architecture(config)
+print(model)   # visual sanity‑check of layer dimensions
+----
+*Key Points – Model Creation*  
+
+* `create_architecture` builds the encoder stack, adds positional encodings, and attaches a linear classification head.  
+* Printing the model reveals the exact parameter count (~0.9 M) and confirms the expected tensor shapes.
+
+[source,python]
+----
+# 3️⃣  Training loop (high‑level API)
+train(
+    model,
+    train_dataset,
+    val_dataset,
+    config,
+    callbacks=[
+        # Early‑stopping on validation loss plateau
+        {"type": "EarlyStopping", "patience": 3},
+        # Learning‑rate scheduler (cosine decay)
+        {"type": "LRScheduler", "schedule": "cosine"}
+    ]
+)
+----
+*Key Points – Training Dynamics*  
+
+* The high‑level `train` function abstracts the epoch loop, loss computation, and optimizer steps.  
+* Early stopping prevents over‑training on the small dataset.  
+* Cosine decay gently reduces the learning rate, often improving final accuracy.
+
+[source,python]
+----
+# 4️⃣  In‑sample evaluation
+preds = predict(model, test_dataset)
+# Compute confusion matrix, precision, recall
+from sklearn.metrics import classification_report
+print(classification_report(test_dataset.labels, preds))
+----
+*Key Points – Evaluation*  
+
+* `predict` runs the model in evaluation mode, disabling dropout.  
+* The classification report highlights the *recall* on the phishing class—critical for security‑focused deployments.
+
+[source,python]
+----
+# 5️⃣  Export to ONNX for edge deployment
+export_path = "models/email_classifier.onnx"
+export(model, export_path, input_shape=(1, 128))  # batch=1, seq_len=128
+print(f"Model exported to {export_path}")
+----
+*Key Points – ONNX Export*  
+
+* The `export` helper wraps `torch.onnx.export`, specifying a dummy input to trace the graph.  
+* The resulting `.onnx` file can be loaded by ONNX Runtime on any platform, including Windows, Linux, Android, and iOS.  
+
+---
+
+[plantuml, transformer-arch, png]
+----
+skinparam backgroundColor #F9F9F9
+skinparam node {
+  BackgroundColor<<Encoder>> LightBlue
+  BackgroundColor<<Head>> LightGreen
+  BackgroundColor<<FFN>> LightCoral
+  BorderColor Black
+  FontSize 12
+}
+title Tiny Transformer Architecture for Email Classification
+node "Input Tokens\n(128 IDs)" as Input
+node "Embedding Layer" as Emb
+node "Positional Encoding" as Pos
+node "Encoder Layer 1" as Enc1 <<Encoder>>
+node "Encoder Layer 2" as Enc2 <<Encoder>>
+node "Classification Head\n(Linear + Softmax)" as Head
+Input --> Emb --> Pos --> Enc1 --> Enc2 --> Head
+@enduml
+----
+
+The diagram above visualizes the data flow from raw token IDs through embeddings, two encoder layers, and finally the classification head that produces a probability distribution over *ham* and *phishing*.
+
+---
+
+==== Philosophical Reflection
+
+The technical choices we have made are not value‑neutral. Deploying an email classifier on personal devices raises questions about privacy, bias, and responsibility.
+
+. **Privacy vs. Security**  
+   Training on real user emails can improve model robustness, but it also risks exposing sensitive personal information. Techniques such as *federated learning* or *differential privacy* can mitigate this tension by keeping raw data on‑device while still benefiting from collective knowledge.
+
+. **Bias in Training Data**  
+   Public spam datasets (e.g., Enron, SpamAssassin) are historically skewed toward English‑language corporate communications. A model trained solely on these corpora may under‑perform on multilingual or informal phishing attempts, inadvertently disadvantaging non‑English speakers.
+
+. **Model Transparency**  
+   Transformers are often criticized as “black boxes.” However, the small size of our model makes *attention visualization* feasible. By inspecting attention weights, developers can audit whether the model focuses on suspicious phrases (“verify your account”, “login now”) or on irrelevant tokens.
+
+. **Responsibility of Deployment**  
+   An inaccurate classifier can cause *false positives* (blocking legitimate emails) or *false negatives* (letting phishing through). Both outcomes have real‑world costs: productivity loss versus security breach. Organizations must therefore define acceptable error thresholds and provide users with override mechanisms.
+
+. **Open‑Source Export and Security**  
+   Exporting to ONNX democratizes access to the model, enabling third‑party audits and community‑driven improvements. Yet it also opens the door to malicious actors who might reverse‑engineer the model to craft adversarial emails. Secure distribution channels and model signing become essential safeguards.
+
+These reflections remind us that building a performant classifier is only half the battle; ensuring its ethical, fair, and secure use completes the story.
+
+---
+
+==== Discussion Prompts
+
+* How would you modify the architecture if the target device had **only 50 MB** of RAM?
+* In what ways could *attention visualization* be integrated into a user‑facing email client to increase trust?
+* Discuss the trade‑offs between **quantization** (e.g., 8‑bit) and **model interpretability**. Does reducing precision obscure the model’s decision process?
+* What strategies would you employ to **detect and mitigate bias** in a multilingual email dataset?
+* Consider a scenario where a regulator mandates that **all email‑filtering models be auditable**. How does ONNX export facilitate or hinder compliance?
+
+---
+
+==== Lab Preparation
+
+In the upcoming lab you will take the codebase introduced in this lecture and extend it in three concrete ways:
+
+1. **Quantize the ONNX model** to 8‑bit integers using ONNX Runtime’s static quantization tool, then benchmark latency on a Raspberry Pi 4.  
+2. **Implement a simple attention‑heatmap visualizer** that overlays token importance on the original email text, allowing you to see why the model flagged a message as phishing.  
+3. **Apply differential privacy** during training by adding Gaussian noise to gradients, and evaluate the impact on both accuracy and privacy budget (ε).
+
+*Key Lab Objectives*  
+
+* Gain hands‑on experience with model compression techniques.  
+* Learn to interpret transformer attention in a real‑world security context.  
+* Understand the practical implications of privacy‑preserving training on small datasets.  
+
+Prepare by reviewing the `requirements.txt` in the repository, ensuring you have Python 3.11, PyTorch 2.2, and ONNX 1.15 installed. The lab instructions are located in `lab/08_email_classifier/README.adoc`. Bring a laptop with Docker installed so you can run the provided container image, which contains all necessary dependencies and a pre‑populated email dataset. 
+
+=== End of Lecture 8.1

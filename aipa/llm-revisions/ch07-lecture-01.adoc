@@ -1,0 +1,119 @@
+=== 7.1: Memory in AI — The Need for External Storage
+:leveloffset: 2
+
+[.epigraph]
+"Memory is not storage—it is reconstruction."
+— Bartlett, _Remembering_ <<Bartlett1932>> (adapted)
+
+When you ask an LLM “What did we discuss last week?” you quickly discover why the answer is often “I don’t remember.”
+
+==== Example Prompts
+
+* "What did we discuss last week?" — _Context window forgets; external memory stores and retrieves_
+* "Answer using our documentation." — _Working memory: inject retrieved chunks into prompt_
+* "Remember this for later." — _Episodic vs. semantic vs. procedural—types of memory_
+
+==== Conceptual Core
+
+LLMs have a fixed context window; beyond it, nothing persists. Every new conversation starts from scratch. The model cannot recall what was said ten turns ago unless it is still in the prompt. This limitation shapes how we build AI systems: we must either accept statelessness or provide external memory.
+
+External memory addresses the gap. We store documents, experiences, and facts in a separate system—a vector store, a knowledge graph, a database—and retrieve what is relevant when the agent needs it. The context window becomes a *working memory*: we inject retrieved content into it, use it for generation, then the next turn may bring different content. The agent's effective memory is the union of its context and what it can retrieve.
+
+Types of memory matter. Episodic memory captures experiences: what happened, when, and in what order. "The user asked about X yesterday; we searched the manual and found Y." Semantic memory holds facts and general knowledge: "The API rate limit is 100 requests per minute." Procedural memory encodes skills: how to format a query, how to parse a response. Real systems mix these; the memory infrastructure must support the kinds of access the agent needs.
+
+Bartlett's insight—memory is reconstruction, not copy—applies to external memory too. We do not retrieve stored copies; we retrieve cues and reconstruct. The vector store returns similar chunks; the agent (or the RAG pipeline) assembles them into context. What gets "remembered" depends on retrieval, chunking, and ranking. Memory is infrastructure: the agent's capacity depends on what it can access, and how.
+
+*Next we’ll see how this idea looks in a concrete retrieval pipeline.*
+
+===== Key Points
+
+* Context window limits: nothing persists beyond the prompt
+* External memory: store elsewhere, retrieve when needed
+* Working memory: inject retrieved content into context
+* Episodic, semantic, procedural memory types
+* Memory as infrastructure: capacity depends on accessible cues
+* Bartlett: memory is reconstruction, not copy
+* Scalable persistence across sessions
+
+==== Technical Example
+
+In an in‑context‑only design, everything the model “knows” must fit in the prompt. Even a generous 128 K‑token window is finite; long documents, entire corpora, or multi‑session histories exceed it. The bottleneck is the context window.
+
+External retrieval changes the picture. We store documents in a vector store. At query time we embed the query, search for similar chunks, rank them, and inject the top‑k into the prompt. The model then generates with that augmented context. This lets us access a corpus far larger than the context window while keeping the prompt size manageable. The trade‑off is retrieval quality: irrelevant or noisy chunks can confuse the model more than the absence of chunks.
+
+[options="header"]
+|===
+| Context‑window size | Approx. tokens per typical document | Documents that fit
+
+| 8 K  | ~2 K | 3–4 short articles
+| 32 K | ~2 K | ~12 short articles
+| 128 K| ~2 K | ~60 short articles
+|===
+
+*The looped architecture below shows how a query is turned into a prompt via external memory.*
+
+.Figure 7.1: Agent with external memory
+[plantuml,ch07-l01,png,theme=sketchy-outline]
+....
+@startuml
+skinparam rectangle {
+  BackgroundColor #E3F2FD
+  BorderColor #1976D2
+}
+while (new query?) is (yes)
+  :Agent (LLM);
+  :Embed Query;
+  :Vector Store;
+  :Retrieve & Rank;
+  :Working Memory (Prompt Injection);
+  :Generate Response;
+endwhile
+@enduml
+....
+
+===== Key Points
+
+* In‑context only: everything in prompt, finite
+* External retrieval: store corpus, retrieve top‑k at query time
+* Retrieval quality: bad chunks hurt more than none
+* Vector store enables scaling beyond the context window
+
+==== Philosophical Reflection
+
+Memory and identity: what does the agent “remember”? If memory is external—a store the agent queries—is it the agent’s memory or a tool it uses? The question echoes the extended mind thesis: when we use a notebook, is the notebook part of our mind? When the agent uses a vector store, is the store part of its mind? The boundary is fluid. We can say: the agent plus memory is the cognitive system. The agent alone, without memory, is stateless; with memory, it persists across turns and sessions.
+
+External memory as delegation: we extend the agent by giving it access to a store. We delegate storage and retrieval. The agent does not “have” the memory in the sense of internal representation; it *uses* the memory. That distinction matters for design—we build the store separately, we optimize retrieval, we govern what gets stored and what gets evicted. The agent’s memory is curated infrastructure, not raw experience.
+
+The boundary between self and tool blurs. Is the agent the LLM, or the LLM plus its tools? From a user’s perspective, the agent is the whole system—the thing that answers, remembers, acts. From an engineering perspective, we see components: model, memory, tools. Both views are valid. The memory system is the agent’s persistence layer—without it, each turn is isolated; with it, the agent accumulates. Your vector store will be the notebook that decides what the agent can truly remember.
+
+===== Key Points
+
+* Memory and identity: whose memory is it?
+* Extended mind: agent + memory = cognitive system
+* External memory = delegation of storage and retrieval
+* Self vs. tool: boundary is fluid
+* Agent from user view: whole system; from engineering view: components
+* Memory = persistence layer; without it, each turn is isolated
+
+==== Discussion Prompts
+
+* Is external memory “really” the agent’s memory? What would count as “real”?
+* What should the agent remember vs. forget? Who decides?
+* How does memory shape the agent’s identity over time?
+* If memory is reconstruction, can we ever say the agent “recalled” something accurately?
+* How does the extended mind thesis apply to AI systems?
+* What are the trade‑offs between in‑context and external memory for different use cases?
+
+==== Lab Prep
+
+Lab 1 (Vector store): Choose a backend—Chroma, FAISS, Pinecone, or equivalent. Set up the indexing pipeline: documents → chunks → embed → index. Implement search: given a query (or its embedding), return the top‑k most similar chunks. The vector store is the foundation for RAG (Lab 2). Without it, the agent has no persistent external memory.
+
+===== Key Points
+
+* Lab 1: Vector store backend
+* Pipeline: chunk → embed → index
+* Search API: query → top‑k chunks
+* Foundation for RAG (Lab 2)
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch07,Chapter 7>>).

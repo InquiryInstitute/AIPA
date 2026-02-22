@@ -1,0 +1,189 @@
+=== 2.7: Human-AI Collaboration
+:leveloffset: 2
+
+[.epigraph]
+"The human is not the center; the human is a node in the network."
+— Latour, _Reassembling the Social_ <<Latour2005>>
+
+==== Hook: A High‑Stakes Hand‑Off
+
+Imagine an on‑call radiologist receiving a notification from an AI‑driven triage system: *“Possible pulmonary nodule – confidence = 93 %.”* The radiologist has five minutes before the patient is moved to the next imaging suite. The AI is statistically more accurate than the average radiologist on large datasets, yet it has never seen this particular scanner artifact. Should the radiologist trust the suggestion, request a second opinion, or dismiss it outright? The tension between speed, safety, and trust is the crucible in which human‑AI collaboration is forged.
+
+This scenario raises three questions that will structure our discussion:
+
+1. **When** should a human intervene in an AI pipeline?  
+2. **How** should the interaction be framed—delegation, augmentation, or partnership?  
+3. **What** mechanisms keep the collective decision accountable and trustworthy?
+
+==== Example Prompts
+
+* *“Flag this for human review.”* — _HITL: AI proposes, human confirms—delegation vs. augmentation vs. partnership_  
+* *“Should I trust this recommendation?”* — _Calibration: over‑trust vs. under‑trust; when to override_  
+* *“Correct this and use it to improve the model.”* — _Feedback: human override as training signal—decision in the collective_
+
+==== Conceptual Core
+
+Human‑in‑the‑loop (HITL) systems embed human judgment at a strategic point in the AI pipeline. The AI first produces a recommendation—often accompanied by a confidence score or an explanatory rationale. The human then reviews, accepts, modifies, or rejects that output. This pattern is invoked when **stakes are high**, when the AI signals **uncertainty**, or when **domain expertise** cannot be captured algorithmically (e.g., rare medical conditions, nuanced legal judgments).
+
+Three interaction modes articulate the spectrum of collaboration:
+
+* **Delegation** – the AI makes the decision; the human merely ratifies.  
+* **Augmentation** – the AI supplies suggestions while the human retains final authority.  
+* **Partnership** – the AI and human co‑create the outcome, each contributing substantive reasoning.
+
+Each mode carries a distinct **accountability profile**. In delegation, the approving human may be held liable for downstream errors; in augmentation, responsibility is shared; in partnership, accountability is distributed across the network of actors, including designers and the interface itself. A concise comparison (Table 1) clarifies these trade‑offs.
+
+[cols="1,1,1", options="header"]
+|===
+| Mode | Typical Domain | Accountability Focus
+| Delegation | Automated fraud detection | Human as final gatekeeper
+| Augmentation | Clinical decision support | Shared liability, AI as advisor
+| Partnership | Collaborative robotics | Networked responsibility
+|===
+
+**Calibration** of trust is the dynamic process that aligns the human’s willingness to accept AI output with the AI’s actual reliability. Empirical studies show that a *trust curve*—the probability that a human follows an AI recommendation—peaks when the AI’s reported confidence matches its true performance. Over‑trust (following a low‑accuracy suggestion) and under‑trust (ignoring a high‑accuracy suggestion) both erode system effectiveness.
+
+Latour’s actor‑network perspective reframes the human not as a central controller but as a **node** whose agency emerges from interactions with the AI, the interface, and the surrounding organizational policies. Meaningful hand‑offs therefore require **visibility** (explainability, confidence), **authority** (the power to override), and **traceability** (audit logs that capture who did what and when).
+
+===== Key Points
+
+* HITL inserts human judgment at a strategic pipeline point.  
+* High‑stakes, uncertainty, or expertise gaps trigger HITL.  
+* Delegation, augmentation, partnership define collaboration depth and accountability.  
+* Table 1 maps modes to typical domains and responsibility patterns.  
+* Trust calibration aligns human willingness with AI reliability; both over‑ and under‑trust are costly.  
+* Distributed agency (Latour) demands visibility, authority, and traceability.  
+* Meaningful oversight requires confidence scores, rationales, and auditability.
+
+==== Technical Example
+
+Consider a loan‑approval dashboard that surfaces an AI‑generated risk score (0–100) together with a concise rationale (“high debt‑to‑income ratio, recent credit inquiry”). The human analyst can:
+
+1. **Approve** – accept the AI’s recommendation.  
+2. **Reject** – override and provide a manual decision.  
+3. **Edit** – adjust the risk score and annotate a reason.  
+4. **Request Clarification** – ask the system to surface additional evidence (e.g., payment history).
+
+Each action generates a **feedback signal** that is queued for downstream model updates. For instance, a rejection with an annotation becomes a labeled example for fine‑tuning, while an edit updates a feature‑weighting table used in a retrieval‑augmented model. The pipeline is illustrated in Figure 2.6, which now displays three parallel branches for the interaction modes and an explicit *Explainability* node.
+
+**Design checklist for the hand‑off UI**
+
+* **Entry point** – where does the human encounter the AI output? (e.g., dashboard, alert).  
+* **Displayed information** – confidence, rationale, provenance metadata.  
+* **Permitted actions** – approve, reject, edit, request clarification.  
+* **Authority level** – can the human’s decision be overridden downstream?  
+* **Feedback routing** – how are corrections fed back into model training?  
+
+During Lab 3, students will audit a prototype system, documenting each of these dimensions for every component. The goal is to surface “performative” versus “meaningful” human involvement.
+
+===== Key Points
+
+* UI hand‑off: AI recommendation + confidence + rationale → human actions.  
+* Four core actions (approve, reject, edit, clarify) generate distinct feedback signals.  
+* Feedback can trigger fine‑tuning, feature‑weight updates, or retrieval‑index enrichment.  
+* Checklist ensures entry point, displayed info, authority, and feedback routing are explicit.  
+* Lab 3 audit validates that human agency is visible and traceable, not theatrical.
+
+==== Philosophical Reflection
+
+Distributed cognition posits that cognition is not confined to a single mind but is **distributed across artifacts, people, and environments**. In a human‑AI system, the “decision” is an emergent property of the AI algorithm, the human reviewer, the interface that mediates perception, and the organizational policies that constrain possible actions. This view aligns with Latour’s actor‑network theory, which treats every component—software, hardware, regulations—as a *node* that contributes to the outcome.
+
+Legal frameworks such as the **EU AI Act (Art. 14)** codify the need for *meaningful human oversight*, demanding that the human can understand the AI’s reasoning and intervene effectively. From a philosophical angle, this requirement challenges the classic “human‑as‑central” ergonomics model, which assumes a clear hierarchy: human decides, machine follows. Instead, we must accept a **shared agency** model where responsibility is **networked**. Accountability can be traced through **audit logs**, but moral responsibility may still be debated: does the designer bear ultimate blame when a mis‑calibrated trust curve leads to harm?
+
+Designing for distributable agency therefore entails three concrete practices:
+
+1. **Expose model rationale** (confidence, feature importance) at the hand‑off.  
+2. **Scope the human task** to elements they can meaningfully assess (avoid overwhelming them with raw data).  
+3. **Record every hand‑off** in an immutable audit log that supports post‑hoc attribution and continuous trust calibration.
+
+These practices not only satisfy regulatory mandates but also nurture a collaborative culture where humans and AI co‑evolve.
+
+===== Key Points
+
+* Distributed cognition frames the decision as an emergent network property.  
+* Actor‑network theory extends this view to include policies, regulations, and artifacts.  
+* EU AI Act Art. 14 mandates *meaningful* human oversight, not mere presence.  
+* Shared agency replaces the “human‑as‑central” ergonomics model.  
+* Exposing rationale, scoping tasks, and logging hand‑offs operationalize distributed responsibility.  
+* Audit logs enable post‑hoc attribution and ongoing trust calibration.  
+* Philosophical shift supports both compliance and ethical collaboration.
+
+==== Take‑away
+
+In Lab 3 you will see how documenting each hand‑off makes the collective decision traceable, turning distributed agency into accountable practice. The next lecture will explore UI design patterns that make explainability and authority visible at the moment of decision.
+
+.Figure 2.6 – Human‑AI Collaboration Feedback Loop
+[plantuml,ch02-l06,png,theme=sketchy-outline]
+....
+@startuml
+!theme sketchy-outline
+
+' Define colors for modes
+!define DELEGATION #FFCCCC
+!define AUGMENTATION #CCFFCC
+!define PARTNERSHIP #CCCCFF
+
+' Outer container for organizational context
+package "Organizational Context\n(Policy, Regulation)" {
+    rectangle "AI Engine\n(Recommendation + Confidence)" as AI #DELEGATION
+    rectangle "Explainability\n(Rationale, Feature Importance)" as Explain #AUGMENTATION
+    rectangle "Human Reviewer\n(Decision & Trust Calibration)" as Human #PARTNERSHIP
+    rectangle "Action Executor\n(Approve / Reject / Edit)" as Action
+    rectangle "Correction\n(Feedback Signal)" as Corr
+    rectangle "Audit Log\n(Traceability)" as Audit
+}
+
+' Interaction modes as parallel branches
+AI -[#DELEGATION,dashed]-> Human : delegation\n(recommendation)
+AI -[#AUGMENTATION,dashed]-> Human : augmentation\n(suggestion + confidence)
+AI -[#PARTNERSHIP,dashed]-> Human : partnership\n(co‑creation)
+
+' Explainability flow
+AI --> Explain : provide rationale
+Explain --> Human : expose rationale
+
+' Human decision flow
+Human --> Action : approve / reject / edit
+Action --> Corr : outcome
+Corr --> AI : training signal\n(model update)
+
+' Audit logging
+AI --> Audit : log proposal
+Human --> Audit : log decision
+Action --> Audit : log execution
+Corr --> Audit : log correction
+Audit --> Human : performance dashboard\n(trust calibration)
+
+@enduml
+....
+
+==== Discussion Prompts
+
+* Recall a moment when you *over‑trusted* an AI system. What were the consequences, and how could a better hand‑off have changed the outcome?  
+* In the loan‑approval scenario, what information would you need to consider the AI’s recommendation “meaningful”?  
+* Where does the “decision” reside in the autonomous‑vehicle hand‑off you have experienced (e.g., driver, AI, dashboard alerts)?  
+* Can accountability truly be distributed across a network, or does law still demand a single liable party?  
+* How would you distinguish a *theatrical* human‑in‑the‑loop from a *meaningful* one in a real‑world system?  
+
+==== Lab Prep
+
+Lab 3 (AI System Audit Tool — Report Generation) asks you to produce a **hand‑off audit report** for a prototype system. For each component in the inventory, document:
+
+* Whether a human is present in the loop.  
+* The precise stage at which the human intervenes.  
+* What the human sees (confidence, rationale, provenance).  
+* Which actions the human can take (approve, reject, edit, request clarification).  
+
+The report will be used to evaluate whether the system provides **visibility, authority, and traceability**—the three pillars of meaningful collaboration. Refer to the Lab 3 schema in the course repository for the required table format.
+
+===== Key Points
+
+* Lab 3 produces a hand‑off audit report.  
+* For each component: human presence, stage, view, actions.  
+* Evaluation criteria: visibility, authority, traceability.  
+* Report informs whether agency is meaningful or performative.  
+* Use the provided schema to ensure consistency across teams.
+
+==== Reading
+
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch02,Chapter 2>>).

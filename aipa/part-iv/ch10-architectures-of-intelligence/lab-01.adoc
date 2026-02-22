@@ -1,0 +1,43 @@
+=== Lab 1: Orchestration — Pipeline Design
+:leveloffset: 2
+
+*Milestone toward: Agent Orchestrator (tool client)*
+
+==== Tool Deliverable
+
+Designs pipeline that connects to tool servers. Agent orchestrator discovers and routes to tools via tool invocation. Documents tool config schema.
+
+==== Prerequisites
+
+* Review 10.1: pipeline vs loop; agent architecture; data flow
+
+==== Objectives
+
+* Design agent pipeline (retrieve → reason → act)
+* Define interfaces between components
+* Document data flow
+
+==== Steps
+
+. Map the agent architecture: user input → ? → output. Identify components (RAG, generate, tools).
+. Decide: pipeline (linear) or loop (ReAct). Document when each is appropriate.
+. Define interfaces: what does each component accept and return? Document input/output schemas.
+. Draw architecture diagram (PlantUML, Mermaid): components, data flow, tool connections.
+. Define tool config schema: list of tools with endpoint, schema, auth (if any).
+. Submit: architecture diagram, interface specifications, tool config schema, GitHub Classroom repo (ch10-lab-01).
+
+==== Deliverables
+
+* Architecture diagram
+* Interface specifications
+* GitHub Classroom repo (ch10-lab-01)
+
+*Acceptance criteria:*
+* Diagram shows at least 5 components and data flow
+* Interface specs document inputs/outputs for each component
+* Tool config schema is valid (can be loaded/parsed)
+* README explains architecture and design decisions
+
+==== Lab Prep
+
+* Review 10.1: pipeline; loop; data flow

@@ -1,0 +1,151 @@
+=== 2.1: Real-World AI Deployments
+:leveloffset: 2
+
+A hospital deploys a diagnostic LLM that cuts radiology turnaround time by 30 % in a pilot. Three weeks later, error rates spike for pediatric scans, prompting an urgent recall. *Why does a model that looks perfect in the lab crumble when the world changes?* The incident forces us to confront hidden feedback loops, stakeholder pressures, and the mismatch between research metrics and operational realities.
+
+[.epigraph]
+"Technology is neither good nor bad; nor is it neutral."
+— Kranzberg, _Technology and History_ <<Kranzberg1986>> (via Latour)
+
+*AI in practice is always situated—deployed in contexts that shape and are shaped by it.*
+
+==== Example Prompts
+
+* "Summarize this document." — _Lab vs. production: stakeholders, constraints, feedback loops_
+* "Filter applications for this role." — _Who is affected? Applicants, operators, regulators—design for deployment_
+* "Recommend content for this user." — _Unintended consequences: bias amplification, distributional effects_
+
+==== Conceptual Core
+
+Intelligent systems in production differ from prototypes in the lab because **the world moves around them**. When a model is trained on a static benchmark, the only “stakeholder” is the benchmark itself. In a hospital, a radiology department, the IT operations team, the hospital board, regulators, and even patients who never interact directly with the AI all become part of the ecosystem. Their competing objectives—trust, interpretability, cost, latency, fairness—create a translation problem: the researcher optimizes accuracy, the organization needs reliability.
+
+Because stakeholders multiply, *design for deployment* cannot be an afterthought. Imagine the Amazon hiring tool that silently downgraded resumes from women‑associated keywords. The engineers never anticipated that **indirectly affected parties** (job seekers, advocacy groups, the public) would become central actors in the controversy. The cost of ignoring those parties manifested as a public backlash, legal scrutiny, and a costly system shutdown. The lesson is clear: every deployment must begin with a **stakeholder map** that identifies who will notice a failure first and who will bear the consequences.
+
+When the context shifts—new patient demographics, a different imaging protocol, a change in regulatory policy—the model’s input distribution drifts. The hospital LLM’s 30 % gain evaporated because pediatric scans presented a distribution the model had never seen. This **feedback loop** (user requests → logs → retraining → updated model) can amplify hidden biases or introduce new errors if not monitored. The core challenge, then, is to make that loop visible and controllable before a recall becomes inevitable.
+
+Kranzberg’s dictum reminds us that technology is never neutral; the choices embedded in data selection, objective functions, and deployment architecture have distributional effects. By treating AI as a **situated artifact**, we accept that there is no “general” system that works everywhere—only systems that are well‑matched to the specific context they inhabit. The audit tool you will build in this chapter is the first concrete step toward making those matches explicit: a systematic inventory of components, dependencies, and the actors who depend on them.
+
+===== Key Points
+
+* Deployment translates a lab prototype into a real‑world system with new stakeholders and constraints  
+* Stakeholder map: users, operators, regulators, and indirectly affected parties  
+* Researcher‑centric metrics (accuracy) often misalign with organizational needs (trust, latency, fairness)  
+* Context shifts create distribution drift that can break previously successful models  
+* Feedback loops (requests → logs → retraining → model) must be observed and managed  
+* Technology choices have distributional effects; no “general” AI system exists  
+* Designing for deployment starts with an explicit inventory of components and dependencies  
+
+==== Technical Example
+
+Consider a customer‑service chatbot that answers user queries in real time. Each request follows a simple pipeline: **User → API → Model → Response**. Parallel to this pipeline runs a **data lifecycle**: the original training corpus, a knowledge store that provides retrieval‑augmented context, and a continuous stream of logs and feedback that feed future retraining cycles.
+
+These streams are tightly coupled. Every interaction generates logs that are fed to a **drift detector**; when the detector flags a sustained rise in latency or error‑rate, a **retrain trigger** is issued, prompting the training pipeline to ingest the newest logs and produce an updated model. The updated model then re‑enters the request path, creating a new generation of logs. If a new product line introduces unfamiliar terminology, the drift detector will surface a spike, the retraining loop will adapt the model, and the service can recover without a manual recall.
+
+Observability is the glue that holds this loop together. Metrics such as **latency, error‑rate, and bias‑score** flow into a monitoring dashboard that alerts operators and, when thresholds are breached, notifies regulators. In the hospital LLM case, a sudden increase in pediatric error‑rate would have lit up the dashboard, prompting the radiology team to pause the model before patient harm occurred. Your audit tool (Lab 1) will catalog each element—API, model, knowledge store, logs, monitoring components—so that you can trace exactly how a change in one part ripples through the entire system.
+
+===== Key Points
+
+* Request pipeline: User → API → Model → Response  
+* Data lifecycle: training corpus, knowledge store, logs, feedback  
+* Coupled feedback loop: logs → drift detector → retrain trigger → updated model → new logs  
+* Context shifts (new terminology, user groups) cause drift that the detector must catch  
+* Observability metrics (latency, error‑rate, bias‑score) feed alerts to operators and regulators  
+* Audit inventory makes the loop legible and prepares the system for proactive governance  
+
+==== Philosophical Reflection
+
+Situated cognition tells us that intelligence is not a disembodied algorithm but an enactment within a specific environment. A chess engine is intelligent on a chessboard; a diagnostic LLM is intelligent only within the clinical workflow, the imaging devices, and the regulatory framework that surround it. The myth of a “general” AI that solves any task obscures the fact that every system carries a bundle of **assumptions**—about data distributions, user behavior, and institutional goals. When those assumptions break, the system fails.
+
+The production pipeline makes these assumptions visible as **infrastructural artifacts**: training data, knowledge stores, and logging policies. Who curates the training set? Who decides which logs are retained? These are not merely technical choices; they are epistemic and political decisions that shape who is seen, heard, and served. Observability—what we can measure—therefore determines what we can govern. By mapping dependencies with the audit tool, we render the system legible, and legibility is a prerequisite for accountability.
+
+===== Key Points
+
+* Intelligence is enacted in context; AI inherits the constraints of its environment  
+* No “general” system—each model embeds domain‑specific assumptions that can fail  
+* Training data, knowledge stores, and logs are epistemic artifacts with political dimensions  
+* Observability defines the boundary of what can be governed and held accountable  
+* Mapping dependencies creates legibility, a precondition for responsible deployment  
+
+==== Closing & Bridge
+
+By inventorying dependencies you turn a hidden feedback loop into a transparent, governable system. In the next lecture we will extend this inventory into a live monitoring dashboard that can automatically flag drift and trigger safe‑guard actions before a recall becomes necessary.
+
+==== Discussion Prompts
+
+* **Context shift:** Can you think of an AI system that succeeded in one domain but failed in another? (e.g., Amazon hiring tool, COMPAS risk scores)  
+* **Stakeholder mapping:** List the direct and indirect stakeholders for a system you use daily. Which group is most likely to notice a failure first?  
+* **Design for deployment:** How would you embed observability into a student‑run project from day 1?  
+* **General‑system myth:** Where do you still see claims of “one model for all tasks” in industry or research?  
+* **Observability & accountability:** In what ways does a monitoring dashboard enable—or limit—responsible governance?  
+* **Visible failure:** Recall a public AI controversy that made the underlying system “visible” to you. What lesson does it teach about deployment?  
+
+==== Lab Prep
+
+Lab 1 (AI System — Inventory and Dependencies) asks you to catalog the components of a deployed AI system. Choose a target: a public API, an internal tool, or a well‑documented system. Record:
+
+* Data sources (training corpora, knowledge bases)  
+* Model(s) and versioning information  
+* API endpoints and request‑response contracts  
+* Logging and feedback mechanisms  
+* Monitoring metrics and alert thresholds  
+
+Then draw a dependency map that shows **what depends on what** and **what downstream actors** (operators, regulators, end‑users) rely on each component. This map will serve as the foundation for the audit tool you will extend in Labs 2 and 3.
+
+===== Key Points
+
+* Lab 1: inventory a deployed AI system (data, models, APIs, logs, monitoring)  
+* Produce a dependency diagram that includes operators, regulators, and end‑users  
+* The inventory is the first step toward building a live observability dashboard (Labs 2–3)  
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch02,Chapter 2>>).
+
+.Figure 2.1: Production AI pipeline — data lifecycle, monitoring, and recall feedback
+[plantuml,ch02-l01,png,theme=sketchy-outline]
+....
+@startuml
+skinparam backgroundColor #F9F9F9
+skinparam handwritten true
+
+'--- Swimlanes -------------------------------------------------
+|Request Path|
+start
+:User;
+:API;
+:Model;
+|Data (lifecycle)|
+:Training Data;
+:Knowledge Store;
+:Logs / Feedback;
+|Monitoring|
+:Metrics (latency, error, bias);
+:Drift Detector;
+if (Drift?) then (yes)
+  :Retrain Trigger;
+  --> Training Data;
+endif
+stop
+
+'--- Feedback Loop --------------------------------------------
+Logs / Feedback --> Metrics : "emit"
+Metrics --> Drift Detector : "evaluate"
+Drift Detector --> Retrain Trigger : "signal"
+Retrain Trigger --> Training Data : "re‑train"
+Training Data --> Model : "updated model"
+Model --> Logs / Feedback : "new logs"
+
+'--- Augmentation ---------------------------------------------
+Knowledge Store --> Model : "retrieval‑augmented inference"
+
+'--- Stakeholder & Recall ------------------------------------
+|Operators|
+:Operator Dashboard;
+Metrics --> Operator Dashboard : "alerts"
+Operator Dashboard --> Recall : "manual shutdown"
+|Regulators|
+Recall --> Regulators : "incident report"
+|Patients|
+Recall --> Patients : "service interruption"
+
+@enduml
+....

@@ -1,0 +1,19 @@
+python
+# memory integration sketch
+from student_ai.memory import Memory
+
+mem = Memory(index_path="data/index.faiss")
+
+def answer_with_memory(user_query):
+    # 1️⃣ Retrieve relevant context
+    context = mem.rag_retrieve(user_query, k=5)
+    prompt = f"""Context:
+{context}
+
+Question: {user_query}
+Answer:"""
+    # 2️⃣ Generate response
+    answer = llm.generate(prompt)
+    # 3️⃣ Store new observation (optional)
+    mem.add(f"Q: {user_query}\nA: {answer}")
+    return answer

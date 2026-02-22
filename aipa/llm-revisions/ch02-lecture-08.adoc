@@ -1,0 +1,139 @@
+=== 2.9: Lab Integration — Audit Tool and Capstone
+:leveloffset: 2
+
+[.epigraph]
+"The tool extends the body; the audit extends the gaze."
+— Latour, _Reassembling the Social_ <<Latour2005>> (adapted)
+
+*The audit tool will extend your agent's capacity to inspect and govern itself.*
+
+==== Example Prompts
+
+* `"Check system health before this task."` — _Agent invokes `list_components`, `trace_request`—self‑inspection_  
+  *Output:* JSON list of active components and health flags.  
+* `"Did anything break after the last deployment?"` — _Audit tool: verify components, dependencies_  
+  *Output:* Structured report summarising changed modules and error spikes.  
+* `"Produce an audit report."` — _`generate_report`—agent extends its gaze; reflexivity_  
+  *Output:* Human‑readable markdown report with timestamps, component graph, and risk assessment.
+
+==== Conceptual Core
+
+Integrate the audit tool into `student-ai/` as tool server `audit`. Tools: `list_components`, `trace_request`, `generate_report`. The agent will invoke these for self‑inspection—before undertaking a task, to check system health; after a change, to verify nothing broke; when asked, to produce an audit report. The audit extends the agent's gaze: it can see its own dependencies, trace its own requests, and report on its own state. Latour: the tool extends the body. The audit extends the agent's capacity to observe and govern. Connection to Chapter 11 (AI in Institutions): governance is not only external (regulators, policies) but internal (the agent's capacity to inspect and report).
+
+The agent invokes the audit tool like any other tool. The orchestrator (Chapter 10) routes the request to the audit server; the audit server discovers components, traces requests, or generates a report; the result returns to the agent. The agent can then act on that information—escalate if risks are high, log for compliance, or continue if the system is healthy. Reflexivity: an AI that can audit itself. The capacity is limited—the agent does not fix what it finds—but the capacity to see is a first step toward governance.
+
+===== Key Points
+
+* Integrate audit tool as tool server `audit`
+* Tools: `list_components`, `trace_request`, `generate_report`
+* Agent invokes for self‑inspection
+* Before task: check health; after change: verify; on request: report
+* Audit extends gaze—agent sees dependencies, traces, state
+* Connection to Ch11: internal governance
+* Reflexivity: AI that can audit itself
+
+==== Technical Example
+
+Register the audit tool server in the agent config. The agent's tool registry lists available tools: search, memory, reasoning, llm, audit. When the agent needs to inspect the system, it calls `audit.generate_report` or `audit.list_components`. The audit server queries the `student‑ai/` deployment—or a specified target—and returns structured data. The agent may invoke audit at the start of a session (“is the system healthy?”) or when a user asks (“audit this system”). Design the invocation pattern: when should the agent self‑audit? On schedule? On demand? When errors spike?
+
+The diagram (Figure 2.8) shows the reflexive flow between the agent and the audit server.
+
+[plantuml,ch02-l08,png,theme=sketchy-outline]
+....
+@startuml
+title Audit Tool in Agent Stack (self‑inspection)
+
+actor Agent
+component "Audit Tool" as AT
+package "System Under Audit" {
+  component "Other Tools" as OT
+  component "Agent Core" as AC
+}
+
+Agent -> AT : invoke (list_components / generate_report)
+AT -> System Under Audit : query components / traces
+System Under Audit --> AT : structured audit data
+AT --> Agent : audit report
+
+' Reflexive loop
+Agent -> AT : self‑audit request
+@enduml
+....
+
+===== Key Points
+
+* Register `audit` in the agent tool configuration (`agent.yaml`)
+* Invocation points: start of session, on‑demand, error‑spike trigger
+* Define JSON schema for audit responses (components, status, timestamps)
+* Log every audit call with timestamp, caller ID, and outcome
+* Provide a CLI wrapper (`audit-cli`) for manual testing and debugging
+* Document error handling (timeouts, partial failures, fallback behavior)
+* Configure audit server endpoint and authentication in `agent.yaml`
+
+==== Philosophical Reflection
+
+Reflexivity—the capacity to turn observation back on the observer—is rare in technical systems. Most systems do not observe themselves; they are observed by external monitors. An agent with an audit tool can observe itself. It can list its components, trace its requests, and generate a report on its own state. That does not make it self‑governing; the agent does not change its behavior based on the audit (unless we add that logic). But it creates the possibility. Metacognition—thinking about thinking—is a step toward self‑regulation. The audit tool is the infrastructure for that step.
+
+The tool extends the body; the audit extends the gaze. With the audit tool, the agent gains a new perceptual modality: it can “see” its dependencies, its traces, its risks. That extended gaze supports governance—internal (the agent's operators) and external (regulators, auditors). The capstone vision includes this: by the end of Chapter 12, your agent will have not only search, memory, reasoning, and tools, but the capacity to inspect and report on itself. **In the next chapter you will embed this audit capability into the decision‑making pipeline introduced in Chapter 10, completing the capstone vision.**
+
+===== Key Points
+
+* Reflexivity: observe the observer
+* Metacognition: thinking about thinking
+* Audit tool = infrastructure for self‑observation
+* Extended gaze supports governance
+* Capstone: agent with self‑inspection capacity
+
+.Figure 2.8: Audit tool in agent stack (incl. self‑inspection)
+[plantuml,ch02-l08,png,theme=sketchy-outline]
+....
+@startuml
+title Audit Tool in Agent Stack (self‑inspection)
+
+actor Agent
+component "Audit Tool" as AT
+package "System Under Audit" {
+  component "Other Tools" as OT
+  component "Agent Core" as AC
+}
+
+Agent -> AT : invoke (list_components / generate_report)
+AT -> System Under Audit : query components / traces
+System Under Audit --> AT : structured audit data
+AT --> Agent : audit report
+
+' Reflexive loop
+Agent -> AT : self‑audit request
+@enduml
+....
+
+==== Discussion Prompts
+
+* What would the agent need to do with audit results to be “self‑governing”?
+* When should an agent self‑audit—proactively or only on demand?
+* Is “metacognition as infrastructure” a form of governance or surveillance?
+* How does the audit tool change your relationship to the agent you build?
+* What is the difference between self‑inspection and self‑governance?
+
+==== Lab Prep
+
+Complete Labs 1–3 for Chapter 2. Submit the audit tool. Integrate it into `student‑ai/` as a submodule—the tool server `audit` that the agent can invoke. Test the integration: can the agent call `audit.list_components` or `audit.generate_report`? Document the tool's API and invocation pattern. The audit tool is now part of your capstone; it will be available for self‑inspection in Chapter 10 and beyond.
+
+*What to Submit*
+
+* ✔️ `audit` submodule added to `student‑ai/`
+* ✔️ Fully implemented API (`list_components`, `trace_request`, `generate_report`)
+* ✔️ Automated test script demonstrating successful invocation
+* ✔️ API documentation (Markdown) with request/response schemas
+* ✔️ Demo script (`run_audit_demo.sh`) showing pre‑task health check and post‑deployment report
+
+===== Key Points
+
+* Complete Labs 1–3, submit audit tool
+* Integrate as submodule in `student‑ai/`
+* Test: agent invokes audit tools
+* Document API and invocation pattern
+* Provide checklist of deliverables for grading
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch02,Chapter 2>>).

@@ -1,0 +1,85 @@
+=== 11.2: Cost Control and Rate Limiting
+:leveloffset: 2
+
+[.epigraph]
+"Every API call has a cost."
+— EU AI Act <<EU2024>>; NIST AI RMF <<NIST2023>> (economic governance)
+
+*Governance is also economic—control spend and usage.*
+
+==== Example Prompts
+
+* "Stay within budget." — _Cost tracking: tokens, API calls; budgets, alerts_
+* "Limit requests per user." — _Rate limiting; prevent runaway_
+* "Who can afford to run this?" — _Access = economics; cost governance_
+
+==== Conceptual Core
+
+Every API call has a cost—and an agent can make hundreds of them in one task. Without governance, who pays, who gets cut off, and who can afford to run the system at all become invisible. So governance is not only about safety and fairness; it is also economic. Cost control and rate limiting are how we make the system sustainable and who gets to use it visible.
+
+Cost tracking: every LLM call consumes tokens (input and output), and each token has a price. Track spend per user, per task, per model. API calls and compute (GPU time, inference latency) also incur cost. Aggregate metrics: daily spend, monthly budgets. Without tracking, costs can spiral unnoticed—especially with autonomous agents that make many calls. Rate limiting: cap requests per minute (or per second) per user or per API key. Prevents runaway loops (e.g., agent retrying indefinitely), abuse, and quota exhaustion. Budgets and alerts: set a dollar limit; notify when approaching 80% or 100%. Hard stop or soft warning—configurable. Cost-aware agent design: cache responses when queries repeat; batch requests; use cheaper models (e.g., for simple tasks) when quality permits. Access and economics: who can afford to run agents? Cost governance shapes who can use the system. High costs exclude users with limited budgets; cost control is a form of access control and sustainability.
+
+===== Key Points
+
+* Cost tracking: tokens, calls, compute; per user, per task
+* Rate limiting: req/min; prevents runaway, abuse
+* Budgets, alerts: limit, notify at threshold
+* Cost-aware design: cache, batch, cheaper models
+* Access = economics; cost governance = access control
+
+==== Technical Example
+
+Track costs for LLM calls. Log each call: model name, tokens_in, tokens_out, and computed cost (model-specific pricing). Aggregate per user and per day. Set budget: e.g., $50/day per user. Alert at 80% ($40); hard stop or soft warning at 100%. Implement rate limiter: 10 req/min per user; return 429 (Too Many Requests) when exceeded. The governance simulator should model cost scenarios: what if token prices rise? What if usage doubles? Lab 1: Add cost tracking and rate limiting to the governance simulator. The simulator becomes a testbed for economic governance decisions.
+
+===== Key Points
+
+* Track LLM costs
+* Budget, alert
+* Lab 1: Cost tracking in simulator
+
+==== Philosophical Reflection
+
+Access and economics: cost governance determines who can use the system. Who can afford to run agents at scale? Researchers, startups, and individuals with limited budgets may be excluded. Economic governance is a form of access control—it shapes who participates in the AI ecosystem. It is also a form of sustainability: unlimited spend is not viable for providers or users. The governance simulator lets us explore these tradeoffs: stricter limits reduce cost but may limit capability; looser limits enable more use but increase risk of runaway spend.
+
+The EU AI Act and NIST AI RMF both treat cost and resource use as governance concerns—not only for providers but for equity of access. When you add cost tracking and rate limiting to the governance simulator (Lab 1), you are implementing the levers that real systems use to stay within budget and to decide who gets service when demand exceeds capacity.
+
+===== Key Points
+
+* Cost = access control
+* Sustainability
+* Cost/rate limits as governance levers; EU/NIST frame
+
+.Figure 11.2: Cost and rate limit flow
+[plantuml,ch11-l02,png,theme=sketchy-outline]
+....
+@startuml
+start
+:Request;
+:Cost Check;
+:Rate Limit;
+stop
+@enduml
+....
+
+==== Discussion Prompts
+
+* Who should bear the cost of AI systems?
+* How do we make AI accessible despite costs?
+* When is rate limiting justified?
+* How does cost governance connect to access control?
+* How does the governance simulator track cost?
+* When does cost control conflict with capability?
+
+==== Lab Prep
+
+Lab 1: Add cost tracking to the governance simulator. Track tokens, API calls. Implement rate limiter. Budget alerts. See Lab 1 for requirements.
+
+===== Key Points
+
+* Lab 1: Cost tracking
+* Rate limiter
+* Budget alerts
+
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch11,Chapter 11>>).

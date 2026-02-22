@@ -1,0 +1,117 @@
+=== 3.6: Partial Observability and Belief States
+:leveloffset: 2
+
+*Imagine a robot navigating a fog‑filled warehouse; its sensors only glimpse the nearest wall, leaving most of the environment hidden.*
+
+[.epigraph]
+"Ignorance is not simply the absence of knowledge."
+— Russell & Norvig, _AIMA_ <<RussellNorvig2020>> (via POMDPs)
+
+*When the agent cannot see the full state, search operates over beliefs.*
+
+==== Example Prompts
+
+* "Navigate when some cells are hidden." — _Belief state: set of possible actual states—partial observability_
+* "Find a policy that works despite uncertainty." — _Belief‑state search: expand over beliefs, not states_
+* "What should I do if I'm not sure where I am?" — _Approximate: particle filter, sampling—tractability vs. exactness_
+
+==== Conceptual Core
+
+Fully observable environments: the agent sees the true state. Partially observable: the agent receives observations that depend on the state but do not fully determine it. pass:q[\aimaterm{belief state}]s: instead of a single state, the agent maintains a set (or distribution) of possible states. Search operates over belief states—each "node" is a belief state, and actions/observations induce transitions. pass:q[\aimaterm{POMDP}]s (Partially Observable pass:q[\aimaterm{Markov decision process}]s) formalize this: states, actions, observations, transition model, observation model, reward. The belief state is a distribution over states; belief update uses Bayes' rule: given action, observation, and prior belief, compute posterior belief.
+
+Sensor models: how observations depend on state. Noisy sensors introduce uncertainty—we may mishear, missee. Belief update: b'(s') ∝ O(o|s') Σ_s T(s'|s,a) b(s). The cost of partial observability: the belief space is large (continuous, high‑dimensional); optimal solutions are intractable for big POMDPs. Approximation: particle filters, point‑based value iteration, or heuristic search over beliefs.
+
+===== Key Points
+
+* Fully vs. partially observable
+* Belief state: set or distribution over states
+* POMDP: states, actions, observations, transition, observation model
+* Belief update: Bayes' rule
+* Sensor models: observations depend on state
+* Cost: belief space large, intractable
+* Approximation: particles, point‑based, heuristics
+
+==== Technical Example
+
+Simple POMDP: navigation with noisy sensors. Agent does not know exact location; observations (e.g., "see wall to north") narrow the belief. Belief update via Bayes: prior belief, action (move north), observation (see wall), posterior belief. Implement a discrete POMDP with a few states—e.g., 1D grid, agent moves, observes left/right walls with noise. The search engine (Lab 3) may need to handle uncertain queries—e.g., user intent is ambiguous, or retrieval returns a distribution over relevant documents. Belief‑state reasoning is a bridge to probabilistic methods (Chapter 8).
+
+[source,python]
+----
+# Pseudo‑code for belief update loop
+b = initial_belief()                     # distribution over positions
+while not terminated:
+    a = policy(b)                         # choose action based on belief
+    b_pred = T @ b                        # predict next belief (state transition)
+    o = sense()                           # noisy observation
+    b = O[o] * b_pred                     # element‑wise multiply by observation model
+    b = b / b.sum()                       # normalize
+----
+The example highlights several concrete components:
+
+===== Key Points
+
+* Navigation with noisy sensors
+* Belief update: prior → action → observation → posterior
+* Discrete POMDP: small state space
+* State transition matrix **T**
+* Observation noise matrix **O**
+* Evaluation metric: expected cumulative reward
+
+==== Philosophical Reflection
+
+Epistemic uncertainty in search: we do not know the state. Ignorance is not simply absence of knowledge—it has structure. We have a belief (distribution); we take an action; we get an observation; we update. The belief state encodes what we know and what we do not. The cost of partial observability: we must reason over beliefs, not states. The space explodes. In practice, we approximate—particles, point‑based methods, or we assume full observability and hope. When the assumption fails, the agent may act on wrong beliefs. Designing for partial observability is designing for uncertainty.
+
+> “All models are wrong, but some are useful.”  
+> — George Box, *Science and Statistics*  
+
+Designing for hidden states raises ethical questions: an autonomous system that mis‑estimates its environment can cause harm. Moreover, when humans remain in the loop, they must understand the uncertainty conveyed by the system to make safe decisions.
+
+===== Key Points
+
+* Epistemic uncertainty: we don't know the state
+* Belief encodes what we know and what we don't
+* Cost: reasoning over beliefs, space explodes
+* Assume full observability at your peril
+* Ethical risk of hidden states influencing actions
+* Human‑in‑the‑loop uncertainty handling
+
+.Figure 3.6: Belief state evolution
+[plantuml,ch03-l06,png,theme=sketchy-outline]
+....
+@startuml
+start
+:Belief bₜ (distribution);
+--> :Action a : a;
+--> :Observation o : o;
+--> :Belief bₜ₊₁ = Update(bₜ, a, o) : b' = Update(b, a, o);
+repeat
+  :Belief bₜ (distribution);
+  --> :Action a : a;
+  --> :Observation o : o;
+  --> :Belief bₜ₊₁ = Update(bₜ, a, o) : b' = Update(b, a, o);
+repeat while (continue?)
+stop
+@enduml
+....
+
+==== Discussion Prompts
+
+* When does partial observability matter in systems you use?
+* How would you approximate belief‑state search for a real problem?
+* What is "lost" when we assume full observability?
+* When is it acceptable to assume full observability despite uncertainty?
+* How does the search tool handle uncertain or incomplete state?
+* How does belief‑state search connect to probabilistic reasoning (Ch8)?
+
+==== Lab Prep
+
+Lab 3: The search engine may need to handle uncertain queries—user intent ambiguous, or multiple plausible interpretations. Consider: does your retrieval return a single best answer or a distribution? Can the agent express uncertainty to the user? Partial observability in search often appears as query ambiguity or result uncertainty. Design the search API with that in mind.
+
+===== Key Points
+
+* Lab 3: Handle uncertain queries
+* Ambiguous intent, multiple interpretations
+* Design API for uncertainty
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch03,Chapter 3>>).

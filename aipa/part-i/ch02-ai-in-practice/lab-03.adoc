@@ -1,0 +1,45 @@
+=== Lab 3: AI System Audit Tool — Report Generation
+:leveloffset: 2
+
+*Final deliverable: AI System Audit Tool (tool)*
+
+==== Tool Deliverable
+
+Complete tool server `audit`. Tools: `list_components`, `list_dependencies`, `trace_request`, `generate_report`. Register in agent tool config.
+
+==== Prerequisites
+
+* Complete Labs 1 and 2 (inventory, trace schema)
+* Review 2.6–2.7: human-AI handoff; audit report structure; full pipeline
+
+==== Objectives
+
+* Generate audit reports (components, risks, compliance)
+* Support governance and documentation workflows
+* Integrate with student-ai audit pipeline
+
+==== Steps
+
+. Implement `list_components` and `list_dependencies` (or load from Lab 1 inventory).
+. Implement `trace_request` (or integrate Lab 2 trace collector).
+. Design report schema: components, dependencies, risks, human-AI interaction points, failure modes, recommendations.
+. Implement `generate_report`: aggregate inventory, traces, and risk assessment into a structured report (JSON, Markdown, or PDF).
+. Run the audit on a target system (e.g., student-ai/ or a simulated system). Produce a sample report.
+. Register the audit tool in the agent tool config. Document the tool schema.
+. Submit: working audit tool, sample audit report, integration as submodule in student-ai/.
+
+==== Deliverables
+
+* Working audit tool
+* Sample audit report
+* Integration as submodule in student-ai/
+
+*Acceptance criteria:*
+* Report includes components, dependencies, and at least one risk or recommendation
+* Report surfaces human-AI interaction points where applicable
+* Tool is callable via tool protocol (or documented for future integration)
+* README documents how to run the audit and interpret the report
+
+==== Lab Prep
+
+* Review 2.6–2.7: human-AI handoff; audit report; full pipeline

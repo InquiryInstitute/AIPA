@@ -1,0 +1,45 @@
+=== Lab 3: Agent Orchestrator — End-to-End Stack
+:leveloffset: 2
+
+*Final deliverable: Agent Orchestrator (tool client)*
+
+==== Tool Deliverable
+
+Complete orchestrator as tool client. Connects to all tool servers (search, memory, reasoning, llm, audit, etc.). API integration. student-ai/orchestration/.
+
+==== Prerequisites
+
+* Complete Labs 1 and 2 (pipeline design, tool client)
+* Review 10.4–10.8: API integration; monitoring; scaling; deployment
+
+==== Objectives
+
+* Integrate all modules (LLM, memory, reasoning, tools)
+* Orchestrate complex tasks
+* Monitor and debug agent behavior
+
+==== Steps
+
+. Wire up orchestrator: connect to search, memory, reasoning, llm, audit. Ensure all tools are reachable.
+. Run a complex task: "Research X, summarize, audit your process." Orchestrator routes to search, memory (RAG), llm, audit. Verify end-to-end.
+. Add API integration: call at least one external API (e.g., weather, database). Handle auth, errors, rate limits.
+. Add structured logging: request_id, step, tool_call, result, timestamp. Trace a failed task to find root cause.
+. Optionally: add monitoring, load-testing, or caching.
+. Document architecture: diagram of components, data flow, deployment.
+. Submit: full orchestrator, example workflows, integration in student-ai/orchestration/.
+
+==== Deliverables
+
+* Full orchestrator
+* Example workflows
+* Integration in student-ai/orchestration/
+
+*Acceptance criteria:*
+* Orchestrator invokes all prior tools (search, memory, llm, audit)
+* Complex task completes successfully (or fails gracefully)
+* Logging traces at least 3 steps
+* README documents architecture and how to run
+
+==== Lab Prep
+
+* Review 10.4–10.8: API integration; monitoring; deployment

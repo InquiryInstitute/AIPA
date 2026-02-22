@@ -1,0 +1,67 @@
+[appendix]
+== Bibliography
+
+This bibliography lists core works cited or referenced throughout the text. Use <<key>> in the narrative to cite; e.g. <<RussellNorvig2020>>.
+
+[bibliography]
+- [[[RussellNorvig2020]]] Russell, Stuart and Norvig, Peter. _Artificial Intelligence: A Modern Approach_, 4th ed. Pearson, 2020.
+- [[[Vaswani2017]]] Vaswani, Ashish, et al. "Attention Is All You Need." _NeurIPS_, 2017.
+- [[[Yao2022]]] Yao, Shunyu, et al. "ReAct: Synergizing Reasoning and Acting in Language Models." _arXiv:2210.03629_, 2022.
+- [[[Lewis2020]]] Lewis, Patrick, et al. "Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks." _NeurIPS_, 2020.
+- [[[Izacard2020]]] Izacard, Gautier and Grave, Edouard. "Leveraging Passage Retrieval with Generative Models for Open Domain Question Answering." _arXiv:2007.01282_, 2020.
+- [[[Clark2019]]] Clark, Christopher, et al. "BoolQ: Exploring the Surprising Difficulty of Natural Yes/No Questions." _arXiv:1905.10044_, 2019.
+- [[[Devlin2019]]] Devlin, Jacob, et al. "BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding." _NAACL-HLT_, 2019.
+- [[[Brown2020]]] Brown, Tom B., et al. "Language Models are Few-Shot Learners." _NeurIPS_, 2020.
+- [[[Bartlett1932]]] Bartlett, Frederic C. _Remembering: A Study in Experimental and Social Psychology_. Cambridge University Press, 1932.
+- [[[Foucault1975]]] Foucault, Michel. _Discipline and Punish: The Birth of the Prison_. Gallimard, 1975.
+- [[[Foucault1980]]] Foucault, Michel. _Power/Knowledge: Selected Interviews and Other Writings_. Pantheon, 1980.
+- [[[Wittgenstein1953]]] Wittgenstein, Ludwig. _Philosophical Investigations_. Blackwell, 1953.
+- [[[Deleuze1992]]] Deleuze, Gilles and Guattari, Félix. _A Thousand Plateaus_. Les Éditions de Minuit, 1980.
+- [[[Derrida1967]]] Derrida, Jacques. _Of Grammatology_. Les Éditions de Minuit, 1967.
+- [[[Latour2005]]] Latour, Bruno. _Reassembling the Social: An Introduction to Actor-Network Theory_. Oxford University Press, 2005.
+- [[[Heidegger1927]]] Heidegger, Martin. _Being and Time_. Niemeyer, 1927.
+- [[[Dewey1916]]] Dewey, John. _Democracy and Education_. Macmillan, 1916.
+- [[[Korzybski1933]]] Korzybski, Alfred. _Science and Sanity_. International Non-Aristotelian Library, 1933.
+- [[[Faulkner1951]]] Faulkner, William. _Requiem for a Nun_. Random House, 1951.
+- [[[Freud1900]]] Freud, Sigmund. _The Interpretation of Dreams_. Deuticke, 1900.
+- [[[EU2024]]] European Union. "Regulation (EU) 2024/1689 on Artificial Intelligence." _Official Journal of the EU_, 2024.
+- [[[NIST2023]]] NIST. _Artificial Intelligence Risk Management Framework_. NIST AI 100-1, 2023.
+- [[[Buolamwini2018]]] Buolamwini, Joy and Gebru, Timnit. "Gender Shades: Intersectional Accuracy Disparities in Commercial Gender Classification." _Proc. ML Research_, 2018.
+- [[[Mehrabi2019]]] Mehrabi, Ninareh, et al. "A Survey on Bias and Fairness in Machine Learning." _ACM Computing Surveys_, 2019.
+- [[[Box1976]]] Box, George E. P. "Science and Statistics." _JASA_, 1976.
+- [[[Sutton2018]]] Sutton, Richard S. and Barto, Andrew G. _Reinforcement Learning: An Introduction_, 2nd ed. MIT Press, 2018.
+- [[[Wei2022]]] Wei, Jason, et al. "Chain-of-Thought Prompting Elicits Reasoning in Large Language Models." _NeurIPS_, 2022.
+- [[[Pearl1988]]] Pearl, Judea. _Probabilistic Reasoning in Intelligent Systems_. Morgan Kaufmann, 1988.
+- [[[LeCun2015]]] LeCun, Yann, Bengio, Yoshua, and Hinton, Geoffrey. "Deep Learning." _Nature_, 2015.
+- [[[Rosenblatt1958]]] Rosenblatt, Frank. "The Perceptron: A Probabilistic Model for Information Storage and Organization." _Psychological Review_, 1958.
+- [[[Rumelhart1986]]] Rumelhart, David E., Hinton, Geoffrey E., and Williams, Ronald J. "Learning Representations by Back-Propagating Errors." _Nature_, 1986.
+- [[[Krizhevsky2012]]] Krizhevsky, Alex, et al. "ImageNet Classification with Deep Convolutional Neural Networks." _NeurIPS_, 2012.
+- [[[Hochreiter1997]]] Hochreiter, Sepp and Schmidhuber, Jürgen. "Long Short-Term Memory." _Neural Computation_, 1997.
+- [[[Silver2016]]] Silver, David, et al. "Mastering the Game of Go with Deep Neural Networks and Tree Search." _Nature_, 2016.
+- [[[Schulman2017]]] Schulman, John, et al. "Proximal Policy Optimization Algorithms." _arXiv:1707.06347_, 2017.
+- [[[Geman1992]]] Geman, Stuart, et al. "Neural Networks and the Bias/Variance Dilemma." _Neural Computation_, 1992.
+- [[[Vapnik1995]]] Vapnik, Vladimir N. _The Nature of Statistical Learning Theory_. Springer, 1995.
+- [[[Schick2023]]] Schick, Timo, et al. "Toolformer: Language Models Can Teach Themselves to Use Tools." _NeurIPS_, 2023.
+- [[[Ouyang2022]]] Ouyang, Long, et al. "Training Language Models to Follow Instructions with Human Feedback." _NeurIPS_, 2022.
+- [[[Rafailov2023]]] Rafailov, Rafael, et al. "Direct Preference Optimization: Your Language Model is Secretly a Reward Model." _NeurIPS_, 2023.
+- [[[Reimers2019]]] Reimers, Nils and Gurevych, Iryna. "Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks." _EMNLP_, 2019.
+- [[[Mikolov2013]]] Mikolov, Tomas, et al. "Efficient Estimation of Word Representations in Vector Space." _arXiv:1301.3781_, 2013.
+- [[[McCulloch1943]]] McCulloch, Warren S. and Pitts, Walter. "A Logical Calculus of the Ideas Immanent in Nervous Activity." _Bulletin of Mathematical Biophysics_, 1943.
+- [[[McCarthy1960]]] McCarthy, John. "Recursive Functions of Symbolic Expressions and Their Computation by Machine, Part I." _Communications of the ACM_, 1960.
+- [[[OpenAI2023]]] OpenAI. "GPT-4 Technical Report." _arXiv:2303.08774_, 2023.
+- [[[Llama2023]]] Touvron, Hugo, et al. "LLaMA: Open and Efficient Foundation Language Models." _arXiv:2302.13971_, 2023.
+- [[[Popper1959]]] Popper, Karl. _The Logic of Scientific Discovery_. Hutchinson, 1959.
+- [[[Boyd2004]]] Boyd, Stephen and Vandenberghe, Lieven. _Convex Optimization_. Cambridge University Press, 2004.
+- [[[Norman2013]]] Norman, Don. _The Design of Everyday Things_, rev. ed. Basic Books, 2013.
+- [[[Fielding2000]]] Fielding, Roy Thomas. _Architectural Styles and the Design of Network-based Software Architectures_. Ph.D. thesis, UC Irvine, 2000.
+- [[[Winner1986]]] Winner, Langdon. _The Whale and the Reactor: A Search for Limits in an Age of High Technology_. University of Chicago Press, 1986.
+- [[[Pynchon1973]]] Pynchon, Thomas. _Gravity's Rainbow_. Viking Press, 1973.
+- [[[Borges1941]]] Borges, Jorge Luis. "The Garden of Forking Paths." In _Labyrinths: Selected Stories and Other Writings_. New Directions, 1962 (orig. 1941).
+- [[[Dick1968]]] Dick, Philip K. _Do Androids Dream of Electric Sheep?_ Doubleday, 1968.
+- [[[Gibson1984]]] Gibson, William. _Neuromancer_. Ace Books, 1984.
+- [[[BladeRunner1982]]] _Blade Runner_. Dir. Ridley Scott. 1982.
+- [[[EternalSunshine2004]]] _Eternal Sunshine of the Spotless Mind_. Dir. Michel Gondry. 2004.
+- [[[Matrix1999]]] _The Matrix_. Dir. The Wachowskis. 1999.
+- [[[Her2013]]] _Her_. Dir. Spike Jonze. 2013.
+- [[[Memento2000]]] _Memento_. Dir. Christopher Nolan. 2000.
+- [[[ExMachina2014]]] _Ex Machina_. Dir. Alex Garland. 2014.

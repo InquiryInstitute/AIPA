@@ -1,0 +1,15 @@
+[source,python]
+----
+def gibbs_sampling(network, evidence, N=5000, burn_in=0.1):
+    # initialise all non‑evidence variables randomly
+    state = random_initial_state(network, evidence)
+    samples = []
+    for t in range(N):
+        for X in network.variables:
+            if X not in evidence:
+                mb = network.markov_blanket(X)
+                state[X] = sample_conditional(X, mb, state)
+        if t >= int(burn_in * N):
+            samples.append(state.copy())
+    return samples
+----

@@ -1,0 +1,138 @@
+=== 4.8: Lab Integration — ML Model Trainer
+:leveloffset: 2
+
+[.epigraph]
+"Practice is the best of all instructors."
+— Publilius Syrus, _Sententiae_ <<Syrus>>
+
+You receive a flood of newly‑labeled emails every morning. The raw text sits in a datastore, waiting for a model that can instantly decide whether each message is spam, priority, or promotional. How does your student‑AI turn that raw stream into a classifier that can be called on the next incoming email? The answer lies in the **ml_trainer**, the first adaptive module that bridges data collection and actionable inference.
+
+==== Example Prompts
+
+* "Classify these documents using our trained model." — _End‑to‑end: data → train → evaluate → use_
+* "Retrain when new labeled data arrives." — _Memory (Ch7) provides data; ml_trainer consumes_
+* "What learning modules does the agent have?" — _ml_trainer now; Ch5 neural_classifier; learning as tool_
+
+==== Conceptual Core
+
+*Recap of Labs 1‑3.*  
+Lab 1 taught you how to ingest and clean raw data, Lab 2 showed you how to feed that data into a training loop, and Lab 3 introduced systematic evaluation and experiment tracking. Together they form the static foundation on which the ml_trainer will operate.
+
+*ml_trainer API overview.*  
+The trainer exposes four core functions—`load_data`, `train`, `evaluate`, and `export_model`. `load_data` pulls a dataset from the Memory subsystem, `train` runs a configurable learning algorithm, `evaluate` records metrics in the experiment tracker, and `export_model` writes a version‑controlled artifact to the Model Registry.
+
+*Placement in the Student‑AI stack.*  
+All of these functions live under the `student‑ai/` package, making them first‑class tools that the orchestration layer (the LLM‑driven Agent) can invoke. Because they are packaged as a submodule, they can be version‑controlled, tested in isolation, and swapped out without touching the core prompting logic.
+
+*Interaction with upcoming chapters.*  
+Chapter 5 will provide neural classifier templates that the ml_trainer can instantiate and train on task‑specific data. Chapter 7 will expose a memory‑augmented retrieval API that supplies fresh labeled examples on demand, allowing the trainer to run continual learning cycles.
+
+*Learning as tool vs. learning as constitution.*  
+When the agent calls ml_trainer, it is **using a tool** to produce a new model; the agent’s own prompting logic and orchestration remain unchanged. This distinction clarifies the boundary between adaptive components (the trainer, the model registry) and the fixed core (the LLM that drives tool selection).
+
+*Reproducibility and model registry.*  
+Every exported model is tagged with a unique identifier, hyper‑parameter snapshot, and source data hash. This metadata enables exact reproducibility, auditability, and easy rollback to previous model versions.
+
+===== Key Points
+
+* Labs 1‑3: data prep, training loop, evaluation & tracking  
+* ml_trainer API: `load_data`, `train`, `evaluate`, `export_model`  
+* Lives in `student‑ai/` as a version‑controlled submodule  
+* Chapter 5 supplies neural classifier templates for training  
+* Chapter 7 supplies memory‑augmented data retrieval  
+* Adaptive tools vs. fixed orchestration core  
+* Exported models are registered with full provenance  
+* Reproducibility is baked into the export process  
+
+==== Technical Example
+
+*Configuration schema and invocation.*  
+A typical `config.yaml` for ml_trainer specifies the data source (`memory://emails`), the model type (`neural_classifier`), hyper‑parameters (`learning_rate`, `epochs`), and evaluation metrics (`accuracy`, `f1`). The trainer can be invoked either via a CLI command (`ml_trainer train --config config.yaml`) or programmatically through the Python API (`ml_trainer.train(config)`).
+
+*End‑to‑end pipeline and automated testing.*  
+The full pipeline is scripted in `run_pipeline.sh`: it calls `ml_trainer load_data`, runs `train`, performs `evaluate`, and finally executes `export_model` to push the artifact into the Model Registry. A continuous‑integration job executes this script on every push, asserting that the new model meets a minimum accuracy threshold before it is promoted to production.
+
+*Integration with downstream consumers.*  
+Once exported, the model is discoverable by the Neural Classifier component, which loads it at startup and exposes an inference endpoint. The Agent then calls this endpoint whenever a classification request arrives, completing the loop from raw data to actionable prediction.
+
+===== Key Points
+
+* Config schema includes data source, model type, hyper‑parameters, metrics  
+* CLI (`ml_trainer train --config …`) and API (`ml_trainer.train(config)`) both supported  
+* `run_pipeline.sh` automates data → train → evaluate → export flow  
+* CI job validates accuracy ≥ 90 % before promotion  
+* Exported models are stored in a versioned Model Registry  
+* Neural Classifier loads models from the registry for inference  
+* Agent invokes the classifier via a stable inference API  
+* Retraining can be triggered on demand by the Agent  
+
+==== Philosophical Reflection
+
+When we say the agent “learns,” we are really describing a **tool‑centric** process: the agent selects the ml_trainer, supplies it with data, and receives a fresh model. The agent’s own prompting logic, its identity, and its decision‑making pathways remain untouched. This **learning‑as‑tool** view treats model updates as metabolic products that the agent consumes without altering its own genome.
+
+Contrast this with **learning‑as‑constitution**, where the agent’s underlying LLM would be fine‑tuned or its orchestration code rewritten. Such changes would rewrite the agent’s “DNA,” making the learning process irreversible and fundamentally altering its behavior. For now, the boundary stays porous: tool updates are reversible (swap the model, roll back), while core updates are rare and deliberate.
+
+*Metabolic metaphor.*  
+In the metabolism thesis, adaptive tools are akin to enzymes that catalyze transformations without becoming the substrate themselves. The ml_trainer is an enzyme that converts raw data into a functional model, which the agent then uses as a nutrient for decision‑making. Future chapters will introduce mechanisms that let the agent synthesize new enzymes (e.g., self‑modifying prompts), gradually blurring the tool‑core distinction.
+
+*Take‑away.*  
+Understanding this distinction prepares you for Chapter 5’s neural classifiers and Chapter 7’s memory‑augmented training, where the same tool‑centric pattern will be reused and extended across the learning stack.
+
+===== Key Points
+
+* Agent uses models but does not become them  
+* Tool‑level learning is reversible; core updates are not  
+* Boundary between fixed core and adaptive tools is porous  
+* Metabolism metaphor frames tools as catalytic enzymes  
+* Future fine‑tuning will blur tool‑core distinction  
+* Chapters 5 and 7 will extend the tool‑centric pattern  
+
+.Figure 4.8: ml_trainer and downstream consumers
+[plantuml,ch04-l08,png,theme=sketchy-outline]
+....
+@startuml
+skinparam backgroundColor #F9F9F9
+skinparam shadowing false
+
+package "Student‑AI Stack" {
+  [Agent] as A
+  [ml_trainer] as T
+  [Memory (training data)] as M
+  [Neural Classifier] as N
+  [Model Registry] as R
+}
+
+M --> T : provide data
+T --> T : train / evaluate
+T --> R : export model
+R --> N : load model
+N --> A : inference API
+A --> T : request retraining (optional)
+
+@enduml
+....
+
+==== Discussion Prompts
+
+* Where is the boundary between "the agent" and "its tools"?
+* How might ml_trainer connect to memory (Ch7)?
+* Is "learning" the right word for "invoking a trainer"?
+* What does "learning as tool invocation" imply for the metabolism thesis?
+* How does the ml_trainer complete the learning stack for the capstone?
+* What would "learning as constitution" (vs. tool) require?
+
+==== Lab Prep
+
+Complete Labs 1–3 for Chapter 4. Submit the ml_trainer. Integrate as submodule in `student‑ai/`. Test the full pipeline: data → train → evaluate → export. Document the API and config schema. The ml_trainer is now part of the capstone. Chapter 5 will add neural components that the ml_trainer can train; Chapter 7 will connect memory for training data.
+
+===== Key Points
+
+* Complete Labs 1–3, submit ml_trainer  
+* Integrate as submodule in `student‑ai/`  
+* Document API and configuration schema  
+* Verify end‑to‑end pipeline (data → train → evaluate → export)  
+* Chapter 5 adds trainable neural components  
+* Chapter 7 supplies memory‑augmented training data  
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch04,Chapter 4>>).

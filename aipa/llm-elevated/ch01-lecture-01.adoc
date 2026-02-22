@@ -1,0 +1,161 @@
+=== 1.1: Definitions of Intelligence — Stored vs. Flowing
+:leveloffset: 2
+
+When you ask Siri for the weather, does the answer come from a stored fact sheet or from a model that “thinks” on the fly?
+
+[.epigraph]
+"The problem is not that people do not know the truth, but that they do not know that they do not know it."
+— Foucault, _Power/Knowledge_ <<Foucault1980>> (adapted)
+
+*Think‑pair‑share (2 min):* Write in one sentence how you think Siri produces its answer. Discuss with a neighbor and note whether you imagined a **lookup** or a **computation** process.
+
+==== Conceptual Core
+
+Imagine you are playing a blitz chess game against two opponents. **Opponent A** has memorised every endgame position with the optimal move; when the board matches one of its memorised patterns, it instantly replies. **Opponent B** knows only the rules of chess, explores possible continuations on the spot, and decides the best move by evaluating the positions it generates. Both opponents win games, yet they embody two opposite ways of locating *intelligence*.
+
+The first opponent illustrates the **stored‑representation view**: intelligence resides in *what the system has*—a knowledge base, a set of pre‑computed answers, a database of facts. The second opponent embodies the **process view**: intelligence resides in *what the system does*—the transformation of inputs into outputs through computation, feedback, and emergence.  
+
+> **Question:** *Where does intelligence live—inside the system or in the activity of the system?*  
+
+The classic **Turing test** asks whether a machine can imitate human conversation, but it does not tell us whether the imitation relies on stored symbols or on on‑the‑fly processing. **Searle’s Chinese Room** pushes the puzzle further: a person follows a rule book to manipulate Chinese symbols without understanding them. The room passes the Turing test, yet the *meaning* seems absent.  
+
+- If we adopt the **stored‑representation view**, the rule book itself is sufficient for “understanding.”  
+- If we adopt the **process view**, understanding emerges only during the *doing*—the manipulation, the feedback, the continual adjustment.
+
+Both perspectives capture real aspects of AI systems. **Expert systems** of the 1980s leaned heavily on stored rules and frames; **connectionist networks** rely on activation dynamics and weight updates. Modern large language models (LLMs) blend the two: billions of parameters *store* statistical knowledge, while a single forward pass *processes* that knowledge into fluent text. Recognising this blend is crucial because it shapes design choices, cost structures, and the distribution of power in AI.
+
+===== Key Points
+
+* **Stored‑representation view:** intelligence as internal knowledge (facts, parameters).  
+* **Process view:** intelligence as transformation, circulation, and emergence.  
+* **Turing test** probes behavior, not the locus of intelligence.  
+* **Chinese Room** highlights the gap between symbol manipulation and meaning.  
+* Real systems **mix** both views; hybrids are the norm today.  
+* Design trade‑offs (storage vs. computation) influence scalability and access.
+
+==== Technical Example
+
+Consider two approaches to a chess endgame. **System X** stores a lookup table (a *tablebase*) containing the optimal move for every legal position with few pieces. When presented with a position, it simply retrieves the answer—*no computation beyond the lookup*. **System Y** knows only the rules of chess; it performs a *search* through the state space, evaluates positions with a heuristic, and computes the best move on demand.  
+
+*Vote (quick show of hands):* Which system feels “smarter” to you?  
+
+The tablebase exemplifies **high storage, low compute**; the search engine exemplifies **low storage, high compute**. Neither is universally superior: tablebases excel in tiny state spaces, while search scales to larger games when combined with heuristics and pruning.  
+
+Hybrid designs occupy the middle ground. A modern knowledge graph, for instance, stores nodes and edges **(static structure)** but also supports **traversal, inference, and embedding** **(dynamic flow)**. A query therefore does more than retrieve—it *aggregates* information along paths, updates embeddings, and may even trigger downstream actions. The labs in this chapter will let you build such hybrids.
+
+===== Key Points
+
+* **Lookup table:** pre‑computed answers → fast retrieval, high storage.  
+* **Search:** rules + state‑space exploration → on‑demand computation, low storage.  
+* **Trade‑off:** storage vs. computation; choice depends on problem scale.  
+* **Hybrid systems** combine both: stored structure + runtime flow.  
+* **Knowledge graphs** illustrate the blend of static representation and dynamic processing.
+
+==== Philosophical Reflection
+
+Knowledge is not a static commodity but a circulating medium: models produce it, users consume it, and feedback loops reshape it through retraining. No single locus holds all the knowledge; intelligence emerges from the *circuit* rather than any isolated node. Foucault’s notion of the *episteme*—the rules and practices that make certain knowledge possible—maps onto AI as an **epistemic machine** that both stores and circulates information.
+
+When we ask “where is the intelligence?” we are also asking “where is the power?” A system that concentrates knowledge in a massive model (stored representation) centralises control: only the owners can update, audit, or restrict it. A system that distributes processing across many interactions (flowing process) diffuses that power, allowing users to shape outcomes through their queries and feedback. Recognising the stored ↔ flowing distinction therefore reveals hidden political economies of AI.
+
+===== Key Points
+
+* Knowledge circulates: production → consumption → reshaping.  
+* Foucault’s *episteme* = conditions that make knowledge possible → AI as epistemic machine.  
+* **Stored** systems concentrate power; **flowing** systems distribute it.  
+* Hybrid designs can balance control and openness.  
+
+.Stored vs. Flowing Intelligence (system flow)
+[plantuml,ch01-l01,png,theme=sketchy-outline]
+....
+@startuml
+scale 1.1
+skinparam backgroundColor #F9F9F9
+skinparam rectangle {
+  BackgroundColor<<Stored>> #DDEEFF
+  BackgroundColor<<Flow>>   #FFEEDD
+}
+' Stored lane
+|Stored Representation|
+start
+:Stored Knowledge / Retrieval;
+note right: high storage, low compute
+--> :Update (re‑train);
+note right: feedback loop
+--> stop
+
+' Flowing lane
+|Flowing Process|
+start
+:Input;
+--> :Transform;
+--> :Compose;
+--> :Output;
+note right: low storage, high compute
+--> :Feedback / Update;
+note right: learning from use
+--> stop
+
+' Hybrid connection
+Stored Knowledge --> Input : retrieval‑augmented query
+Input --> Stored Knowledge : cache / update
+
+note over Stored Representation, Flowing Process
+  Hybrid systems combine both flows
+end note
+caption Stored vs. Flowing Intelligence
+@enduml
+....
+
+.Retrieval‑Augmented Generation (Hybrid) Diagram
+[plantuml,ch01-hybrid,png,theme=sketchy-outline]
+....
+@startuml
+scale 1.1
+skinparam backgroundColor #F9F9F9
+rectangle "LLM Parameters\n(high‑dimensional storage)" as LLM <<Stored>>
+rectangle "External Knowledge Base\n(indexed facts)" as KB <<Stored>>
+rectangle "Prompt + Retrieval\n(query processing)" as Query <<Flow>>
+rectangle "Generated Output\n(text)" as Output <<Flow>>
+
+LLM --> Query : generate context
+KB --> Query : retrieve facts
+Query --> LLM : augment prompt
+LLM --> Output : generate text
+Output --> KB : log usage (optional feedback)
+
+note right of LLM
+  high storage, low compute per token
+end note
+note right of Query
+  low storage, high compute per query
+end note
+caption Retrieval‑Augmented Generation – a hybrid of stored parameters and runtime retrieval
+@enduml
+....
+
+==== Discussion Prompts
+
+* Where would you place a retrieval‑augmented chatbot: stored, flowing, or hybrid?
+* Can a system be intelligent without any stored representation at all?
+* How does the Chinese Room argument change if the room can write to a long‑term memory during the conversation?
+* In your experience, when has “more storage” helped versus “more computation”?
+* Who governs epistemic circulation in an LLM‑powered search engine?
+* If intelligence is flowing, can we “own” it? What are the implications for intellectual property and accountability?
+
+==== Lab Prep
+
+*Lab 0* introduces the documentation stack (Markdown + PlantUML) that you will use throughout the course.  
+*Lab 1* (Knowledge Graph — Data Model and Ingestion) is the first hands‑on deliverable: you will construct a tiny graph that **stores** entities and **flows** queries through traversal and inference. This directly mirrors the hybrid diagram you just saw—your graph will have both a static backbone and a dynamic query engine.  
+
+Before you start Lab 1, keep in mind that representation and process are not opposites but dimensions you can tune. Think about where your graph will store facts and where it will compute answers on the fly.
+
+===== Key Points
+
+* Lab 0: set up Markdown + PlantUML documentation.  
+* Lab 1–3: build hybrid knowledge graphs (nodes + edges, traversal + query).  
+* Representation ↔ process are tunable dimensions.  
+* Anticipate the trade‑off: **what to store** vs. **what to compute**.  
+* The hybrid diagram provides a blueprint for your implementation.
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch01,Chapter 1>>).

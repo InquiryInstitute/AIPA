@@ -1,0 +1,46 @@
+=== Lab 2: Agents — Tool Execution and Feedback
+:leveloffset: 2
+
+*Milestone toward: Tool-Calling Agent (tool consumer)*
+
+==== Tool Deliverable
+
+Executes tool calls and returns structured feedback. Agent invokes tools (search, memory, reasoning) via tool invocation and processes results.
+
+==== Prerequisites
+
+* Complete Lab 1 (tool schemas, registration)
+* Review 9.3: tool execution; feedback format
+
+==== Objectives
+
+* Execute tool calls (search, calculator, code, etc.)
+* Return structured feedback to LLM
+* Handle errors and retries
+
+==== Steps
+
+. Implement execution layer: given tool name and args, look up handler, call it, return result.
+. Connect at least 2 tools: e.g., search (from Ch3) and a calculator. Implement handlers that call the actual tools.
+. Format feedback for LLM: "Tool X returned: {result}" or structured (JSON). Keep format consistent.
+. Handle errors: tool not found, invalid args, runtime error. Return structured error message.
+. Add retry: on transient failure (e.g., network), retry up to N times with backoff.
+. Test: run a few tool calls, verify feedback format. Test error handling.
+. Submit: tool execution layer, feedback formatting, submodule into student-ai/.
+
+==== Deliverables
+
+* Tool execution layer
+* Feedback formatting
+* Submodule into student-ai/
+
+*Acceptance criteria:*
+* Execution layer invokes at least 2 tools correctly
+* Feedback is formatted for LLM consumption
+* Errors are caught and returned as structured messages
+* Retry works for at least one transient failure case
+* README documents execution flow and feedback format
+
+==== Lab Prep
+
+* Review 9.3: execution; feedback; error handling

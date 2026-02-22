@@ -1,0 +1,42 @@
+=== Lab 1: Search — Problem Formulation and State Space
+:leveloffset: 2
+
+*Milestone toward: Search Engine (tool)*
+
+==== Tool Deliverable
+
+Builds toward tool server `search` — tools: `define_problem`, `get_successors`, `solve`. Agent formulates and solves search problems via tool invocation.
+
+==== Prerequisites
+
+* Review 3.1: state space; representation; initial state, goal, actions, successor function
+
+==== Objectives
+
+* Formalize a problem as state space (initial, goal, actions)
+* Implement state representation and successors
+* Validate completeness and correctness
+
+==== Steps
+
+. Choose 2–3 domains (e.g., 8-puzzle, grid navigation, simple planning). For each, define: states, initial state, goal(s), actions, successor function.
+. Implement state equality and successor generation for each domain. Use a generic interface so the same search code can work across domains.
+. Validate: for a small instance, enumerate all reachable states from the initial state. Check that the goal is reachable (or document why not).
+. Implement `define_problem` (or equivalent): accept problem spec and return a problem object with `initial`, `goal_test`, `actions`, `successor`.
+. Submit: problem formulations for 2–3 domains, state-space implementation, GitHub Classroom repo (ch03-lab-01).
+
+==== Deliverables
+
+* Problem formulation for 2–3 domains
+* State-space implementation
+* GitHub Classroom repo (ch03-lab-01)
+
+*Acceptance criteria:*
+* At least 2 domains have complete formulation (initial, goal, actions, successor)
+* Successor function is correct (manual spot-check on 2–3 transitions)
+* Code runs without errors on sample problems
+* README documents each domain and how to run
+
+==== Lab Prep
+
+* Review 3.1: state space; representation; successor function

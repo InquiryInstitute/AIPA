@@ -1,0 +1,7 @@
+=== Exercises
+
+. *Conceptual* In your own words, explain the difference between intelligence as stored vs. flowing. Give one example of an AI system that leans toward each view.
+. *Conceptual* Why does the book adopt the "metabolism of knowledge" metaphor? What does it capture that "processing" or "computation" does not?
+. *Design* Propose a knowledge graph schema for a domain of your choice (e.g., academic papers, recipes, sports). What entities, relations, and attributes would you include? What would you omit?
+. *Computational* Implement a simple state representation for a small problem (e.g., 3-puzzle). Define states, actions, and the successor function.
+. *Design* How would you connect the Ch1 knowledge graph to the RAG pipeline in Ch7? Sketch the data flow.

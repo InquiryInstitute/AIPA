@@ -1,0 +1,8 @@
+python
+def update_document(doc_id, new_text):
+    old_chunks = index.find_chunks(doc_id)
+    index.delete_chunks(old_chunks)
+    new_chunks = chunk(new_text)
+    new_embeds = embed(new_chunks)
+    index.add_chunks(doc_id, new_chunks, new_embeds)
+    index.refresh()

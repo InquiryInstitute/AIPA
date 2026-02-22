@@ -1,0 +1,58 @@
+= Chapter 1: Intelligence as Process
+
+This chapter establishes the conceptual frame for the book: intelligence as process rather than possession. We distinguish two views—intelligence as *stored* (representations, knowledge bases, weights) versus *flowing* (transformation, circulation, metabolism)—and argue that neither fully captures how real systems work. The metabolism metaphor becomes central: systems take in information, transform it, circulate it, and produce outputs that feed back. Knowledge does not sit inert; it flows.
+
+We trace the history of AI (symbolic, connectionist, hybrid), the cognitive turn (mind as information processor), and the book's thesis (intelligence as metabolism). We then situate AI as epistemic machines (producers of knowledge, not just reflectors), infrastructure (invisible until it breaks), and institutional participants (accountable actors in organizational decision-making). The chapter closes with the capstone vision: you will build an AI agent across twelve chapters, and this chapter's knowledge graph is the first piece.
+
+The labs in this chapter build that foundation. Lab 0 sets up documentation (Markdown, PlantUML). Labs 1–3 deliver a knowledge graph: data model and ingestion, query and traversal, and an explorer interface. The graph is symbolic structure that will later connect to connectionist retrieval and generation—a hybrid that embodies the stored-and-flowing distinction. By chapter end, you will have a working knowledge graph and a clear path toward the complete student-ai/ system.
+
+==== Learning Objectives
+After this chapter you will be able to:
+* Distinguish intelligence as stored (representations) vs. flowing (metabolism)
+* Trace the history of AI (symbolic, connectionist, hybrid) and the cognitive turn
+* Situate AI as epistemic machines, infrastructure, and institutional participants
+* Build a knowledge graph (data model, query, traversal, explorer interface)
+
+==== Course Learning Outcomes (CLOs)
+By the end of this course, you will be able to:
+* Analyze the stored vs. flowing views of intelligence and explain their implications for system design (PLO 1).
+* Trace the history of AI (symbolic, connectionist, hybrid) and the cognitive turn (PLO 1).
+* Situate AI as epistemic machines, infrastructure, and institutional participants (PLO 4).
+* Design and implement a knowledge graph with data model, ingestion, query, traversal, and explorer interface (PLO 2).
+
+include::lecture-01.adoc[]
+****
+include::lab-00.adoc[]
+****
+
+include::lecture-02.adoc[]
+****
+include::lab-01.adoc[]
+****
+
+include::lecture-03.adoc[]
+include::lecture-04.adoc[]
+****
+include::lab-02.adoc[]
+****
+
+include::lecture-05.adoc[]
+include::lecture-06.adoc[]
+****
+include::lab-03.adoc[]
+****
+
+include::lecture-07.adoc[]
+include::lecture-08.adoc[]
+
+==== Chapter Summary
+This chapter introduced intelligence as process rather than possession. We contrasted stored and flowing views, adopted the metabolism metaphor, and traced AI's history. We situated AI as epistemic machines, infrastructure, and institutional participants. The knowledge graph labs provide the first structural component for your agent. The distinction between stored representation and flowing process will recur throughout the book—especially in memory (Ch7), reasoning (Ch8), and the agent loop (Ch9).
+
+==== Further Reading
+Readings for this chapter are collected in the <<reading-list,Reading List>> (<<reading-ch01,Chapter 1>>).
+
+* Russell & Norvig, _AIMA_ <<RussellNorvig2020>> — Comprehensive treatment of agents, search, and classical AI.
+* Latour, _Reassembling the Social_ <<Latour2005>> — Actor-Network Theory; useful for understanding AI as infrastructure.
+* Foucault, _Discipline and Punish_ <<Foucault1975>> — Power, norms, and institutional context.
+
+include::exercises.adoc[]

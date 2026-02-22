@@ -1,0 +1,149 @@
+=== 5.5: Regularization — Dropout, Data Augmentation
+:leveloffset: 2
+
+You have just trained a 10‑layer convolutional network on **1 000** handwritten digits.  
+It scores **99 %** on the training set but only **70 %** on the held‑out test set.  
+The model has memorised every stroke, yet it fails to recognise a slightly rotated digit.  
+*How can we make the network *robust* rather than *memorising*?*  
+
+[.epigraph]
+"Robustness through perturbation."
+— Geman et al., "Neural Networks and the Bias/Variance Dilemma" <<Geman1992>>
+
+==== Example Prompts
+
+* "Reduce overfitting in this network." — _Dropout; data augmentation_
+* "Generalize from limited data." — _Perturb inputs; regularization_
+* "Why does dropout help?" — _Prevents co-adaptation; ensemble effect_
+
+==== Conceptual Core
+
+**Why over‑fitting matters.**  
+When a model captures idiosyncrasies of the training set, its decision boundary becomes tangled, leading to poor performance on unseen data. In deep learning the danger is amplified because millions of parameters can memorize arbitrary patterns. Regularisation is the systematic injection of *bias* that steers learning toward smoother, more generalisable functions.
+
+**Parametric regularisation (L1/L2).**  
+The classic weight‑penalty terms constrain the magnitude of parameters, encouraging simpler models. L1 promotes sparsity, L2 shrinks weights uniformly. Although effective for shallow linear models, these penalties alone are insufficient for deep nets where co‑adaptation between units can still cause memorisation.
+
+**Structural regularisation – Dropout.**  
+During each training iteration a random subset of hidden units is set to zero. This prevents any single unit from relying on a fixed set of partners, forcing the network to learn redundant, distributed representations. At inference time all units are active; their outputs are scaled (or the weights are rescaled) to match the expected activation statistics.
+
+**Structural regularisation – Data augmentation & early stopping.**  
+Augmentation synthetically expands the training distribution by applying label‑preserving transforms (e.g., flips, rotations, colour jitter for images; synonym replacement for text). Early stopping monitors validation loss and halts training once improvement stalls, avoiding the tail of over‑fitting. Together these techniques make the model robust to natural variations in the data.
+
+pass:q[**Quick‑check:** Which of the following statements best captures the intuition behind dropout?  
+a) It reduces the number of parameters at test time.  
+b) It forces each neuron to be useful on its own.  
+c) It adds Gaussian noise to the gradients.  
+d) It increases the effective learning rate.]
+
+===== Key Points
+
+* Over‑fitting: memorisation vs. generalisation  
+* L1 regularisation → sparsity; L2 regularisation → weight decay  
+* Dropout – random unit deletion during training, scaling at test time  
+* Typical dropout rates: 0.2 – 0.5 for hidden layers, up to 0.8 for inputs  
+* Data augmentation – semantic‑preserving transforms (spatial, colour, lexical)  
+* Augmentation families: geometric, photometric, mixup/cutmix, textual synonym swaps  
+* Early stopping – monitor validation loss, patience hyper‑parameter  
+* Interaction: dropout + L2 often yields complementary regularisation  
+
+==== Technical Example
+
+**Experiment 1 – MLP with and without dropout.**  
+We train a three‑layer fully‑connected network on the *Fashion‑MNIST* dataset (60 k training, 10 k test).  
+Configuration: 256‑unit hidden layers, ReLU, Adam, 30 epochs, learning rate 0.001.  
+Two runs are compared: (i) baseline (no dropout), (ii) dropout 0.3 applied to each hidden layer.  
+Training curves show the baseline quickly reaches near‑zero training loss while validation loss rises after epoch 8, indicating over‑fitting.  
+With dropout, training loss remains higher but validation loss continues to drop, achieving a **3.8 %** higher test accuracy (87 % → 90.8 %).
+
+**Experiment 2 – Image classification with augmentation.**  
+Using the same MLP architecture on *CIFAR‑10*, we add a data‑augmentation pipeline: random horizontal flip, random crop (padding 4), and random brightness adjustment.  
+Baseline (no augmentation) attains 68 % test accuracy; the augmented model reaches **73 %**, a **5 %** gain.  
+Both experiments log training/validation loss curves and co‑adaptation metrics (average pairwise correlation of hidden activations), which drop markedly when dropout or augmentation are employed.
+
+===== Key Points
+
+* Dropout rate 0.2 – 0.5 typical for hidden layers; 0.5 – 0.8 for input layers  
+* Augmentation transforms: RandomHorizontalFlip, RandomCrop(pad=4), RandomBrightness(Δ=0.2)  
+* Plot training vs. validation loss to visualise over‑fitting  
+* Observe reduced hidden‑unit co‑adaptation (lower activation correlation)  
+* Lab 2: implement configurable dropout per layer and an augmentation pipeline  
+* Expected outcome: ≥ 3 % validation‑accuracy improvement over baseline  
+
+==== Philosophical Reflection
+
+**Noise as an inductive bias.**  
+Injecting randomness—whether by dropping units or perturbing inputs—acts as a prior that favours functions invariant to those perturbations. This aligns with the Bayesian view: the stochastic training process defines a *distribution* over models, and the posterior concentrates on those that perform well under the imposed noise. Consequently, noise is not merely a trick; it is a principled way to encode domain knowledge about invariances.
+
+**Synthetic data and the ontology of “real” examples.**  
+Data augmentation blurs the line between observed and generated data. When we rotate an image of a cat, we create a *new* training example that never existed in the world but respects the semantics of the task. Philosophically, the augmented sample becomes part of the training *environment*; its legitimacy hinges on the assumption that the transformation preserves the label. This raises ethical questions in domains where label preservation is ambiguous (e.g., medical imaging) and invites reflection on the responsibility of the practitioner to justify each transform.
+
+===== Key Points
+
+* Perturbation → robustness; noise encodes invariance priors  
+* Synthetic examples act as a *data‑driven prior* for the learner  
+* Regularisation as a design language for autonomous agents (configurable knobs)  
+* Ethical dimension: ensure augmentations do not introduce label noise or bias  
+* Trade‑off: too much noise → under‑fitting, too little → over‑fitting  
+* Interaction of dropout, L1/L2, and augmentation shapes the model’s inductive bias  
+
+.Figure 5.5: Regularisation pipeline (training → validation → inference)
+[plantuml,ch05-l05,png,theme=sketchy-outline]
+....
+@startuml
+skinparam componentStyle rectangle
+
+package "Dataset" {
+  [Raw Data] as raw
+}
+
+package "Training Pipeline" {
+  [Data Augmentation\n(per‑sample)] as aug
+  [Dropout Layer\n(training)] as do
+  [Trainer] as trainer
+  [Validator] as validator
+  [Early‑Stopping\n(decision)] as stop
+}
+
+package "Inference Pipeline" {
+  [Scale Weights\n(dropout‑rate)] as scale
+  [Predictor] as predict
+}
+
+raw --> aug : feed
+aug --> do : feed
+do --> trainer : forward/backprop
+trainer --> validator : evaluate
+validator --> stop : loss improves?
+stop --> trainer : yes (loop)
+stop --> predict : no (halt)
+
+validator --> scale : final model
+scale --> predict : inference
+
+@enduml
+....
+
+==== Discussion Prompts
+
+* When can dropout *decrease* performance, and how do you detect it?  
+* What criteria guide the selection of augmentation transforms for a novel domain?  
+* Is synthetic data “cheating”, or does it constitute a legitimate regularisation strategy?  
+* How does early‑stopping interact with dropout and L2 weight decay?  
+
+==== Lab Prep
+
+Lab 2: Implement dropout and data augmentation in the neural trainer.  
+*Dropout*: configurable rate per layer, with automatic test‑time scaling.  
+*Augmentation*: configurable pipeline (e.g., for images: `RandomHorizontalFlip`, `RandomCrop`, `RandomBrightness`).  
+Validate that your pipeline yields at least a **3 %** boost in validation accuracy over the non‑regularised baseline before proceeding to the next lecture.
+
+===== Key Points
+
+* Lab 2 – Dropout + augmentation implementation  
+* Per‑layer dropout rate configuration  
+* Modular augmentation pipeline (plug‑and‑play transforms)  
+* Performance checkpoint: ≥ 3 % validation gain  
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch05,Chapter 5>>).

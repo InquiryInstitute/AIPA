@@ -1,0 +1,148 @@
+=== 9.7: The Tool-Calling Agent — Integration
+:leveloffset: 2
+
+[.epigraph]
+"The agent is the sum of its tools—and its capacity to use them."
+— Schick et al., "Toolformer" <<Schick2023>> (adapted)
+
+*Real‑world vignette:* A product manager asks the system, “Draft a market analysis for renewable‑energy startups, run a sentiment‑analysis model on recent news, and verify the conclusions with an audit tool.”  The answer requires the system to retrieve documents, invoke a language model, call a specialized classifier, and finally audit the result – exactly the orchestration a tool‑calling agent provides.
+
+==== Example Prompts
+
+* "Search our docs, reason about the answer, and respond." — _LLM + memory + reasoning + tools_
+* "Use whatever tools you need." — _Orchestration: agent routes to tools_
+* "Complete this complex task." — _Tool‑calling agent: integrate all components_
+
+==== Conceptual Core
+
+The full agent stack consists of an LLM, a memory subsystem (RAG), a reasoning component (Chain‑of‑Thought or ReAct), and a suite of tools such as search, audit, `ml_trainer`, and `neural_classifier`.  The **Tool Client** sits between the LLM and the tools: it discovers available capabilities from a schema registry, formats the request, and invokes the appropriate tool.
+
+The agent operates in a **perception–reasoning–action loop**.  First it receives a *user query* (perception).  The LLM then generates a *thought* that may include a `TOOL_CALL` token.  When such a token appears, the Tool Client selects a tool, sends the request, and returns the observation (action).  The observation is fed back into the LLM’s context, allowing the next iteration of reasoning.  This **ReAct loop** continues until the LLM emits a final answer or a `STOP` token.
+
+The **distributed agency** view emphasizes that no single component does all the work.  The LLM provides the strategic plan, the memory supplies relevant context, the reasoning engine decides *when* to act, and the tools execute the concrete operations.  The agent’s power lies in coordinating these specialized modules rather than in any one of them.
+
+Because the tool client can query a dynamic registry, new tools can be added without retraining the LLM.  This extensibility is a core advantage of the tool‑calling paradigm: the agent can evolve its capabilities simply by registering additional services.
+
+Finally, the agent’s internal state (short‑term plan, tool provenance, and observations) is persisted in memory, enabling it to reflect on earlier steps and to correct mistakes in later iterations.  This feedback loop is what distinguishes a true orchestrator from a static pipeline.
+
+===== Key Points
+
+* Stack: LLM + memory + reasoning + tools (search, audit, ml_trainer, neural_classifier, …)  
+* Tool client discovers capabilities via a schema registry and invokes tools  
+* ReAct loop: perception → LLM thought → tool call → observation → repeat  
+* Decision point: LLM emits `TOOL_CALL` token to trigger orchestration  
+* Distributed agency: strategic planning vs. concrete execution are split across components  
+* Extensibility: new tools can be added without retraining the LLM  
+* Memory stores short‑term plan, tool provenance, and observations for reflection  
+
+==== Technical Example
+
+**Wiring the stack.**  The agent is assembled by connecting the LLM generator to the memory module (RAG retrieve + add), attaching the reasoning layer (CoT prompt templates), and registering each tool with the Tool Client.  Each tool exposes a uniform `invoke(tool_id, payload)` API, and the client translates LLM‑generated arguments into concrete calls.
+
+**Step‑by‑step walkthrough.**  Consider the task: “Research the impact of quantum‑computing on supply‑chain optimization, summarize the findings, and verify the summary with the audit tool.”  
+1. *User query* enters the agent.  
+2. LLM generates a thought: “I need background documents → `TOOL_CALL(search, query='quantum computing supply chain')`.”  
+3. Tool Client routes the call to the **search** service; the result (a list of URLs) is returned as an observation.  
+4. LLM incorporates the URLs, decides to retrieve the most relevant page via **memory (RAG)**, and calls the **ml_trainer** to fine‑tune a classifier on domain‑specific terminology.  
+5. After synthesizing a draft summary, the LLM emits `TOOL_CALL(audit, text=summary)`.  
+6. The **audit** tool returns a confidence score and highlighted inconsistencies; the LLM revises the answer and finally emits the final response.
+
+**Troubleshooting checklist.**  
+* Verify each tool is registered with a unique `tool_id`.  
+* Ensure tool results are wrapped as LLM messages (`role: tool`, `content: …`).  
+* Handle failures gracefully: if a tool returns an error, the LLM should generate a fallback thought.  
+* Log `tool_id` and payload for provenance and later analysis.  
+* Test the agent with a two‑tool scenario (e.g., search + memory) before scaling to the full suite.
+
+===== Key Points
+
+* Wiring: LLM ↔ memory (RAG) ↔ reasoning (CoT) ↔ Tool Client ↔ tools (search, audit, ml_trainer, neural_classifier)  
+* ReAct loop illustrated with concrete task steps  
+* Tool results are passed back as LLM messages for context continuation  
+* Provenance: each call includes `tool_id` for traceability  
+* Failure handling: LLM can generate corrective thoughts on error responses  
+* Debug checklist: registration, message wrapping, logging, incremental testing  
+
+==== Philosophical Reflection
+
+The tool‑calling agent acts like a **conductor** who does not play any instrument but coordinates an orchestra of specialized musicians.  The conductor’s expertise lies in knowing *when* to cue each section, how to blend their sounds, and how to respond to unexpected improvisations.  Similarly, the agent decides which tool to invoke, integrates the output, and steers the overall reasoning trajectory.
+
+From an ethical standpoint, the orchestrator inherits the biases and limitations of its tools.  If the search service favours certain sources, or the audit tool misclassifies content, the agent’s final answer will reflect those flaws.  Responsibility therefore rests on the designer of the orchestration layer to audit tool provenance, enforce transparency, and provide mechanisms for human oversight.
+
+Looking ahead, as more sophisticated sub‑agents and meta‑tools become available, the tool‑calling paradigm may give rise to **emergent agency**: agents that not only orchestrate tools but also delegate sub‑tasks to other agents, forming hierarchical networks of coordination.  This raises profound questions about control, accountability, and the very definition of “intelligence” when agency is distributed across many interacting components.
+
+===== Key Points
+
+* Orchestrator analogy: conductor vs. musicians (tools)  
+* Ethical responsibility: bias propagation from tools to agent output  
+* Transparency: logging tool calls and provenance for auditability  
+* Future vision: hierarchical orchestration and emergent agency  
+* Accountability: designers must monitor tool behaviour and provide overrides  
+* Delegation: agents can spawn sub‑agents, extending the orchestration graph  
+
+.Figure 9.7: Full agent stack with ReAct loop and tool‑client discovery
+[plantuml,ch09-l07,png,theme=sketchy-outline]
+....
+@startuml
+skinparam backgroundColor #F9F9F9
+skinparam handwritten true
+
+start
+:User Query;
+:Agent (ReAct Loop);
+if (Tool needed?) then (yes)
+  :Tool Client discovers\navailable tools;
+  split
+    :search;
+  split again
+    :memory (RAG);
+  split again
+    :audit;
+  split again
+    :ml_trainer;
+  split again
+    :neural_classifier;
+  end split
+  :Tool Result;
+  -->[return] :Agent;
+else (no)
+  :LLM generates answer;
+endif
+:Agent assembles final response;
+stop
+@enduml
+....
+
+==== Discussion Prompts
+
+* Is the agent “in charge” or are the tools?
+* What makes the agent more than the sum of its tools?
+* How do we evaluate an orchestration agent?
+* How does the tool‑calling agent integrate with the orchestrator (Ch10)?
+* How does orchestration connect to memory (Ch7) and LLM (Ch6)?
+* What metrics matter for evaluating the tool‑calling agent?
+* **Trace a sample ReAct cycle on paper:** start from a user query, sketch the decision diamond, tool calls, and feedback loop shown in Figure 9.7.
+
+==== Lab Prep
+
+Lab 3: Complete the tool‑calling agent. Integrate all prior tools: search, memory, reasoning, LLM, audit, `ml_trainer`, `neural_classifier`. The agent discovers and invokes them via the Tool Client. Test with a complex task.  
+
+**Integration checklist**
+* Register each tool in the client schema (`tool_id`, input spec, output spec).  
+* Write wrapper functions that translate LLM‑generated arguments into API calls.  
+* Validate end‑to‑end with a two‑tool test (e.g., search + memory) before scaling.  
+* Log every `tool_id` and payload for provenance.  
+* Implement error‑handling branches in the ReAct prompt template.  
+* Run the full task and compare the final answer against a human‑crafted baseline.
+
+===== Key Points
+
+* Lab 3: Complete agent with full tool suite  
+* All tools integrated via Tool Client  
+* Test with a complex, multi‑step task  
+* Follow the integration checklist for reliable orchestration  
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch09,Chapter 9>>).
+
+*Take‑away:* The tool‑calling agent is the concrete realization of the orchestrator concept that will be generalized in Chapter 10, where we explore meta‑orchestration across multiple agents.

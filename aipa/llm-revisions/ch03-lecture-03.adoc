@@ -1,0 +1,152 @@
+=== 3.3: Informed Search — A* and Heuristics
+:leveloffset: 2
+
+[.epigraph]
+"The heuristic is a bet on the structure of the world."
+— Russell & Norvig, _AIMA_ <<RussellNorvig2020>> (adapted)
+
+*Heuristics guide search—but they can mislead. Admissibility is the guardrail.*
+
+==== Example Prompts
+
+* "Find the shortest route to the destination." — _A*: heuristic guides search; admissibility ensures optimality_
+* "Solve this puzzle with a distance estimate." — _h(n) estimates cost-to-goal; wrong heuristic → wrong solution_
+* "Search this state space efficiently." — _Informed search: bet on structure—when is the heuristic admissible?_
+
+*Why does a naïve search struggle here?* Without guidance, uninformed search must explore the entire state space, leading to exponential blow‑up and prohibitive runtime.
+
+==== Conceptual Core
+
+[.formal-definition]
+****
+*Formal Definition (Heuristic)*
+A pass:q[\aimaterm{heuristic}] h(n) is a function that estimates the cost from node n to the nearest goal. It must be computable from n alone (no lookahead). If h never overestimates true cost, it is *admissible*; A* with an admissible heuristic is optimal. See AIMA <<RussellNorvig2020>>.
+****
+
+Informed search uses a heuristic h(n)—an estimate of cost from node n to the goal. Greedy best‑first search expands the node with lowest h(n). It is fast but can miss optimal solutions—the heuristic may mislead. pass:q[\aimaterm{A* search}] combines the cost so far g(n) and the heuristic: f(n) = g(n) + h(n). It expands the node with lowest f(n). If h is admissible (never overestimates true cost) and consistent (satisfies triangle inequality), A* is complete and optimal. **What could go wrong?** If h overestimates the true cost, A* may prune the optimal path and return a suboptimal solution. Admissibility is the guardrail: it prevents the heuristic from causing A* to skip the optimal path. An inadmissible heuristic can make A* incomplete or suboptimal.
+
+Designing heuristics: relaxed problems (ignore some constraints to get a lower bound), pattern databases (precompute distances for subproblems), or domain knowledge. The heuristic is a bet on the structure of the world—that the estimate correlates with true cost. Wrong heuristics waste effort or return suboptimal solutions. The cost of wrong heuristics is the theme: we commit to a prior, and we pay if the prior is wrong.
+
+===== Key Points
+
+* Heuristic h(n): estimate of cost to goal
+* Greedy best‑first: expand lowest h(n)—fast, not optimal
+* A*: f(n) = g(n) + h(n); expand lowest f(n)
+* Admissible: h never overestimates; consistent: triangle inequality
+* A* with admissible+consistent: complete and optimal
+* Designing heuristics: relaxed problems, pattern databases
+* Wrong heuristic: wasted effort or suboptimal
+
+[.algorithm]
+****
+*A* Search*
+.Input: State space (S, s₀, G, A, succ), heuristic h
+.Output: Path from s₀ to goal, or failure
++
+1. frontier ← priority queue with (s₀, g(s₀)=0, f(s₀)=h(s₀))
+2. explored ← empty set
+3. While frontier not empty:
+   a. n ← pop node with smallest f(n) = g(n) + h(n)
+   b. If n is goal, return path
+   c. Add n to explored
+   d. For each successor n' of n:
+      - g' ← g(n) + cost(n, n')
+      - If n' not in explored and (n', g') not in frontier: push (n', g', g'+h(n'))
+      - Else if (n', g_old) in frontier and g' < g_old: replace with (n', g', g'+h(n'))
+4. Return failure
+****
+
+==== Technical Example
+
+Implement A* for pathfinding (e.g., grid world). Heuristic: Manhattan distance (admissible for grid with 4‑connected moves). Compare with Euclidean distance (also admissible). Try an inadmissible heuristic—e.g., Manhattan × 2—and observe: A* may expand fewer nodes but can return suboptimal path. The trade‑off: admissible heuristics guarantee optimality; inadmissible heuristics may be faster but risk suboptimality. Lab 2 implements A* with an admissible heuristic. For the search engine, consider heuristics for document retrieval—e.g., TF‑IDF score as "distance" to relevance. Measure node expansions, compare path‑cost deviation from optimal, and observe runtime differences as heuristic quality varies.
+
+===== Key Points
+
+* A* with Manhattan distance (admissible)
+* Euclidean distance also admissible
+* Inadmissible heuristic (Manhattan × 2) may speed up expansion but can yield suboptimal paths
+* Count node expansions to quantify search effort
+* Compare resulting path cost to the optimal cost
+* Observe runtime vs. heuristic quality trade‑off
+* Lab 2: Implement A* with an admissible heuristic
+* Search engine: TF‑IDF as relevance heuristic
+
+==== Philosophical Reflection
+
+Heuristics are prior knowledge. We encode beliefs about the world—"the goal is likely in that direction," "fewer remaining tiles usually means closer to solution." The prior guides search; without it, we would be uninformed. But priors can be wrong. A heuristic that overestimates (inadmissible) causes A* to avoid the optimal path. A heuristic that underestimates too much (e.g., h = 0) makes A* degenerate to uniform‑cost search—no guidance. The art is calibrating the prior: informative enough to help, conservative enough to remain admissible. The cost of wrong heuristics is real—in search, in life. We bet on structure; sometimes the world does not cooperate.
+
+* Trade‑off between informativeness and safety: more aggressive heuristics prune more but risk inadmissibility.  
+* Analogy to Bayesian priors: heuristics act as expectations about future cost, updated implicitly by the search process.  
+* Ethical implications of biased heuristics: a heuristic that reflects biased domain assumptions can systematically disadvantage certain solutions.  
+* Heuristics in non‑deterministic domains: expectations become probabilistic, requiring admissible bounds on expected cost.  
+* Calibration strategies: empirical testing, pattern‑database validation, and theoretical relaxation to guarantee lower bounds.  
+* Relation to planning: later chapters will show how admissibility and consistency underpin optimal plan synthesis.
+
+===== Key Points
+
+* Heuristics = prior knowledge shaping search direction
+* Over‑estimate → missed optimal; under‑estimate → no guidance
+* Balance informativeness with safety (admissibility)
+* Bayesian‑like interpretation of heuristics as cost expectations
+* Ethical risks of biased heuristics
+* Extensions to stochastic / non‑deterministic domains
+* Calibration via empirical and theoretical methods
+* Link to planning: same guardrails enable optimal plan synthesis
+
+.Figure 3.3: A* expansion with f‑values
+[plantuml,ch03-l03,png,theme=sketchy-outline]
+....
+@startuml
+scale 1.5
+skinparam backgroundColor #FDF6E3
+skinparam node {
+  BackgroundColor #FFF8DC
+  BorderColor #333
+}
+' Root node
+node "Start\ng=0 h=5\nf=5" as n0
+' Children
+node "A\ng=2 h=3\nf=5" as n1
+node "B\ng=3 h=4\nf=7" as n2
+node "C\ng=1 h=3\nf=4" as n3
+' Goal
+node "Goal\ng=2 h=2\nf=4" as goal <<Goal>>
+
+n0 --> n1
+n0 --> n2
+n0 --> n3
+n3 --> goal
+
+note right of goal : Selected first (lowest f)
+
+@enduml
+....
+
+==== Discussion Prompts
+
+* When is an inadmissible heuristic acceptable?
+* How do you design a heuristic for a domain you know?
+* What does "bet on structure" mean for real‑world search?
+* What is the cost of a wrong heuristic—in search and in decision‑making?
+* How does the search tool configure heuristics for different domains?
+* How does A* connect to planning in the agent (Ch9)?
+
+==== Lab Prep
+
+Lab 2: Implement A* with an admissible heuristic. Integrate with the problem formulations from Lab 1. For pathfinding, use Manhattan or Euclidean distance. For puzzles, consider relaxed‑problem heuristics (e.g., count misplaced tiles). Verify optimality on test cases. See Lab 2 for requirements.
+
+##### Take‑away
+
+Later we will see how the same guardrails of admissibility and consistency enable optimal plan synthesis in the planning chapters.
+
+===== Key Points
+
+* Lab 2: A* with admissible heuristic
+* Pathfinding: Manhattan/Euclidean
+* Puzzles: relaxed‑problem heuristics
+* Verify optimality
+* Connects to upcoming planning techniques
+* Emphasizes safety of admissible heuristics
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch03,Chapter 3>>).

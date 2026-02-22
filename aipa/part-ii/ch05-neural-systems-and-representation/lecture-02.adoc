@@ -1,0 +1,173 @@
+=== 5.2: Multilayer Networks and Backpropagation
+:leveloffset: 2
+
+Imagine you must teach a robot to distinguish a “⊕” pattern from a “⊖” pattern. A single‑layer perceptron stubbornly refuses to learn—its linear decision boundary cannot separate the two. *What if we simply add another linear layer?* The robot still fails, because the composition of two linear maps is itself linear. The tension between the task (non‑linear XOR) and the model’s capacity creates a concrete need for **depth** *and* a systematic way to assign blame when the robot makes a mistake.
+
+[.epigraph]
+"Layers of representation: each level abstracts from the one below."
+— LeCun, Bengio & Hinton, *Deep Learning* <<LeCun2015>> (adapted)
+
+*Multiple layers enable non‑linear boundaries—and the credit‑assignment problem.*
+
+==== Example Prompts
+
+* "Classify this complex pattern." — _Multilayer networks; hidden layers; representation learning_
+* "Learn XOR." — _Non‑linear boundary; depth overcomes linear limits_
+* "How does the network assign credit to each weight?" — _Backpropagation; chain rule_
+
+==== Conceptual Core
+
+**1. From linear collapse to non‑linear depth**  
+When we stack two linear layers, the overall mapping remains a single affine transformation. A quick sketch of two linear layers on the XOR data shows the same impossible line that a single perceptron draws. *Think‑Pair‑Share:* “Why does adding a second linear layer not help?” This question leads us to the insight that **non‑linearity is the missing ingredient**.
+
+**2. Activation functions break the linear chain**  
+Introducing a pointwise non‑linear function (ReLU, sigmoid, tanh, softmax) after each linear transform creates a piecewise‑linear or curved surface that can separate XOR. ReLU (max(0,x)) is the workhorse of modern deep learning: it is simple, fast, and avoids saturation for positive inputs. Sigmoid squashes to (0,1) and is useful for probabilistic outputs but suffers from vanishing gradients. Softmax normalizes a vector into a probability distribution and is typically placed on the output layer for classification. The choice of activation directly shapes both the representational capacity and the dynamics of learning.
+
+**3. Historical vignette: the 1986 back‑prop breakthrough**  
+Rumelhart, Hinton, and Williams showed that, by applying the chain rule backward through a network of differentiable units, we could compute exact gradients for every weight. Their paper sparked the modern deep‑learning era, turning the “credit‑assignment problem” from an intractable mystery into a systematic algorithm—**backpropagation**.
+
+**4. Universal approximation vs. practical depth**  
+The universal approximation theorem guarantees that a *single* hidden layer with enough neurons and a non‑linear activation can approximate any continuous function on a compact domain. In practice, however, such a shallow network would require an astronomical number of parameters, would be hard to train, and would lack hierarchical feature reuse. Depth gives us **parameter efficiency**: early layers capture low‑level motifs (edges, simple textures), later layers recombine them into higher‑level concepts (shapes, objects). This hierarchical reuse is why deep nets outperform wide shallow nets on real‑world data.
+
+**5. The chain‑rule engine of backpropagation**  
+Backpropagation computes the gradient of the loss \(L\) with respect to every weight \(w\) by propagating error signals \(\delta\) backward:  
+
+\[
+\delta^{(k)} = \frac{\partial L}{\partial z^{(k)}} = \left(\mathbf{W}^{(k+1)^\top}\delta^{(k+1)}\right) \odot \phi'\!\left(z^{(k)}\right)
+\]
+
+where \(z^{(k)}\) is the pre‑activation, \(\phi'\) the derivative of the activation, and \(\odot\) the element‑wise product. The magnitude of \(\delta^{(k)}\) tells us how much each weight contributed to the final error—**the answer to the credit‑assignment problem**.
+
+**6. Numerical illustration of the chain rule**  
+Consider a tiny 2‑layer network with input \(\mathbf{x}=[0.5,-0.2]\), weights \(\mathbf{W}^{(1)}=\begin{bmatrix}0.8&-0.5\\0.3&0.9\end{bmatrix}\), biases \(\mathbf{b}^{(1)}=[0,0]\), ReLU activation, and output layer \(\mathbf{W}^{(2)}=[1.2\; -0.7]\), bias \(b^{(2)}=0.1\). A forward pass yields \(z^{(1)}=\mathbf{W}^{(1)}\mathbf{x}= [0.5, -0.38]\), \(a^{(1)}=\text{ReLU}(z^{(1)})=[0.5,0]\), \(z^{(2)}=\mathbf{W}^{(2)}a^{(1)}+b^{(2)}=0.7\), \(\hat y=\sigma(z^{(2)})=0.668\). With target \(y=1\) and binary cross‑entropy loss, the gradient at the output is \(\delta^{(2)}=\hat y-y=-0.332\). Propagating back: \(\delta^{(1)} = (\mathbf{W}^{(2)^\top}\delta^{(2)})\odot \phi'(z^{(1)}) = [-0.398,0]\). Finally, \(\partial L/\partial \mathbf{W}^{(1)} = \delta^{(1)}\mathbf{x}^\top\) and \(\partial L/\partial \mathbf{W}^{(2)} = \delta^{(2)} a^{(1)}^\top\). This concrete arithmetic makes the abstract chain rule tangible.
+
+===== Key Points
+
+* Linear layers alone collapse to a single affine map; non‑linearity is essential.  
+* ReLU, sigmoid, and softmax each shape capacity and gradient flow differently.  
+* 1986 Rumelhart‑Hinton‑Williams paper introduced systematic credit assignment.  
+* Universal approximation is a theoretical guarantee; depth provides parameter efficiency and hierarchical reuse.  
+* Backpropagation applies the chain rule backward: error signals \(\delta\) flow from output to input.  
+* Numerical example shows step‑by‑step gradient computation for a 2‑layer net.  
+* Think‑Pair‑Share moments embed active learning after the XOR failure and after the theorem discussion.  
+
+==== Technical Example
+
+Implement a forward pass and backpropagation for a small multilayer perceptron (MLP) with two hidden layers.  
+
+**Forward pass:**  
+
+1. Receive input vector \(\mathbf{x}\).  
+2. Compute \(z^{(1)} = \mathbf{W}^{(1)}\mathbf{x} + \mathbf{b}^{(1)}\) and store it.  
+3. Apply ReLU: \(a^{(1)} = \text{ReLU}(z^{(1)})\) and store.  
+4. Repeat for layer 2: \(z^{(2)} = \mathbf{W}^{(2)}a^{(1)} + \mathbf{b}^{(2)}\), \(a^{(2)} = \text{ReLU}(z^{(2)})\).  
+5. Output layer: \(z^{(3)} = \mathbf{W}^{(3)}a^{(2)} + \mathbf{b}^{(3)}\), \(\hat{\mathbf{y}} = \text{Softmax}(z^{(3)})\).  
+
+All intermediate \(z\) and \(a\) values are cached for the backward pass.
+
+**Backward pass:**  
+
+1. Compute the loss gradient w.r.t. the softmax output, e.g. for cross‑entropy \(\delta^{(3)} = \hat{\mathbf{y}} - \mathbf{y}\).  
+2. Propagate to layer 2: \(\delta^{(2)} = (\mathbf{W}^{(3)^\top}\delta^{(3)}) \odot \mathbf{1}_{z^{(2)}>0}\).  
+3. Propagate to layer 1: \(\delta^{(1)} = (\mathbf{W}^{(2)^\top}\delta^{(2)}) \odot \mathbf{1}_{z^{(1)}>0}\).  
+4. Compute gradients: \(\partial L/\partial \mathbf{W}^{(k)} = \delta^{(k)} a^{(k-1)\top}\) (with \(a^{(0)} = \mathbf{x}\)), and similarly for biases.  
+
+**Numerical gradient check:** For each weight \(w\) perturb it by \(\pm\varepsilon\) (e.g., \(\varepsilon=10^{-5}\)) and compute \(\frac{L(w+\varepsilon)-L(w-\varepsilon)}{2\varepsilon}\). Compare to the analytical gradient from backprop; discrepancies flag implementation bugs.  
+
+**Practical tips:**  
+
+* Initialise weights with a small random Gaussian (e.g., \( \mathcal{N}(0,0.01) \)).  
+* Use a modest learning rate (e.g., 0.01) at first; too large a step will explode gradients.  
+* Verify the gradient check before entering a training loop—incorrect gradients corrupt the entire learning process.  
+
+===== Key Points
+
+* Forward pass caches \(z\) and \(a\) for reuse in backprop.  
+* ReLU gradient is 1 where \(z>0\), otherwise 0.  
+* Backward pass applies the chain rule layer‑by‑layer using stored activations.  
+* Numerical gradient check (finite differences) validates the analytical implementation.  
+* Proper weight initialization and learning‑rate selection are crucial for stable training.  
+* Lab 1 will extend this skeleton to configurable depth and activation choices.  
+
+==== Philosophical Reflection
+
+Representation learning asks: *what do hidden layers encode?* In vision networks, the first layer often discovers edge detectors; the second composes edges into motifs; deeper layers assemble motifs into object parts and whole objects. This hierarchy is **emergent**—it is not programmed but discovered through optimization. The opacity of these learned representations is both a strength (they adapt to data) and a challenge (they resist straightforward human interpretation). Visualising filters can give hints, yet high‑level features remain elusive, prompting the question “What does it mean for a network to ‘understand’ a concept?”
+
+The emergence of representations mirrors a long‑standing intuition from cognitive science: minds build internal models of the world. Neural networks instantiate this intuition in a mathematically tractable form, but the internal “meaning” of a unit is a side‑effect of the loss‑driven learning process, not a design target. This raises philosophical tension: *are we uncovering something about cognition, or merely engineering a useful statistical device?* The answer shapes how we evaluate, interpret, and responsibly deploy deep models.
+
+Looking ahead, keeping gradients alive becomes the next practical hurdle—vanishing or exploding gradients can cripple learning regardless of how beautiful the emergent hierarchy might be. The forthcoming lecture on **training dynamics** (initialization, normalization, and gradient‑flow tricks) will address precisely that, preparing us to scale the elegant backprop engine to deep convolutional architectures and, eventually, to the neural‑classifier tool that will power our robot’s perception pipeline.
+
+##### Key Points
+
+* Hidden layers progress from low‑level edges to high‑level objects—an emergent hierarchy.  
+* Visualising filters offers intuition but high‑level representations stay opaque.  
+* Representations arise from loss‑driven optimization, not explicit programming.  
+* The philosophical tension between “model of cognition” and “statistical engine.”  
+* Next step: training dynamics (vanishing/exploding gradients, initialization) to keep backprop effective.  
+
+.Figure 5.2: Backpropagation flow
+[plantuml,ch05-l02,png,theme=sketchy-outline]
+....
+@startuml
+skinparam backgroundColor #F9F9F9
+skinparam ArrowColor #333333
+skinparam node {
+  BackgroundColor #FFFFFF
+  BorderColor #555555
+}
+title Backpropagation Flow (Forward → Backward)
+
+' Forward pass (green)
+skinparam ArrowColor #008000
+node "x (input)" as I
+node "z¹ = W¹x + b¹\\na¹ = ReLU(z¹)" as H1
+node "z² = W²a¹ + b²\\na² = ReLU(z²)" as H2
+node "z³ = W³a² + b³\\nŷ = Softmax(z³)" as O
+node "Loss L(ŷ, y)\\nCross‑Entropy" as L
+
+I --> H1 : W¹,b¹
+H1 --> H2 : W²,b²
+H2 --> O : W³,b³
+O --> L : compute loss
+
+' Backward pass (red)
+skinparam ArrowColor #FF0000
+L --> O : δ³ = ∂L/∂z³
+O --> H2 : δ² = ∂L/∂z²
+H2 --> H1 : δ¹ = ∂L/∂z¹
+H1 --> I : ∂L/∂x
+
+@enduml
+....
+
+==== Discussion Prompts
+
+* What would it mean to “understand” the function of a hidden unit?  
+* Why does depth help even though a single wide layer can theoretically approximate any function?  
+* In what ways might backpropagation resemble (or diverge from) learning mechanisms in the brain?  
+* How do we reconcile the opacity of learned representations with the demand for model interpretability?  
+* How does the hierarchical feature reuse enabled by depth influence the design of the `neural_classifier` tool?  
+* When might we need to augment neural representations with a language model (Chapter 6) rather than rely solely on the `neural_classifier`?
+
+==== Lab Prep
+
+Lab 2: Extend the forward‑only prototype from Lab 1 by adding a full backpropagation pass and a simple training loop. Your implementation should:
+
+* Accept an arbitrary number of hidden layers and allow the user to select ReLU or sigmoid per layer.  
+* Cache all pre‑activations and activations for the backward pass.  
+* Compute analytical gradients via the chain rule and verify them with a finite‑difference check.  
+* Include a configurable learning‑rate schedule and weight‑initialization scheme (e.g., He for ReLU, Xavier for sigmoid).  
+* Output loss curves so you can observe the effect of gradient‑flow tricks introduced in the next lecture.
+
+These capabilities form the computational core of the `neural_classifier` that will be used throughout the remainder of the course.
+
+===== Key Points
+
+* Lab 2 adds backward pass, gradient check, and training loop.  
+* Supports configurable depth and activation choices.  
+* Uses He/Xavier initialization appropriate to the activation.  
+* Visualises loss to connect theory (gradient flow) with practice.  
+* Prepares the foundation for the `neural_classifier` tool.  
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch05,Chapter 5>>).

@@ -1,0 +1,91 @@
+=== 12.4: Interface and Deployment
+:leveloffset: 2
+
+[.epigraph]
+"The interface is the boundary between human and system."
+— Norman, _The Design of Everyday Things_ <<Norman2013>> (adapted)
+
+*Expose the agent: CLI, API, chat UI.*
+
+==== Example Prompts
+
+* "Interact with the agent." — _Interface: CLI, API, chat_
+* "Deploy to production." — _Deployment; expose to users_
+* "How do users access the agent?" — _Interface design; deployment_
+
+==== Conceptual Core
+
+The agent must be accessible. Interface options: CLI (terminal—`agent ask "question"`), REST API (programmatic—`POST /ask` with body), chat UI (web—conversational interface). Choose by audience and use case. Developers may prefer API; end users may prefer chat. CLI is useful for demos and scripting. Deployment: local (your machine—quick for development), cloud (AWS, GCP, Azure—scalable), containerized (Docker—portable). Docker and cloud are optional for the capstone but recommended for real deployment.
+
+Security: authentication (who can call the agent?), rate limits (prevent abuse), input validation (sanitize user input). The interface is the boundary—it mediates human-system interaction. It is where the agent meets the world. Bad interfaces hide good agents; good interfaces make agents usable. The agent in the wild: deployment puts the agent in real use. That is when we learn what works and what breaks.
+
+===== Key Points
+
+* Interfaces: CLI, API, chat UI
+* Choose by audience and use case
+* Deployment: local, cloud, container
+* Security: auth, rate limits, validation
+* Interface = boundary
+* Agent in the wild
+* Interface mediates human-system interaction
+
+==== Technical Example
+
+Build a CLI or API for the agent. CLI: `agent ask "question"` or `agent chat` for interactive mode. API: `POST /ask` with JSON body `{ "query": "..." }`, return `{ "response": "..." }`. Deploy: run locally with `python main.py` or similar; or containerize with Docker and run anywhere. Document: how to run, required environment variables, endpoints. Lab 2: Build the interface. Deploy (locally or cloud). Document. The capstone must be runnable by others—faculty, peers, stakeholders. See Lab 2 for requirements.
+
+===== Key Points
+
+* CLI or API
+* Deploy locally or cloud
+* Document: run, env, endpoints
+* Lab 2: Build, deploy, document
+* Runnable by others
+
+==== Philosophical Reflection
+
+Interface as mediation: the interface shapes how humans encounter the agent. A CLI presupposes technical users; a chat UI presupposes conversation. The interface is not transparent—it frames the interaction. What the user sees and does is filtered through the interface. Design choices—prompts, layouts, feedback—affect the user's experience and the agent's perceived intelligence.
+
+The agent in the wild: deployment is not the end—it is the beginning of real use. In the lab, we control inputs and environment. In the wild, users ask unexpected questions, systems fail, data drifts. The interface is where the agent meets the world. Deployment is an act of commitment: we expose the agent to use, critique, and failure. That exposure is how we learn.
+
+===== Key Points
+
+* Interface shapes encounter
+* Deployment = beginning of real use
+* Where agent meets world
+* Deployment = commitment
+
+.Figure 12.4: Deployment architecture
+[plantuml,ch12-l04,png,theme=sketchy-outline]
+....
+@startuml
+start
+:Agent;
+:CLI;
+:API;
+:Chat UI;
+:Deploy;
+stop
+@enduml
+....
+
+==== Discussion Prompts
+
+* Which interface suits your use case? Why?
+* What security is "enough" for the capstone?
+* How do we document for deployability? What does a user need to know?
+* What happens when the interface fails? How do we handle errors?
+* How does the interface affect the user's trust in the agent?
+* What are the tradeoffs between CLI, API, and chat UI?
+
+==== Lab Prep
+
+Lab 2: Build an interface (CLI or API). Deploy (locally or cloud). Document how to run and use. The capstone should be runnable by faculty and peers. Include setup instructions and a quickstart. See Lab 2 for requirements.
+
+===== Key Points
+
+* Lab 2: Interface, deploy, document
+* Runnable by others
+
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch12,Chapter 12>>).

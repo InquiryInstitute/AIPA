@@ -1,0 +1,10 @@
+python
+class NeuralClassifierTool:
+    def create_architecture(self, config: dict) -> dict:
+        """Return a model specification (layers, activations)."""
+    def train(self, job_id: str, data_path: str, cfg: dict) -> dict:
+        """Launch asynchronous training; return job status and model_path."""
+    def predict(self, model_path: str, data: bytes) -> dict:
+        """Return class probabilities for the supplied input."""
+    def export(self, model_path: str, dest: str) -> dict:
+        """Convert model to ONNX/TorchScript and store at `dest`."""

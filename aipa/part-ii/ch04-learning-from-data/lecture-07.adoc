@@ -1,0 +1,11 @@
+json
+{
+  "load_data": {"config_path": "string"},
+  "train": {
+    "model_type": "enum[linear,tree,ensemble]",
+    "hyperparams": {"learning_rate": "float", "max_depth": "int"},
+    "data_handle": "string"
+  },
+  "evaluate": {"model_path": "string", "eval_data": "string"},
+  "export_model": {"model_path": "string", "dest_uri": "string"}
+}

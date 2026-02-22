@@ -1,0 +1,108 @@
+=== 1.5: Epistemic Machines — AI as Knowledge Producers
+:leveloffset: 2
+
+When you open Netflix and the first suggestion is a documentary you never would have searched for, you are seeing the algorithm *create* a new interest, not just retrieve an existing one.
+
+[.epigraph]
+"Discourse is not simply that which translates struggles or systems of domination, but is the thing for which and by which there is struggle."
+— Foucault, _The Archaeology of Knowledge_ <<Foucault1980>>
+
+*AI does not merely reflect knowledge—it produces the conditions under which knowledge counts.*
+
+==== Example Prompts
+
+* "What should I watch next?" — _Recommendation: not discovery but shaping—creates preferences, not just reflects them_
+* "Write a briefing on topic X." — _Generative output that circulates, may be cited, becomes epistemic infrastructure_
+* "What entities are in our graph? Who added them?" — _Surfacing knowledge: who produced it, who benefits?_
+
+==== Conceptual Core
+
+Epistemic machines are systems that create, validate, and distribute knowledge. They are not passive mirrors of a pre‑existing world; they participate in constituting what counts as known. AI systems are epistemic machines. They produce categories (labels, clusters, embeddings), predictions (what you might like, what might happen next), and texts (summaries, answers, code). Each output shapes what users believe, what they search for, and what data they generate—which may become training data for the next model. The feedback loop is epistemic: the model's output influences human belief and behavior, which influences the model.
+
+AI has moved from "tool" to "participant" in epistemic practice. A calculator is a tool; it does not produce new mathematical truth, it computes what we ask. A recommendation system is a participant; it does not merely retrieve—it creates preferences. Users often do not know they are being influenced; the system presents its suggestions as if they were discoveries. Generative AI goes further: it produces texts that may be cited, taught, or used as evidence. Those texts become part of the epistemic landscape. The model is not reflecting knowledge; it is producing it.
+
+The question "who decides what counts as knowledge?" is no longer answered only by scientists, editors, or teachers. Algorithms decide—through ranking, filtering, and generation. Delegation of epistemic authority to machines is already widespread. The challenge is to see it clearly and to design systems that support rather than undermine human judgment.
+
+To see how this operates in practice, let’s examine a familiar recommendation system.
+
+===== Key Points
+
+* Epistemic machines create, validate, and distribute knowledge
+* AI produces categories, predictions, texts—not just retrieves
+* Feedback loop: model output shapes belief → shapes behavior → shapes data → shapes model
+* From "tool" to "participant": recommendation systems create preferences
+* Generative AI produces texts that become part of the epistemic landscape
+* Delegation of epistemic authority to machines is already widespread
+* Design challenge: support human judgment, not undermine it
+
+==== Technical Example
+
+Recommendation systems are epistemic actors. A streaming service does not discover your preferences—it shapes them. The more you watch what it recommends, the more it recommends similar content; your "taste" is co‑produced by you and the algorithm. The system creates categories (genres, moods, "because you watched X") and assigns you to them. You may resist, but the default is compliance. The epistemic loop: recommendations → choices → data → updated recommendations. The system is a participant in what you come to value.
+
+Generative AI extends this. A language model produces text that may be used as evidence, instruction, or artifact. That text may be indexed by search engines, quoted in papers, or fed back into training data. The model's output circulates; it becomes part of the epistemic infrastructure. "Synthetic" data is not outside the loop—it is inside it. When we build systems that surface "knowledge," we must ask: knowledge for whom? Produced by what process? Validated how? Your knowledge graph explorer will surface entities and relations. Who decides what gets in? Who benefits from the way it is structured? These are epistemic questions.
+
+Beyond these engineering details, we must ask what this means for our broader understanding of knowledge.
+
+===== Key Points
+
+* Recommendation systems shape preferences, create categories
+* Epistemic loop: recommendations → choices → data → recommendations
+* Generative AI output circulates, becomes part of infrastructure
+* Synthetic data is inside the loop, not outside
+* Your explorer: what gets in? Who benefits? Epistemic questions
+
+==== Philosophical Reflection
+
+Who decides what counts as knowledge? Historically: institutions (universities, publishers, courts), experts (scientists, editors, judges), and communities (peer review, consensus). AI adds a new layer: algorithms that rank, filter, summarize, and generate. The delegation is often implicit. We treat search results as if they were curated by a neutral index; we treat model outputs as if they were distilled wisdom. They are not. They are products of training data, model architecture, and optimization targets. Epistemic authority has been delegated without explicit transfer of accountability.
+
+Foucault's line—discourse is the thing for which and by which there is struggle—applies. AI systems are sites of epistemic struggle. Who gets represented? Whose categories prevail? Whose outputs are amplified? Building a knowledge graph is an epistemic act. You are deciding what entities and relations matter. The choice is not neutral. Consider what "knowledge" your explorer will surface—and for whom. Design for contestation, not just consumption.
+
+===== Key Points
+
+* Epistemic authority historically rested with institutions, experts, communities
+* AI: algorithms rank, filter, generate—delegation often implicit
+* Accountability delegated without explicit transfer
+* Knowledge graph construction is an epistemic act—you decide what matters
+* Design for contestation, not mere consumption
+
+.Figure 1.5: Epistemic feedback loop
+[plantuml,ch01-l05,png,theme=sketchy-outline]
+....
+@startuml
+skinparam ArrowColor DarkBlue
+package "Epistemic Feedback Loop" {
+    :Model --> :Output : "generate\nprediction";
+    :Output --> decision : "user\naccept/reject";
+    decision --> :Human Belief : "belief\nupdate";
+    :Human Belief --> :Data : "behavioural\ndata";
+    :Data --> :Training Dataset : "collect";
+    :Training Dataset --> :Model : "re‑train";
+}
+@enduml
+....
+
+==== Discussion Prompts
+
+* Can you think of a time when an algorithm shaped what you believed or preferred?
+* Who should be accountable when an AI system produces misleading "knowledge"?
+* What would it mean to design a knowledge graph "for contestation"?
+* How does your explorer differ from a recommendation system in its epistemic role?
+
+==== Lab Prep
+
+Consider what "knowledge" your explorer will surface—and for whom. The schema you define (Lab 1) determines what can be represented; the queries you enable (Lab 2) determine what can be retrieved; the interface (Lab 3) determines how it is presented. Each layer is an epistemic choice. Before Lab 3, write a short paragraph: who is the primary user? What decisions will they make with the surfaced knowledge? What might be missing or distorted? See Lab 3 (Knowledge Graph Explorer — Interface and Visualization) for the interface deliverable.
+
+Use the epistemic loop diagram to map how your schema choices affect future model updates.
+
+===== Key Points
+
+* Schema (Lab 1): what can be represented
+* Queries (Lab 2): what can be retrieved
+* Interface (Lab 3): how it is presented
+* Each layer is an epistemic choice
+* Who is the user? What decisions? What might be missing?
+
+By treating every schema, query, and UI as an epistemic decision, we begin to reclaim the authority that algorithms have silently taken.
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch01,Chapter 1>>).

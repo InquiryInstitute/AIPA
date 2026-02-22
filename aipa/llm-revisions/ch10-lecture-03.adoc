@@ -1,0 +1,136 @@
+=== 10.3: Orchestration — The Tool Client
+:leveloffset: 2
+
+*Hook:*  
+A researcher asks the system, “Give me a market analysis of renewable energy in Europe.” The request must be split among a web‑search engine, a vector‑store memory, and a generative LLM. **How does the system decide which tool does what, and how are the results combined into a single answer?** The answer lies in the *tool client* – the orchestrator’s gateway to a heterogeneous tool ecosystem.
+
+[.epigraph]
+"The orchestrator does not do the work—it directs it."
+— Schick et al., *Toolformer* <<Schick2023>> (adapted)
+
+*The orchestrator connects to tool servers and routes requests.*
+
+==== Example Prompts
+
+* "Route this request to the right tool." — _Orchestrator: tool client, discovery, routing_
+* "Which tool should handle this?" — _Orchestrator decides; routes to search, memory, LLM, etc._
+* "Invoke the tool and return the result." — _Orchestrator = spine; connects everything_
+
+==== Conceptual Core
+
+The **tool client** is the first point of contact for the orchestrator when it needs external capabilities. It discovers available tools by querying the MCP (Meta‑Control‑Plane) registry, which advertises each service’s endpoint, capabilities, and security requirements. Discovery is dynamic: new tools can be added at runtime, and the client updates its internal catalog without restarting the orchestrator.
+
+Once a catalog exists, the orchestrator (often an LLM or a dedicated router) decides *which* tool should handle a given sub‑task. This decision is driven by a combination of semantic matching (e.g., “search‑related” vs. “generation‑related”) and policy constraints such as cost, latency, or data‑privacy rules. The orchestrator therefore remains meta‑cognitive: it chooses *what* to do, not *how* to do it.
+
+Routing is the concrete act of sending a request from the tool client to the selected service. The client builds a protocol‑specific payload (e.g., HTTP POST, gRPC) and forwards it over a secure channel. When multiple instances of the same tool exist, the client applies a load‑balancing strategy (round‑robin, least‑latency, or weighted) to spread traffic evenly and improve resilience.
+
+Configuration details—service URLs, authentication tokens, TLS certificates—are stored in a protected configuration store and injected into the client at runtime. This separation of concerns lets the orchestrator focus on high‑level planning while the client handles the plumbing.
+
+Error handling is integral: the client detects timeouts, HTTP errors, or malformed responses, retries according to a back‑off policy, and surfaces a concise error summary to the orchestrator. Fault‑tolerant routing ensures that a single tool failure does not collapse the entire request pipeline.
+
+===== Key Points
+
+* Discovery via MCP registry (dynamic catalog)
+* Decision‑making by orchestrator/LLM (semantic & policy matching)
+* Routing mechanics (payload construction, secure transport)
+* Load‑balancing across multiple tool instances
+* Configuration management (URLs, credentials, TLS)
+* Fault tolerance & retry policies
+* Meta‑cognitive role of the orchestrator (what vs. how)
+
+==== Technical Example
+
+The tool client is exposed as a thin library with a clear API: `discover()`, `invoke(tool_id, request)`, and `aggregate(responses)`. `discover()` contacts the MCP service, parses the JSON manifest, and populates an in‑memory registry. `invoke()` selects an endpoint based on the registry, attaches the appropriate authentication header, and sends the request using an async HTTP client. `aggregate()` merges heterogeneous results (e.g., search snippets, retrieved documents, generated text) into a unified response structure.
+
+Discovery and registration follow a simple protocol: each tool publishes a `/manifest` endpoint that returns its capabilities, version, and health status. The client polls this endpoint periodically (or receives push notifications) to keep the catalog fresh. This design enables plug‑and‑play addition of new services without code changes.
+
+To illustrate a composite request, consider the “market analysis” example. The orchestrator asks the client to `discover()` the relevant tools, then issues three parallel `invoke()` calls: one to the Search Service, one to the Memory Service (RAG), and one to the Generation LLM. The client collects the three futures, waits for completion, and calls `aggregate()` to stitch together citations, retrieved data, and a narrative summary. The final payload is returned to the orchestrator, which formats it for the user.
+
+===== Key Points
+
+* Client API: `discover()`, `invoke()`, `aggregate()`
+* Service manifest protocol for dynamic registration
+* Parallel invocation of multiple tools (async futures)
+* Authentication flow (Bearer tokens, TLS)
+* Result aggregation strategy (structured response)
+* Testing with mock tool servers (unit & integration)
+* Performance metrics: latency, throughput, retry counts
+
+==== Philosophical Reflection
+
+Orchestration embodies a form of **meta‑cognition**: the system reflects on its own capabilities and decides which external cognition to enlist. This raises the question of *epistemic authority*—does the orchestrator trust the tool’s output implicitly, or does it maintain a skeptical stance, weighting evidence from multiple sources? The design of the tool client directly influences this balance by exposing confidence scores and provenance metadata.
+
+The division of labor between orchestrator and tools mirrors human collaborative problem‑solving. The orchestrator acts as a *project manager*, delegating subtasks while preserving a global view of the goal. Yet, as tools become more autonomous (e.g., self‑optimising search engines), the boundary between coordination and emergent agency blurs. Designers must decide how much control to retain centrally versus allowing tools to negotiate among themselves.
+
+Ethically, delegating decisions to external tools introduces **responsibility diffusion**. If a tool returns biased or erroneous information, the orchestrator must be equipped to detect and mitigate such harms. The tool client can enforce policy checks (e.g., content filters) before aggregation, but the ultimate accountability remains with the orchestrator’s designers. Transparent logging and audit trails become essential for post‑hoc analysis and compliance.
+
+===== Key Points
+
+* Meta‑cognitive delegation vs. procedural execution
+* Division of labor and emergent agency in tool ecosystems
+* Epistemic authority: weighting, provenance, confidence
+* Ethical responsibility and bias mitigation
+* Transparency, logging, and auditability of orchestration decisions
+
+.Figure 10.3: MCP client and server topology
+[plantuml,ch10-l03,png,theme=sketchy-outline]
+....
+@startuml
+skinparam backgroundColor #F9F9F9
+skinparam handwritten true
+
+actor User
+rectangle "Orchestrator\n(LLM / Router)" as OR
+rectangle "Tool Client (MCP)" as TC
+
+node "Search Service\n[search.example.com]" as S1
+node "Memory Service\n[rag.example.com]" as S2
+node "LLM Service\n[gen.example.com]" as S3
+
+User --> OR : request
+OR --> TC : discover tools
+TC --> S1 : invoke (search)
+TC --> S2 : invoke (memory)
+TC --> S3 : invoke (LLM)
+
+S1 --> TC : result
+S2 --> TC : result
+S3 --> TC : result
+TC --> OR : aggregated response
+OR --> User : answer
+
+note right of TC
+  • Service discovery (MCP)
+  • Load‑balancing (multiple instances)
+  • Credentials & TLS
+end note
+@enduml
+....
+
+==== Discussion Prompts
+
+* Who "decides" in an orchestrated system?
+* What is the relationship between orchestrator and LLM?
+* When does orchestration add value vs. overhead?
+* How does the tool client decide which arrow to follow in the diagram?
+* How does the orchestrator integrate with the tool‑calling agent (Ch 9)?
+* When does orchestration simplify vs. complicate the agent stack?
+
+==== Lab Prep
+
+Lab 2: Implement the tool client. Connect to all student tool servers. The client discovers tools, invokes them, and returns results. This is the core of the orchestrator. See Lab 2 for requirements.
+
+===== Key Points
+
+* Lab 2: Tool client implementation
+* Discover, invoke, aggregate
+* Core of orchestrator
+* Implement retry logic for failed tool calls
+* Test with mock tool servers
+
+==== Closing Bridge
+
+With a robust tool client in place, the orchestrator can focus on **orchestrator‑level planning**: automatically constructing multi‑step tool pipelines, optimizing for cost and latency, and adapting plans on the fly. The next lecture will explore how the orchestrator can generate and execute such plans autonomously, turning the client from a passive router into an active planner.
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch10,Chapter 10>>).

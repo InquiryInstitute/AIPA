@@ -1,0 +1,43 @@
+=== Lab 1: AI System — Inventory and Dependencies
+:leveloffset: 2
+
+*Milestone toward: AI System Audit Tool (tool)*
+
+==== Tool Deliverable
+
+Builds toward tool server `audit` — tools: `list_components`, `list_dependencies`, `check_health`. Agent audits AI systems via tool invocation.
+
+==== Prerequisites
+
+* Review 2.1–2.2: production deployment; data pipelines; component catalog
+
+==== Objectives
+
+* Catalog components of a deployed AI system (models, data, APIs)
+* Map dependency graph
+* Document failure points
+
+==== Steps
+
+. Choose an audit target: a public API, internal tool, or well-documented system (e.g., an LLM API, a recommendation service, or student-ai/).
+. Create a system inventory template: list data sources, model(s), APIs, knowledge stores, logging infrastructure.
+. For each component, document: name, type, inputs, outputs, dependencies.
+. Map the dependency graph: what does the model depend on? What depends on the model? Draw a diagram (PlantUML, Mermaid, or manual).
+. Document failure points: where could the pipeline fail? What breaks when data drifts or a component is unavailable?
+. Submit: system inventory template, dependency diagram, GitHub Classroom repo (ch02-lab-01).
+
+==== Deliverables
+
+* System inventory template
+* Dependency diagram
+* GitHub Classroom repo (ch02-lab-01)
+
+*Acceptance criteria:*
+* Inventory lists at least 5 components with name, type, and dependencies
+* Dependency diagram shows data flow and component relationships
+* Failure points are documented for at least 2 components
+* README explains how to use the template for other systems
+
+==== Lab Prep
+
+* Review 2.1–2.2: production deployment; data pipelines; epistemic flow

@@ -1,0 +1,46 @@
+=== Lab 2: Reasoning — Probabilistic Inference
+:leveloffset: 2
+
+*Milestone toward: Inference Engine (tool)*
+
+==== Tool Deliverable
+
+Extends tool server `reasoning` with `infer_probability`, `sample`. Agent handles uncertainty via probabilistic inference through tool invocation.
+
+==== Prerequisites
+
+* Complete Lab 1 (logic)
+* Review 8.3–8.4: Bayesian networks; variable elimination; sampling
+
+==== Objectives
+
+* Build Bayesian network or factor graph
+* Implement variable elimination or sampling
+* Handle uncertainty in agent decisions
+
+==== Steps
+
+. Define a small Bayesian network (e.g., sprinkler, rain, wet grass). Specify CPTs (conditional probability tables).
+. Implement variable elimination: given query P(X|evidence), eliminate non-query variables. Return distribution.
+. Implement sampling (likelihood weighting or Gibbs): approximate P(X|evidence) by sampling. Compare to exact.
+. Expose infer_probability(query, evidence): returns distribution over query variable given evidence.
+. Optionally: add sample(query, evidence, n): return n samples for Monte Carlo approximation.
+. Test: run inference for 2–3 queries. Compare exact vs sampling accuracy and runtime.
+. Submit: probabilistic model (network + CPTs), inference implementation, submodule into student-ai/.
+
+==== Deliverables
+
+* Probabilistic model
+* Inference algorithms
+* Submodule into student-ai/
+
+*Acceptance criteria:*
+* Network has at least 3 nodes
+* Variable elimination returns valid distribution (sums to 1)
+* Sampling approximates exact within tolerance (spot-check)
+* infer_probability() is callable with query and evidence
+* README documents network structure and usage
+
+==== Lab Prep
+
+* Review 8.3–8.4: Bayesian networks; variable elimination; sampling

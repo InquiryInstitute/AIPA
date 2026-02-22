@@ -1,0 +1,16 @@
+python
+# client side (the tutoring bot)
+from reasoning import client
+
+# 1. Proof request
+proof = client.prove("x = 2 ⟹ x^2 = 4")
+if proof.success:
+    display(proof.steps)
+
+# 2. Probability request
+p = client.infer_probability("master_next_concept after hint")
+display(f"Estimated mastery probability: {p.value:.2f}")
+
+# 3. Chain‑of‑thought request
+cot = client.chain_of_thought("Explain why x=2 solves x^2=4")
+display(cot.text)

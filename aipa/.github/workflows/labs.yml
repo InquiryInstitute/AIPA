@@ -1,0 +1,50 @@
+name: Lab Tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'aipa/labs/**'
+      - 'aipa/fixtures/**'
+      - '.github/workflows/labs.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'aipa/labs/**'
+      - 'aipa/fixtures/**'
+      - 'student-ai/**'
+      - '.github/workflows/labs.yml'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: aipa/labs/package-lock.json
+
+      - name: Install labs dependencies
+        working-directory: aipa/labs
+        run: npm install
+
+      - name: Install Playwright
+        working-directory: aipa/labs
+        run: npx playwright install chromium --with-deps
+
+      - name: Run lab tests
+        working-directory: aipa/labs
+        run: npx playwright test --trace on
+        continue-on-error: false
+
+      - name: Upload trace on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-trace
+          path: aipa/labs/test-results/
+          retention-days: 7

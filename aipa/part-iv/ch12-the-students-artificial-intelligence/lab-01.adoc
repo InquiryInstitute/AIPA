@@ -1,0 +1,43 @@
+=== Lab 1: Capstone — Repository Assembly
+:leveloffset: 2
+
+*Milestone toward: Final AI Agent Repo (tool-integrated)*
+
+==== Tool Deliverable
+
+Assembles all tool servers as submodules. Configures tool client to connect to knowledge_graph, audit, search, memory, reasoning, llm, governance. Validates end-to-end tool flow.
+
+==== Prerequisites
+
+* Complete Labs 1–3 for Chapters 1–11 (all tools built)
+* Review 12.1–12.2: capstone overview; problem definition
+
+==== Objectives
+
+* Assemble all submodules (search, memory, reasoning, tools)
+* Configure orchestration
+* Verify end-to-end flow
+
+==== Steps
+
+. Create or update student-ai/ repo structure. Add submodules: knowledge_graph (Ch1), audit (Ch2), search (Ch3), ml_trainer (Ch4), neural_classifier (Ch5), llm (Ch6), memory (Ch7), reasoning (Ch8), tool-calling agent (Ch9), orchestrator (Ch10), governance (Ch11).
+. Configure tool client: list all tools, endpoints, schemas. Ensure orchestrator can discover and invoke each.
+. Run verification: for each tool, invoke a minimal request. Document which succeed.
+. Fix integration issues: missing deps, config errors, schema mismatches.
+. Submit: student-ai/ repo with all submodules, configuration files, GitHub Classroom repo (ch12-lab-01).
+
+==== Deliverables
+
+* student-ai/ repo with all submodules
+* Configuration files
+* GitHub Classroom repo (ch12-lab-01)
+
+*Acceptance criteria:*
+* All 11 tool modules are present (as submodules or linked)
+* Tool client discovers at least 8 tools
+* End-to-end flow: orchestrator completes a task using 2+ tools
+* README documents repo structure and how to run
+
+==== Lab Prep
+
+* Review 12.1–12.2: capstone; assembly; verification

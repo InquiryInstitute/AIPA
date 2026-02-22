@@ -1,0 +1,92 @@
+=== 12.3: Implementation — Customizing the Agent
+:leveloffset: 2
+
+[.epigraph]
+"The generic becomes specific through deployment."
+— Latour, _Reassembling the Social_ <<Latour2005>> (adapted)
+
+*Adapt the agent for the specific problem.*
+
+==== Example Prompts
+
+* "Customize the agent for our domain." — _Add domain tools; adjust prompts_
+* "Configure the workflows." — _Implementation: assemble, extend_
+* "Add tools specific to our use case." — _Capstone customization_
+
+==== Conceptual Core
+
+The student-ai/ agent is generic—it has the tools and structure from the course. The capstone makes it specific. Customization points: prompts (system prompt, few-shot examples), tools (add domain-specific tools or data), workflows (orchestrator routing, when to call which tool). Add domain-specific tools: e.g., an API for your industry, a database connector, a custom search index. Add domain data: index relevant documents in the memory store, configure the knowledge graph. The generic agent becomes situated.
+
+Integration with existing systems: the agent may need to call APIs, query databases, or interact with legacy systems. The agent lives in context—it is not standalone. Testing: unit tests (components work in isolation), integration tests (end-to-end flow), user acceptance tests (does it solve the problem?). The agent in context: general vs. situated. The course agent is general; the capstone agent is situated—designed for a specific problem, users, and environment. Customization as design: we do not just configure—we design the agent for its situation.
+
+===== Key Points
+
+* Customize: prompts, tools, workflows
+* Domain tools, domain data
+* Integrate: APIs, databases
+* Testing: unit, integration, UAT
+* General → situated
+* Customization = design
+* Agent lives in context
+
+==== Technical Example
+
+Extend the agent for the capstone problem. Identify gaps: does the problem require a tool the course does not provide? Add it. Configure prompts: system prompt for the domain, few-shot examples for common patterns. Configure orchestrator routing: when should the agent call memory vs. search vs. a custom tool? Test end-to-end: run a representative task. Does the agent complete it? What fails? Iterate. Lab 2: Implement the agent for the capstone. Add custom tools if needed. Configure prompts. Test end-to-end. The agent must complete a representative task. See Lab 2 for requirements.
+
+===== Key Points
+
+* Extend agent
+* Custom tool if needed
+* Configure prompts, routing
+* Lab 2: Implement, test
+* Representative task
+
+==== Philosophical Reflection
+
+General vs. situated: the generic agent becomes specific through deployment. The course gives you a framework; the capstone gives you a problem. The work of customization is the work of design. We do not just set parameters—we make choices about what the agent should do, how it should behave, what tools it needs. The agent is a situated artifact—it exists in a context, for a purpose. Customization is design: we design for the situation.
+
+The agent in context: the agent does not exist in isolation. It connects to APIs, databases, users. It has constraints—rate limits, latency, cost. The capstone agent is embedded. Understanding that embedding is part of the work. The agent that works in the lab may fail in the field—different data, different users, different expectations. Customization and testing bridge that gap.
+
+===== Key Points
+
+* Generic → specific
+* Customization = design
+* Situated artifact
+* Agent embedded in context
+
+.Figure 12.3: Customization points in agent
+[plantuml,ch12-l03,png,theme=sketchy-outline]
+....
+@startuml
+start
+:Base Agent;
+:Prompts;
+:Tools;
+:Data;
+:Custom Agent;
+stop
+@enduml
+....
+
+==== Discussion Prompts
+
+* What counts as "customization" vs. "new development"?
+* How do we know the agent is "ready" for the problem?
+* When should we add a custom tool? When is the existing set enough?
+* How do we balance generality (reusable) vs. specificity (problem-fit)?
+* What integration challenges have you faced?
+* How do we test for "representative" tasks?
+
+==== Lab Prep
+
+Lab 2: Implement the agent for the capstone problem. Add custom tools if needed. Configure prompts. Test end-to-end. The agent should complete a representative task. Document customization choices and rationale. See Lab 2 for requirements.
+
+===== Key Points
+
+* Lab 2: Implement agent
+* Custom tools, prompts
+* Test end-to-end
+
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch12,Chapter 12>>).

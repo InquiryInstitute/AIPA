@@ -1,0 +1,168 @@
+=== 2.8: AI System Audits
+:leveloffset: 2
+
+[.epigraph]
+"To govern is to structure the possible field of action."
+— Foucault, _Power/Knowledge_ <<Foucault1980>>
+
+*Audits do not merely describe—they constitute what counts as a well‑governed system.*
+
+*What would happen if we never audited an AI system?* Without a systematic view of components, dependencies, and risks, hidden failures, bias, or regulatory breaches can persist unchecked, shaping a field of action that is invisible to its operators.
+
+==== Example Prompts
+
+* "Audit our AI system." — _Components, dependencies, risks, compliance—what we audit defines "well‑governed"_
+* "What depends on this model?" — _Audit tool: discover components, map dependencies, trace requests_
+* "Generate an audit report." — _Audit as governance practice—structures what the agent can see and act on_
+
+==== Conceptual Core
+
+An AI system audit first **catalogues** what is in the system: data sources, models, APIs, knowledge stores, and the relationships among them. This inventory establishes the *boundary* of what can be examined.
+
+Second, the audit **evaluates** each element against a set of criteria—bias, safety, transparency, performance, environmental impact, and regulatory compliance. Different frameworks foreground different criteria, but they all share a legibility logic: make the system observable and measurable.
+
+Third, the audit **constitutes** governance by deciding which aspects become visible and which remain hidden. If fairness is omitted from the checklist, unfair outcomes remain invisible; if environmental impact is ignored, carbon emissions may be overlooked. The act of auditing thus shapes what counts as “well‑governed.”
+
+Fourth, the audit **produces a report** that formalises these judgments, turning observations into actionable recommendations. The report becomes a reference point for future development, compliance checks, and stakeholder communication.
+
+Finally, the audit **feeds back** into the system design: developers adjust pipelines, operators refine monitoring, and policy makers update standards. In this way, the audit is not a static snapshot but a dynamic governance loop.
+
+===== Key Points
+
+* Audit inventories components, dependencies, and risks  
+* Evaluation applies criteria (bias, safety, transparency, performance, env‑impact)  
+* Audits make the system legible and thereby *constitute* governance  
+* Omitted criteria remain invisible to operators  
+* Reports translate findings into actionable recommendations  
+* Audits close the loop by informing future system design  
+
+==== Technical Example
+
+The audit report is a structured artefact that can be consumed by tools and humans alike. A minimal JSON schema might look like:
+
+[source,json]
+----
+{
+  "components": [
+    {"name": "user‑profile‑model", "type": "model", "version": "1.2", "dependencies": ["training‑data‑v3"]},
+    {"name": "recommendation‑api", "type": "api", "version": "0.9", "dependencies": ["user‑profile‑model"]}
+  ],
+  "risks": [
+    {"component": "user‑profile‑model", "failureMode": "bias‑against‑minorities", "severity": "high", "mitigation": "re‑train with balanced data"},
+    {"component": "recommendation‑api", "failureMode": "latency‑spike", "severity": "medium", "mitigation": "circuit‑breaker"}
+  ],
+  "recommendations": [
+    {"action": "add fairness test suite", "priority": "high"},
+    {"action": "monitor CPU usage", "priority": "medium"}
+  ]
+}
+----
+
+Component discovery can be automated with a simple algorithm that walks the project’s configuration files and deployment manifests:
+
+[source,python]
+----
+def discover_components(root_path):
+    inventory = []
+    for cfg in Path(root_path).rglob('*.yaml'):
+        data = yaml.safe_load(cfg.read_text())
+        if 'component' in data:
+            inventory.append({
+                'name': data['component']['name'],
+                'type': data['component']['type'],
+                'version': data['component'].get('version', 'unknown'),
+                'dependencies': data['component'].get('depends_on', [])
+            })
+    return inventory
+----
+
+The audit pipeline therefore consists of three stages:
+
+1. **Discover** – collect the inventory from configuration files, trace logs (Lab 2), and runtime metadata.  
+2. **Assess** – run each component through the chosen criteria, flagging failures, bias, or performance gaps.  
+3. **Report** – assemble the JSON/YAML artefact and store it as `audit_report.json`.
+
+The diagram below visualises this flow, showing how the three artefacts (Components, Dependencies, Risks) are generated in parallel and then aggregated into the final report.
+
+.Figure 2.7: Audit tool pipeline (discover → assess → report)
+[plantuml,ch02-l07,png,theme=sketchy-outline]
+....
+@startuml
+!theme sketchy-outline
+
+title Audit Tool Pipeline
+
+start
+:Discover\n(collect inventory, parse configs);
+:Assess\n(evaluate risks, bias, performance);
+split
+  :Generate Components list;
+split again
+  :Generate Dependencies graph;
+split again
+  :Generate Risks catalogue;
+end split
+:Report\n(assemble JSON/YAML);
+stop
+
+note right of Discover
+  Input: student‑ai/ files,
+  trace schema (Lab 2)
+end note
+
+note right of Report
+  Output: audit_report.json
+end note
+@enduml
+....
+
+===== Key Points
+
+* Report schema captures components, risks, recommendations  
+* Component discovery parses YAML/JSON configs and trace logs  
+* Pipeline stages: Discover → Assess → Report  
+* Parallel generation of artefacts (components, dependencies, risks)  
+* Lab 3 implements the full pipeline and stores `audit_report.json`  
+
+==== Philosophical Reflection
+
+Audits are **disciplinary technologies** (Foucault) that produce docile, observable subjects. By deciding what to measure, audits steer organisational incentives: a system audited for accuracy will be tuned for accuracy; a system audited for fairness will be tuned for fairness—sometimes even *gaming* the metric without improving the underlying phenomenon.
+
+**Audit‑gaming** occurs when developers optimise to pass the audit rather than to resolve the underlying problem. Reflexivity—building a meta‑audit that checks the audit’s completeness, relevance, and resistance to manipulation—can mitigate this risk. For example, periodically rotating audit criteria or incorporating independent third‑party reviews can expose superficial compliance.
+
+A further tension lies between **transparency** and **security**. Open audit reports promote accountability, yet they may reveal sensitive model architectures, proprietary data, or vulnerabilities. Governance must balance the right to know with the need to protect intellectual property and prevent malicious exploitation. Strategies include redacting sensitive fields, providing tiered access, or issuing summary dashboards for public consumption while retaining detailed internal reports.
+
+Finally, the audit tool itself becomes a **subject of audit**. Its component discovery must be exhaustive; its risk taxonomy must be up‑to‑date; its recommendations must be actionable. Embedding a self‑inspection endpoint (`/audit/self`) allows the agent to verify the auditor’s health, but true self‑governance remains limited because the criteria are still set externally.
+
+===== Key Points
+
+* Audits shape organisational incentives (disciplinary technology)  
+* Reflexivity: audit the auditor to curb audit‑gaming  
+* Transparency vs. security: balance openness with protection of sensitive artefacts  
+* Self‑inspection extends capability but does not grant autonomous criteria setting  
+* Audits are recursive: the tool that audits AI systems can itself be audited  
+* Ethical tension: exposing model details may aid adversaries while serving accountability  
+
+==== Discussion Prompts
+
+* What would an audit miss if it only looked at accuracy?  
+* How do audits shape what organizations optimize for?  
+* Should the agent be able to audit itself? What are the limits?  
+* Who should have access to audit reports?  
+* Who audits the auditors—and what does reflexivity require?  
+* How can we detect and prevent audit‑gaming in practice?  
+
+==== Lab Prep
+
+Lab 3 (AI System Audit Tool — Report Generation) asks you to implement the full audit pipeline. Discover components from your inventory (Lab 1) and the trace schema (Lab 2), assess risks using the failure‑mode taxonomy (Lecture 2.5) and any additional criteria, and generate a report with components, dependencies, risks, and recommendations. The tool must expose a **REST endpoint** (`/audit`) so the agent can invoke it before executing a task or after a change, reinforcing the “tool server” concept introduced in Lecture 2.8.
+
+===== Key Points
+
+* Lab 3: Full audit pipeline—discover, assess, report  
+* Use inventory (Lab 1) and trace schema (Lab 2)  
+* Report includes components, dependencies, risks, recommendations  
+* Expose `/audit` REST endpoint for agent‑driven self‑inspection  
+* Integrate as a tool server in `student‑ai/` (Lecture 2.8)  
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch02,Chapter 2>>).

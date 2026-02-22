@@ -1,0 +1,13 @@
+python
+# Minimal example using Hugging Face Transformers
+from transformers import AutoModelForCausalLM, AutoTokenizer
+
+model_name = "meta-llama/Meta-Llama-3-8B"
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+model = AutoModelForCausalLM.from_pretrained(model_name)
+
+prompt = "Summarize the following article in two sentences:\n\n[Article text]"
+inputs = tokenizer(prompt, return_tensors="pt")
+output = model.generate(**inputs, max_new_tokens=80, temperature=0.7, top_p=0.9)
+
+print(tokenizer.decode(output[0], skip_special_tokens=True))

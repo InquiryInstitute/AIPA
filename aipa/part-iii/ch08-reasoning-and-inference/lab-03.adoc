@@ -1,0 +1,46 @@
+=== Lab 3: Inference Engine — Structured Thought and LLMs
+:leveloffset: 2
+
+*Final deliverable: Inference Engine (tool)*
+
+==== Tool Deliverable
+
+Complete tool server `reasoning`. Tools: `assert`, `query`, `prove`, `infer_probability`, `chain_of_thought`. Logic + LLM. Register in agent tool config.
+
+==== Prerequisites
+
+* Complete Labs 1 and 2 (logic, probability)
+* Review 8.5–8.8: CoT; LLM reasoning; tool-augmented inference; reasoning API
+
+==== Objectives
+
+* Combine logical/probabilistic inference with LLM reasoning
+* Support chain-of-thought and tool-augmented inference
+* Expose reasoning API for agents
+
+==== Steps
+
+. Consolidate assert, query, prove, infer_probability into one module.
+. Add chain_of_thought(prompt): call llm.generate with CoT prompt (e.g., "Think step by step..."). Return reasoning + answer.
+. Optionally: verify CoT with symbolic engine (e.g., extract numeric answer, check with calculator).
+. Expose full API: assert, query, prove, infer_probability, chain_of_thought.
+. Run example reasoning traces: logic proof, probabilistic query, CoT on a reasoning task. Document traces.
+. Register reasoning tool in agent config. Document schema.
+. Submit: integrated inference engine, example traces, integration as submodule in student-ai/reasoning/.
+
+==== Deliverables
+
+* Integrated inference engine
+* Example reasoning traces
+* Integration as submodule in student-ai/reasoning/
+
+*Acceptance criteria:*
+* assert, query, prove, infer_probability work
+* chain_of_thought returns reasoning + answer
+* At least 2 example traces documented
+* Tool schema documented for agent
+* README explains API and integration
+
+==== Lab Prep
+
+* Review 8.5–8.8: CoT; reasoning API; agent integration

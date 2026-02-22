@@ -1,0 +1,9 @@
+json
+{
+  "plan": [
+    {"step": 1, "tool": "search", "args": {"query": "quantum enhanced reinforcement learning review"}},
+    {"step": 2, "tool": "rag_retrieve", "args": {"source": "search_results", "num_docs": 5}},
+    {"step": 3, "tool": "summarize", "args": {"documents": "retrieved_docs", "length": "short"}},
+    {"step": 4, "tool": "cite", "args": {"text": "summary", "style": "APA", "count": 3}}
+  ]
+}

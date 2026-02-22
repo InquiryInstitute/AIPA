@@ -1,0 +1,7 @@
+=== Exercises
+
+. *Conceptual* Why is observability essential for deployed AI systems? What happens when it is absent?
+. *Conceptual* Distinguish model drift from distribution shift. Give an example of each.
+. *Design* Design an audit schema for an AI system that includes: components, data sources, model versions, and dependencies. What fields would you track?
+. *Computational* Implement a simple trace schema: request_id, timestamp, component, input_hash, output_hash. Log 3–5 mock trace entries.
+. *Design* How would you detect when a deployed model is "degrading"? What metrics and thresholds would you use?

@@ -1,0 +1,43 @@
+=== Lab 1: Memory — Vector Store Setup and Indexing
+:leveloffset: 2
+
+*Milestone toward: Vector Memory System (tool)*
+
+==== Tool Deliverable
+
+Builds toward tool server `memory` — tools: `index`, `search`, `add`. Agent stores and retrieves documents via tool invocation (student-ai/memory/).
+
+==== Prerequisites
+
+* Review 7.1–7.2: context window; external memory; vector stores; indexing
+
+==== Objectives
+
+* Set up vector store (Chroma, Pinecone, FAISS, etc.)
+* Index documents with embeddings
+* Implement similarity search
+
+==== Steps
+
+. Choose a vector store backend: Chroma, FAISS, Pinecone, or similar. Install and configure.
+. Implement chunking: split documents into chunks (e.g., 512 tokens, 50 overlap). Support configurable chunk size.
+. Implement index(documents): chunk → embed (use llm.embed) → store in vector DB. Return index stats (doc count, chunk count).
+. Implement search(query, k): embed query → similarity search → return top-k chunks with metadata.
+. Test on a small corpus (5–10 documents). Verify retrieval returns relevant chunks for sample queries.
+. Submit: indexing pipeline, search API, GitHub Classroom repo (ch07-lab-01).
+
+==== Deliverables
+
+* Indexing pipeline
+* Search API
+* GitHub Classroom repo (ch07-lab-01)
+
+*Acceptance criteria:*
+* index() runs without errors; chunks are stored
+* search(query, k) returns k chunks sorted by relevance
+* At least 5 documents indexed; 3 sample queries return relevant results
+* README documents backend, chunk config, and API usage
+
+==== Lab Prep
+
+* Review 7.1–7.2: vector store; chunking; indexing

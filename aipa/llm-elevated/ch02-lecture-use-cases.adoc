@@ -1,0 +1,183 @@
+=== 1.1: Accessing AI Knowledge – JSON APIs in Practice
+
+[.epigraph]
+____
+*“Imagine a researcher asking an AI to write a literature review in seconds. The first step? Pulling the latest papers from the web, one JSON payload at a time.”* – Author
+____
+
+==== Hook: The Midnight Research Bot
+
+You are on call at 02:00 AM, a professor has just asked you to produce a one‑page summary of the *most recent* breakthroughs in protein‑folding AI. The only thing standing between you and a polished draft is a single piece of data: the abstract of a newly published paper. How do you retrieve that abstract instantly, reliably, and in a format that your language model can ingest? The answer lies in a tiny, human‑readable text format that has become the lingua‑franca of modern AI services—**JSON**—and the RESTful HTTP request that delivers it.
+
+*Key Points*
+* A realistic scenario creates urgency and relevance.
+* The problem (need for up‑to‑date research data) frames the technical solution.
+* JSON is the bridge between web services and AI pipelines.
+* The hook raises the question: *How can we trust and automate the data we pull?*
+
+==== Conceptual Core: Why JSON Powers AI Use‑Cases
+
+JSON (JavaScript Object Notation) is a lightweight, text‑based data interchange format that balances human readability with machine efficiency. In AI practice, it appears everywhere—from model‑serving endpoints that return predictions to scholarly APIs that expose bibliographic metadata. Its simplicity hides a rich ecosystem of standards (MIME type `application/json`, UTF‑8 encoding, schema validation) that make it the default choice for data‑driven workflows.
+
+*Key Points*
+* JSON’s structure (objects, arrays, primitives) mirrors the hierarchical nature of AI inputs and outputs.
+* The MIME type `application/json` signals to clients and servers how to encode and decode payloads.
+* UTF‑8 guarantees consistent handling of international characters, crucial for author names and abstracts.
+* Schema definitions (e.g., OpenAPI, JSON Schema) provide contracts that prevent downstream errors.
+
+When an AI system consumes an external service, the contract is often expressed as a JSON schema. This contract tells the system *what* fields to expect (`title`, `abstract`, `authors`, `citationCount`) and *how* they are typed (strings, numbers, nested objects). By adhering to a schema, developers can automate validation, generate client libraries, and even infer type hints for static analysis tools—saving countless debugging hours.
+
+*Key Points*
+* Schemas enable automated code generation and type safety.
+* Validation libraries (e.g., `ajv` for JavaScript, `jsonschema` for Python) catch malformed responses early.
+* Versioned schemas mitigate breaking changes when APIs evolve.
+* Schema‑driven development aligns with the “data‑centric” mindset of modern AI engineering.
+
+Despite its strengths, JSON introduces challenges that every AI practitioner must anticipate. Large payloads can strain network bandwidth; deeply nested structures may cause performance bottlenecks in parsers; and inconsistent field naming (camelCase vs. snake_case) can break downstream pipelines. Moreover, APIs often enforce rate limits (e.g., 100 requests per minute) and require authentication tokens, adding layers of operational complexity.
+
+*Key Points*
+* Network latency and payload size affect real‑time inference pipelines.
+* Parser performance varies across languages; streaming parsers can mitigate memory pressure.
+* Naming conventions should be standardized across the stack.
+* Rate limiting and authentication demand robust error‑handling strategies.
+
+Finally, the choice of JSON is not merely technical—it shapes the reproducibility and ethics of AI research. A well‑documented JSON response can be archived, versioned, and re‑used for future experiments, whereas opaque binary formats hinder transparency. By exposing data in an open, inspectable format, developers contribute to a culture of openness that underpins trustworthy AI.
+
+*Key Points*
+* JSON’s transparency supports reproducible research.
+* Open formats enable third‑party auditing of data provenance.
+* Ethical AI requires visibility into the data feeding models.
+* Archiving JSON payloads creates a verifiable audit trail.
+
+==== Technical Example: Querying Semantic Scholar
+
+Below is a minimal HTTP GET request that retrieves bibliographic metadata for a paper identified by its DOI. The request follows the Semantic Scholar REST API specification and returns a JSON payload containing the fields we care about.
+
+[source, http]
+----
+GET https://api.semanticscholar.org/graph/v1/paper/DOI:10.1038/s41586-020-2649-2?fields=title,abstract,authors,citationCount
+Accept: application/json
+User-Agent: AIPA-Lecture/1.0
+----
+
+When executed (e.g., via `curl` or a Python `requests` session), the service responds with a JSON object similar to the excerpt below. Note the indentation and the explicit `null` values for optional fields.
+
+[source, json]
+----
+{
+  "paperId": "5e9c9b8c6f8e4a1c9d2b3f4a",
+  "title": "AlphaFold: Using AI for protein structure prediction",
+  "abstract": "We present AlphaFold, a system that predicts protein structures with atomic accuracy...",
+  "authors": [
+    {"authorId": "1723456", "name": "John Jumper"},
+    {"authorId": "1723457", "name": "Richard Evans"},
+    {"authorId": "1723458", "name": "Alexander Pritzel"}
+  ],
+  "citationCount": 1245,
+  "year": 2020,
+  "venue": "Nature"
+}
+----
+
+*Key Points*
+* The `fields` query parameter controls the payload size—request only what you need.
+* `Accept: application/json` ensures the server returns JSON rather than HTML or XML.
+* The response includes both required (`title`, `abstract`) and optional (`venue`) fields.
+* Nested arrays (`authors`) illustrate how JSON models many‑to‑many relationships.
+* The `citationCount` provides a quick proxy for impact, useful for weighting summaries.
+
+Parsing this payload in Python is straightforward:
+
+[source, python]
+----
+import requests, json
+
+url = ("https://api.semanticscholar.org/graph/v1/paper/DOI:"
+       "10.1038/s41586-020-2649-2")
+params = {"fields": "title,abstract,authors,citationCount"}
+headers = {"Accept": "application/json", "User-Agent": "AIPA-Lecture/1.0"}
+
+response = requests.get(url, params=params, headers=headers)
+data = response.json()
+
+title = data["title"]
+abstract = data["abstract"]
+authors = ", ".join(a["name"] for a in data["authors"])
+citations = data["citationCount"]
+
+print(f"Title: {title}\\nAuthors: {authors}\\nCitations: {citations}\\n\\nAbstract: {abstract}")
+----
+The script demonstrates three best practices: (1) explicit header negotiation, (2) selective field retrieval, and (3) safe navigation of nested structures using list comprehensions. Errors such as HTTP 429 (Too Many Requests) or malformed JSON should be caught with `try/except` blocks and exponential back‑off logic—an essential pattern for production AI pipelines.
+
+*Key Points*
+* Use the `params` dict to keep URLs readable and avoid manual query‑string concatenation.
+* `response.json()` automatically decodes UTF‑8 and parses the payload.
+* List comprehensions simplify extraction from nested arrays.
+* Robust error handling (status‑code checks, retries) is mandatory for reliable services.
+* The parsed data can be fed directly into a transformer model for summarisation.
+
+[plantuml, request-response-flow, png]
+----
+@startuml
+actor "AI Client\n(Python script)" as Client
+box "Semantic Scholar API" #DDDDDD
+  participant "HTTP Server" as Server
+  participant "JSON Serializer" as Serializer
+end box
+
+Client -> Server : GET /graph/v1/paper/DOI:…?fields=…
+activate Server
+Server -> Serializer : retrieve metadata\nfrom DB
+activate Serializer
+Serializer --> Server : JSON payload
+deactivate Serializer
+Server --> Client : 200 OK\napplication/json
+deactivate Server
+
+alt Success
+  Client -> Client : parse JSON\nextract fields
+else 429 Too Many Requests
+  Client -> Client : back‑off & retry
+end
+@enduml
+----
+
+==== Philosophical Reflection: Trust, Transparency, and the Data‑Driven AI Future
+
+When an AI system reaches for external knowledge, it inherits the epistemic status of that knowledge. A JSON payload from an open API is *technically* trustworthy—its schema can be validated, its transport encrypted with HTTPS, and its provenance logged. Yet the *semantic* trustworthiness depends on the curation policies of the data provider, the timeliness of updates, and the potential biases embedded in the underlying corpus. In the case of scholarly APIs, citation counts may favor well‑established venues, marginalising emerging interdisciplinary work.
+
+*Key Points*
+* Technical validation (schema, HTTPS) ≠ epistemic validation (bias, completeness).
+* Open APIs democratise access but also expose AI pipelines to noisy or outdated data.
+* Citation metrics can reinforce existing hierarchies, influencing downstream model outputs.
+* Transparency about data sources is a prerequisite for responsible AI deployment.
+* Researchers must interrogate not just *how* data is fetched, but *why* certain data is presented.
+
+Beyond trust, the choice of JSON as an open, human‑readable format carries ethical weight. When data is archived in a format that anyone can inspect, the community gains the ability to audit, replicate, and critique AI behaviours. Conversely, proprietary binary formats obscure the lineage of inputs, making it harder to diagnose failures or detect malicious manipulation. By championing JSON, we align technical convenience with a broader commitment to reproducibility and accountability.
+
+*Key Points*
+* Open formats enable independent verification of AI results.
+* Reproducibility hinges on preserving exact input payloads (including timestamps).
+* Data provenance logs should accompany JSON archives for full auditability.
+* Ethical AI design treats data format as a component of the governance stack.
+* Community standards (e.g., FAIR principles) encourage JSON‑first APIs for scientific data.
+
+==== Discussion Prompts
+
+1. **Data Trustworthiness:** In what ways can an AI system assess the reliability of a JSON payload beyond schema validation?  
+2. **Rate‑Limit Strategies:** How should a production AI pipeline balance the need for fresh data with the constraints of API rate limits?  
+3. **Schema Evolution:** What architectural patterns help mitigate breaking changes when an API’s JSON schema is updated?  
+4. **Bias Propagation:** How might citation‑count fields in scholarly JSON responses bias downstream summarisation models, and how could we counteract that?  
+5. **Ethical Archiving:** Should AI researchers archive raw JSON responses for reproducibility, and what metadata (e.g., request headers, timestamps) should accompany those archives?  
+6. **Alternative Formats:** When might a binary format (e.g., Protocol Buffers) be preferable to JSON in AI pipelines, despite the loss of human readability?
+
+==== Lab Preparation: Building a Literature‑Review Bot
+
+In the upcoming lab you will implement a *Literature‑Review Bot* that (a) queries the Semantic Scholar API for a list of recent papers on a topic of your choice, (b) extracts the `abstract` field from each JSON response, and (c) feeds the concatenated abstracts to a pretrained transformer (e.g., `distilbart‑summarizer`) to generate a concise summary. The lab is divided into three milestones:
+
+*Key Points*
+* **Milestone 1 – API Client:** Write a reusable Python function that handles authentication, rate‑limit back‑off, and schema validation using `jsonschema`.
+* **Milestone 2 – Data Pipeline:** Store each JSON payload in a local SQLite database with fields for `paperId`, `retrievalTimestamp`, and raw JSON text.
+* **Milestone 3 – Summarisation:** Load the abstracts, concatenate them respecting the model’s token limit, and produce a one‑sentence summary; log the prompt, output, and provenance metadata.
+
+By the end of the session you will have a fully functional end‑to‑end pipeline that demonstrates how a simple HTTP GET request, wrapped in JSON, can become the foundation of an autonomous AI research assistant.

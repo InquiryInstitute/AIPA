@@ -1,0 +1,122 @@
+=== 3.1: Problem Spaces and State Representation
+:leveloffset: 2
+
+*You are dropped into a maze that only shows walls—no doors, no traps, no exit sign.  
+Can you find a way out with a map that deliberately omits the very obstacle you must avoid?*  
+
+[.epigraph]
+"Every representation is a reduction."
+— Derrida, _Of Grammatology_ <<Derrira1967>>
+
+*The problem space is not the problem—it is a representation that enables search.*
+
+==== Example Prompts
+
+* "Find the shortest path from A to B." — _State space: nodes, edges, initial, goal—representation enables search_
+* "Solve this 8-puzzle." — _State = tile positions; actions = move empty; successor function_
+* "Navigate from here to the goal avoiding obstacles." — _Representation choice: what to include, what to omit_
+
+==== Conceptual Core
+
+In plain language: you have a set of possible situations, a starting situation, a goal, and actions that change one situation into another; search is finding a sequence of actions from start to goal. Formally:
+
+[.formal-definition]
+****
+*Formal Definition (State space)*
+A pass:q[\aimaterm{state space}] is a tuple (S, s₀, G, A, succ) where S is the set of states, s₀ is the initial state, G is the goal (or goal test), A is the set of actions, and succ: S × A → S is the pass:q[\aimaterm{transition model}]. pass:q[\aimaterm{Search}] is traversal of the state space from s₀ to a goal. See AIMA <<RussellNorvig2020>>.
+****
+
+Search algorithms operate on representations. We formulate problems as state spaces: a set of states, an initial state, a goal state (or goal test), and actions that transform states. The successor function defines the transition model—given a state and an action, what state results? The problem space is a graph: states are nodes; actions are edges. Search is traversal from initial to goal. The representation is not the problem itself; it is a reduction. Derrida reminds us that every representation excludes. What we include in the state—and what we omit—shapes what search can find.
+
+State representation is an epistemic choice. The 8‑puzzle: we might represent only tile positions (sufficient for solvability) or include move count (for cost‑sensitive search). Navigation: we might use discrete grid cells or continuous coordinates. What to abstract away? Physics, psychology, social context—we reduce the world to what the search algorithm needs. Completeness (does search find a solution if one exists?) and optimality (does it find the best solution?) depend on the representation and the search strategy. The choice of representation is prior to the choice of algorithm.
+
+===== Key Points
+
+* State space: states, initial state, goal, actions
+* Successor function: state + action → next state
+* Problem space = graph; search = traversal
+* Representation is reduction—what we include/omit matters
+* Completeness: finds solution if exists
+* Optimality: finds best solution
+* Representation choice is epistemic—Derrida: every representation excludes
+* Wrong abstraction → algorithm finds "solution" that fails in practice
+
+==== Technical Example
+
+Having formalized a state space, let’s see how it looks in a classic puzzle.  
+
+Represent the 8‑puzzle: state = tuple of 9 tile positions (0 = empty). Actions: move empty up, down, left, right. State equality: same tuple. Successor generation: for each action, compute new tuple if legal. The representation is minimal—we need only positions to define the transition model. For navigation: state = (x, y) grid cell; actions = move N/S/E/W; goal = reach target cell. Implement state equality (same coordinates) and successor generation (neighbors, avoiding obstacles). The same search algorithms—BFS, DFS, A*—apply once the representation is fixed. Lab 1 asks you to formalize 2–3 domains as state spaces. Choose representations that balance expressiveness and tractability.
+
+===== Key Points
+
+* 8‑puzzle: state = tile positions; actions = move empty
+* Navigation: state = (x,y); actions = N/S/E/W
+* State equality and successor generation—implement once, reuse algorithms
+* State hashing: use a hash table or set to store visited states efficiently
+* Cost function: optional edge weights enable A* to prefer cheaper moves
+* Duplicate detection: avoid re‑expanding already visited states
+* Lab 1: Formalize 2–3 domains as state spaces
+
+==== Philosophical Reflection
+
+Abstraction is an epistemic choice. When we reduce a problem to states, we decide what matters. The 8‑puzzle state ignores the color of the tiles, the material of the board, the mood of the player. Those exclusions enable search—the algorithm could not operate on the full richness of the world. But what is lost? Sometimes the abstraction is wrong: we model the wrong variables, and search finds a "solution" that fails in practice. Sometimes the abstraction is right for the task but wrong for the context: the puzzle is solvable, but the human cannot execute the plan. Representation is the first act of search. Get it wrong, and no algorithm can save you. Borges's garden of forking paths (<<Borges1941>>) is a literary image of the state space we search—branching futures, each path a possibility.
+
+===== Key Points
+
+* Abstraction: what matters, what we exclude
+* Wrong abstraction → solution fails in practice
+* Representation is the first act of search
+* Ethical stakes: mis‑representation can bias outcomes or reinforce inequities
+* Iterative refinement: representations can be revised after failed searches
+* Domain expertise: who supplies the abstraction shapes the search space
+* Borgesian metaphor: state space as a garden of forking paths
+
+.Figure 3.1: Minimal state‑space illustration
+[plantuml,ch03-l01,png,theme=sketchy-outline]
+....
+@startuml
+skinparam backgroundColor transparent
+skinparam handwritten true
+
+node "s₀\n(start)" as Start
+node "S₁\n(tile‑swap)" as S1
+node "S₂\n(tile‑swap)" as S2
+node "G\n(goal)" as Goal
+
+Start --> S1 : move‑up
+Start --> S2 : move‑right
+S1 --> Goal : move‑down
+S2 --> Goal : move‑right
+
+note right of S1
+  Representation:
+  only tile positions
+endnote
+@enduml
+....
+
+==== Discussion Prompts
+
+* What would be lost if we represented a "real" problem (e.g., career planning) as a state space?
+* When is a minimal representation sufficient? When is it dangerous?
+* Who decides what goes in the state? What are the stakes?
+* When has a "solution" failed because the abstraction was wrong?
+* How does state representation connect to the search tool in student‑ai/?
+* When does the search tool's representation limit what the agent can plan?
+* See Figure 3.1 for a minimal state‑space illustration.
+
+==== Lab Prep
+
+Because the quality of your state‑space determines whether the search algorithm you write will succeed, Lab 1 asks you to experiment with alternative representations.  
+
+Lab 1 (Search — Problem Formulation and State Space): formalize 2–3 domains as state spaces. Define states, initial state, goal(s), actions, and successor function. Implement state equality and successor generation. Choose domains that differ—e.g., puzzle, navigation, simple planning—to explore how representation varies. See Lab 1 for objectives and deliverables.
+
+===== Key Points
+
+* Lab 1: Formalize 2–3 domains
+* Define: states, initial, goal, actions, successor
+* Implement equality and successor generation
+* Experiment with alternative abstractions to observe impact on search
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch03,Chapter 3>>).

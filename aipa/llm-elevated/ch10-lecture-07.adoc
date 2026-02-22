@@ -1,0 +1,238 @@
+=== 7. Routing in AI Architectures
+
+[.epigraph]
+____
+“Imagine a compliance officer asking an AI system to *summarise the latest regulation* while a data‑science team simultaneously asks the same system to *search for cutting‑edge papers*. The system must decide, in a split second, which backend service to invoke, how to combine the results, and whether any governance checks are required.” — Author
+____
+
+==== Hook
+
+A modern AI‑enabled digital assistant is no longer a single monolithic model that answers every question in the same way. Instead, it is a **pipeline of specialised services**—a web‑search API, a large language model (LLM), a process‑audit engine, a governance validator, and dozens of domain‑specific tools that can be spun up on demand. When a user says, “Give me a concise summary of the new GDPR amendment and tell me whether it impacts our data‑retention policy,” the assistant must **route** that request to the appropriate combination of services, orchestrate their execution, and finally present a coherent answer.  
+
+*What if the routing logic is a static table that never changes?* *Can such a table keep up with the evolving regulatory landscape, the emergence of new AI modules, and the need for real‑time accountability?* This tension—between the simplicity of a hard‑coded routing map and the flexibility demanded by dynamic, high‑stakes environments—forms the conceptual core of today’s lecture.
+
+==== Conceptual Core
+
+Routing, in the context of AI system architecture, is the **decision‑making layer that maps a high‑level user intent to one or more concrete service invocations**. It sits between the *interface* (voice, chat, API) and the *backend* (search engines, LLMs, analytics, compliance checks). The router’s responsibilities include: (1) interpreting the intent, (2) selecting the appropriate service(s), (3) handling parallel or sequential execution, and (4) aggregating the results for downstream consumption. In a monolithic design, the same model would attempt to perform all these steps internally, leading to bloated models, opaque failure modes, and limited extensibility. By externalising the routing decision, we gain **modularity**, **interpretability**, and **the ability to evolve individual services without retraining the entire system**.
+
+There are two broad families of routing strategies. **Static routing** relies on a pre‑defined mapping—often a dictionary or configuration file—that directly associates intent keys with service identifiers. This approach is deterministic, easy to audit, and incurs negligible runtime overhead. However, it is brittle: any change in business policy, service availability, or user language requires a manual update to the mapping. **Dynamic routing**, by contrast, learns or computes the mapping at runtime. Techniques range from reinforcement‑learning controllers that optimise for latency and cost, to meta‑learners that infer the most relevant service based on contextual embeddings. Dynamic routers can adapt to shifting workloads, but they introduce complexity, require monitoring for drift, and may obscure the rationale behind a particular service choice.
+
+Interpretability and governance are especially salient in regulated domains. A static routing table can be **formally verified**: each intent key is linked to a known set of services, and auditors can trace the data flow from request to response. When a compliance officer asks for a summary of a regulation, the router can be configured to *always* invoke the governance validator after the LLM, ensuring that any generated text is checked against policy constraints. Conversely, a learned router may inadvertently bypass critical checks if the training data does not reflect the latest regulatory requirements, raising questions about accountability.
+
+The following Python dictionary illustrates a **minimal static routing table** used in many prototype systems:
+
+```python
+ROUTING = {
+    "search":    ["web_search"],          # Pure information‑retrieval queries
+    "summarise": ["llm"],                 # Generation‑heavy tasks
+    "audit":     ["process_audit"],       # Compliance and process verification
+    "govern":    ["governance"]           # Policy enforcement and risk assessment
+}
+```
+
+Each key represents a **high‑level intent** that the front‑end recognises, while the list of values denotes the **service identifiers** that should be invoked. The design is deliberately simple: a single intent maps to one service, but the list structure permits **multiple services** for more complex workflows (e.g., a “summarise” request could trigger both an LLM and a governance check). The table can be stored in a version‑controlled configuration file, allowing change‑management processes to govern updates.
+
+The trade‑offs become clearer when we examine **scalability** and **extensibility**. Adding a new capability—say, a “translate” service for multilingual users—requires only a new entry in the dictionary and a corresponding implementation of the service interface. The router code itself remains untouched, preserving backward compatibility. However, as the number of intents and services grows, the static table can become unwieldy, and maintaining consistency across environments (dev, staging, production) becomes a non‑trivial operations problem. Moreover, static routing cannot react to **runtime conditions** such as service latency spikes, quota limits, or temporary outages, unless additional logic is layered on top of the table.
+
+In practice, many production systems adopt a **hybrid approach**: a static base table provides a safety net and audit trail, while a dynamic overlay—implemented as a policy engine or a learned selector—adjusts weights or overrides decisions based on real‑time metrics. This combination leverages the strengths of both worlds: deterministic compliance for critical paths and adaptive optimisation for performance‑sensitive workloads.
+
+[plantuml, format=png, alt="High‑level AI system architecture with a central router"]
+....
+@startuml
+skinparam backgroundColor #F9F9F9
+skinparam node {
+  BackgroundColor #FFFFFF
+  BorderColor #CCCCCC
+}
+actor User
+node "Router\n(Decision Layer)" as Router {
+  rectangle "Intent Parser" as Parser
+  rectangle "Routing Table\n(Static + Dynamic)" as Table
+}
+node "Web Search Service" as Search
+node "LLM Service" as LLM
+node "Process Audit Service" as Audit
+node "Governance Service" as Gov
+
+User --> Parser : Intent
+Parser --> Router : Parsed Intent
+Router --> Table : Lookup
+Table --> Search : search
+Table --> LLM : summarise
+Table --> Audit : audit
+Table --> Gov : govern
+Search --> Router : Results
+LLM --> Router : Generated Text
+Audit --> Router : Audit Report
+Gov --> Router : Policy Verdict
+Router --> User : Consolidated Response
+@enduml
+....
+
+The diagram above visualises the **data flow** from a user request through the router to the specialised services and back. Notice the clear separation between the *decision layer* (the router) and the *execution layer* (the services). This modularity is the foundation upon which we can experiment with static versus dynamic routing strategies without rewriting the entire system.
+
+==== Technical Example
+
+To make the abstract concepts concrete, let us walk through a **minimal runnable script** that demonstrates static routing, error handling, and extensibility. The script defines a `Router` class that loads the `ROUTING` dictionary, receives an intent string, looks up the associated services, and dispatches each to a mock implementation. Each mock service simply returns a string indicating what it would have done; in a real system these would be HTTP calls, gRPC stubs, or asynchronous task submissions.
+
+```python
+# router_example.py
+from typing import List, Callable, Dict
+
+# --- Static routing table ----------------------------------------------------
+ROUTING: Dict[str, List[str]] = {
+    "search":    ["web_search"],
+    "summarise": ["llm"],
+    "audit":     ["process_audit"],
+    "govern":    ["governance"]
+}
+
+# --- Mock service implementations --------------------------------------------
+def web_search(query: str) -> str:
+    return f"[WebSearch] Results for '{query}'"
+
+def llm(prompt: str) -> str:
+    return f"[LLM] Generated summary for '{prompt}'"
+
+def process_audit(task_id: str) -> str:
+    return f"[Audit] Task {task_id} passed compliance check"
+
+def governance(content: str) -> str:
+    return f"[Governance] Content approved for release"
+
+# Service registry maps identifiers to callables
+SERVICE_REGISTRY: Dict[str, Callable[[str], str]] = {
+    "web_search": web_search,
+    "llm": llm,
+    "process_audit": process_audit,
+    "governance": governance
+}
+
+# --- Router class ------------------------------------------------------------
+class Router:
+    def __init__(self, routing_table: Dict[str, List[str]]):
+        self.routing_table = routing_table
+
+    def dispatch(self, intent: str, payload: str) -> List[str]:
+        """
+        Look up the intent in the routing table, invoke each mapped service,
+        and collect their responses. Raises KeyError if the intent is unknown.
+        """
+        if intent not in self.routing_table:
+            raise KeyError(f"Unknown intent '{intent}'. Available: {list(self.routing_table)}")
+        services = self.routing_table[intent]
+        responses = []
+        for svc_name in services:
+            service = SERVICE_REGISTRY.get(svc_name)
+            if not service:
+                raise RuntimeError(f"Service '{svc_name}' not registered.")
+            responses.append(service(payload))
+        return responses
+
+# --- Test harness ------------------------------------------------------------
+if __name__ == "__main__":
+    router = Router(ROUTING)
+
+    # Example 1: a pure search request
+    print("--- Search Intent ---")
+    for r in router.dispatch("search", "latest AI ethics papers"):
+        print(r)
+
+    # Example 2: a summarisation request that also needs governance
+    # (demonstrating how we can extend the table with multiple services)
+    router.routing_table["summarise"] = ["llm", "governance"]
+    print("\n--- Summarise Intent (with governance) ---")
+    for r in router.dispatch("summarise", "EU AI Act overview"):
+        print(r)
+
+    # Example 3: handling an unknown intent gracefully
+    try:
+        router.dispatch("translate", "Bonjour")
+    except KeyError as e:
+        print("\n[Error] ", e)
+```
+
+The script proceeds in three stages:
+
+1. **Basic dispatch** – The router receives the `"search"` intent, looks up the single `"web_search"` service, and returns a mock result. This illustrates the *deterministic* nature of static routing.
+2. **Multiple services per intent** – By mutating the `ROUTING` entry for `"summarise"` to include both `"llm"` and `"governance"`, we demonstrate how the list structure enables *parallel* or *sequential* execution of several back‑ends. In a production setting, these calls could be asynchronous, with the router aggregating results once all futures complete.
+3. **Error handling** – Attempting to dispatch an unknown `"translate"` intent triggers a `KeyError`. The explicit exception makes the failure mode visible to developers and operators, supporting the auditability that static routing promises.
+
+Extending the router is straightforward. Suppose the organisation introduces a new **translation** micro‑service. The steps are:
+
+* Add the implementation to `SERVICE_REGISTRY`:
+
+```python
+def translate(text: str, target_lang: str = "en") -> str:
+    return f"[Translate] '{text}' → {target_lang}"
+SERVICE_REGISTRY["translate"] = translate
+```
+
+* Insert a new entry in the routing table:
+
+```python
+router.routing_table["translate"] = ["translate"]
+```
+
+* Optionally version the table (e.g., `ROUTING_V2`) and store it in a configuration management system (Git, Helm, etc.) so that changes are tracked, reviewed, and rolled back if needed.
+
+The static routing approach shines in **controlled environments** where the set of intents and services is relatively stable, and where regulatory compliance demands a clear, traceable mapping. However, as the system scales, developers often augment the router with a **policy engine** that can override static decisions based on runtime metrics (latency, cost, error rates). The next lecture will explore exactly how such a learned or policy‑driven router can be built.
+
+[plantuml, format=png, alt="Decision flow inside the static router"]
+....
+@startuml
+skinparam backgroundColor #FDFDFD
+title Router Decision Flow
+start
+:Receive (intent, payload);
+if (Intent in ROUTING?) then (yes)
+  :Lookup service list;
+  fork
+    :Invoke Service A;
+  fork again
+    :Invoke Service B;
+  fork again
+    :Invoke Service C;
+  end fork
+  :Collect responses;
+  :Return aggregated result;
+else (no)
+  :Raise KeyError;
+endif
+stop
+@enduml
+....
+
+The second diagram visualises the **internal control flow** of the `dispatch` method: a conditional check, a lookup, optional parallel forks for multiple services, and a final aggregation step. Even though the code is tiny, the diagram makes the execution model explicit, which is valuable for both onboarding new engineers and for compliance reviews.
+
+==== Philosophical Reflection
+
+Hard‑coding a routing table is, at its heart, a **political act**. By deciding *once and for all* that a “summarise” request must pass through an LLM and then a governance validator, the system designers embed a set of values—transparency, safety, and a hierarchy of trust—into the architecture itself. This deterministic mapping grants **agency** to the system designers and the organisation that maintains the table, while limiting the agency of the AI components that might otherwise evolve their own strategies. In other words, the router becomes the **gatekeeper of intelligence**, a point where human policy meets machine capability.
+
+From an accountability perspective, a static router offers a **clear audit trail**: every request can be traced back to a specific entry in the configuration file, and any change to that entry is recorded in version control. Auditors can ask, “Which service generated this answer?” and receive an unambiguous answer. Yet this clarity comes at a cost. If the routing table is outdated—perhaps because a new regulation has been published or a service has been deprecated—the system will continue to follow the stale policy until someone manually updates the file. In fast‑moving domains, that lag can translate into **systemic bias** (e.g., always favouring a cheaper but less accurate service) or **regulatory risk** (e.g., bypassing a mandatory compliance check).
+
+The philosophical tension thus revolves around **centralised control versus emergent adaptability**. A learned router, trained on historical performance data, could automatically re‑weight services, de‑prioritise those that repeatedly produce biased outputs, and surface novel pathways that human designers never anticipated. However, the very opacity of a learned policy can erode trust: stakeholders may find it difficult to explain *why* a particular service was chosen for a given request, complicating legal and ethical oversight. The challenge for architects of intelligence is to **design hybrid mechanisms** that preserve the auditability of static mappings while harnessing the responsiveness of dynamic, data‑driven selectors.
+
+Looking ahead, the next lecture will delve into **adaptive routing**—techniques that let the router learn from runtime feedback, incorporate reinforcement‑learning signals, and even expose a meta‑control interface for human‑in‑the‑loop adjustments. By the end of that session, you should be able to contrast the trade‑offs of static, policy‑based, and learned routing, and begin to formulate a roadmap for migrating a production system from a fixed dictionary to a self‑optimising control plane.
+
+==== Discussion Prompts
+
+* How does the choice between static and dynamic routing affect the **explainability** of an AI system in regulated industries?
+* In what scenarios might a hybrid router (static base + learned overlay) be preferable to a purely static or purely dynamic approach?
+* What are the operational risks of maintaining a large static routing table, and how can version‑control practices mitigate them?
+* How could you incorporate **runtime metrics** (latency, cost, error rate) into a routing decision without sacrificing auditability?
+* Consider a multi‑tenant AI platform that serves both internal analysts and external customers. How should routing policies differ across tenant boundaries, and what governance mechanisms are required?
+
+==== Lab Preparation
+
+In the upcoming lab you will **extend the prototype router** introduced in the technical example. Your tasks are:
+
+1. **Add a new “translate” service** that accepts a language code and returns a mock translation. Update both `SERVICE_REGISTRY` and the `ROUTING` table, then write unit tests that verify correct dispatch for the new intent.
+2. **Implement a simple policy overlay**: create a function `policy_override(intent, payload)` that, based on a configurable latency threshold, can replace the static service list with an alternative (e.g., fall back from `web_search` to a cached results service). Integrate this function into the `Router.dispatch` flow and demonstrate its effect with simulated latency values.
+3. **Produce an audit log**: modify the router to emit a JSON line for each request, capturing the timestamp, intent, selected services, and any policy overrides applied. Verify that the log can be parsed by a downstream compliance dashboard.
+
+You will submit a **Git repository** containing your modified `router_example.py`, the new unit tests, and a short README that explains how to run the script and interpret the audit log. The lab will be evaluated on correctness, code clarity, and the depth of your reflection on the trade‑offs you encountered while extending the routing architecture.
+
+==== Closing Bridge
+
+Today we have unpacked the **foundations of routing**—the glue that binds user intent to specialised AI services, the lever that enforces governance, and the point where deterministic policy meets adaptive optimisation. As you experiment with extending the static table and layering a lightweight policy engine, keep in mind the broader question that will drive our next session: **Can a router learn to re‑weight its own decisions in real time while still providing a transparent, auditable trail?** Your lab prototypes will serve as the stepping stones toward that answer, and the insights you gain will inform the design of the **adaptive routing** architectures we will explore next.

@@ -1,0 +1,115 @@
+=== 1.4: Intelligence as Metabolism — The Book's Thesis
+:leveloffset: 2
+
+[.epigraph]
+"Power is exercised through networks."
+— Foucault, _Discipline and Punish_ <<Foucault1975>>
+
+*Intelligence, like power, circulates—it is not stored but metabolized through systems.*
+
+==== Example Prompts
+
+* "Answer this question using our company documentation." — _RAG: query → retrieval (intake) → generation (transform) → response (output)_
+* "Summarize these sources and cite where each claim comes from." — _Intake from store, transform, circulate to user_
+* "What did we decide last week? Add today's update." — _Flow: past output feeds present intake; feedback closes the loop_
+
+==== Conceptual Core
+
+This book proposes a thesis: intelligence is metabolism. Not accumulation—metabolism. A living cell takes in nutrients, transforms them, circulates energy and waste, and excretes what it cannot use. Intelligence, we argue, works similarly. Systems take in information, transform it, circulate it through networks, and produce outputs that feed back into the environment. The metaphor shifts our attention from what is stored to what flows.
+
+Metabolism implies intake, transform, circulate, **excrete**. In an AI system: intake might be a user query, a sensor reading, or training data; transform might be retrieval, inference, or generation; **distribute** (formerly circulate) might be the movement of representations through layers or the delivery of outputs to users; excrete might be the discarding of low‑relevance results or the archiving of outdated models. Knowledge does not sit inert in a database—it flows. Who produces it? Who consumes it? Who governs its circulation? These are the questions that matter.
+
+A concrete example of a metabolic AI system is a continuous news‑summarization service. Every hour it **intakes** fresh articles, **transforms** them by extracting key points and generating concise summaries, **distributes** the summaries to subscribers, and then **feeds back** click‑through and rating data to update its retrieval index and fine‑tune its summarizer. The loop repeats, keeping the service responsive to evolving topics and user preferences. This real‑world case illustrates how the four stages sustain an intelligent service over time.
+
+The contrast is with the "brain in a vat" view: intelligence as a self‑contained processor that reasons over static knowledge. That view has its place—it captures something about offline inference—but it misses the dynamism of real systems. Retrieval‑augmented generation, for example, is inherently metabolic: each query triggers retrieval, which feeds generation, which produces output that may become input elsewhere. Intelligence emerges from the circuit: transformation, circulation, representation, integration, action. No single locus holds it.
+
+===== Key Points
+
+* Metabolism metaphor: intake, transform, distribute, excrete
+* Intelligence as flow, not accumulation
+* In AI: intake (query, data); transform (retrieval, inference); distribute (layers, users); excrete (discard, archive)
+* Knowledge flow: who produces, who consumes, who governs?
+* Contrast: "brain in a vat" vs. metabolic circuit
+* Intelligence emerges from: transformation, circulation, representation, integration, action
+* RAG: inherently metabolic—query triggers retrieval → generation → output
+
+==== Technical Example
+
+Trace a query through a retrieval‑augmented generation pipeline. The user asks a question. The system retrieves relevant passages from a vector store or knowledge graph—intake from stored representations. The retrieved content is concatenated with the query and passed to a language model—transform. The model generates a response—output, which circulates back to the user. The user may click, rate, or correct—feedback that may retrain the model or update the retrieval index. Where does "knowledge" live? Not in any single place. It lives in the vector store, the model weights, the generated text, the user's interpretation. It flows. Nowhere static. **See Figure 1.4** for a visual representation of this loop.
+
+Your knowledge graph explorer will embody this flow. Data is ingested (intake); the graph is traversed or queried (transform); results are surfaced to the user (distribute); the user may extend or correct the graph (feedback into the circuit). Design the data flow explicitly: what enters, what is transformed, what exits, and how outputs feed back. The diagram in this lecture shows metabolism as a loop—intake, transform, distribute, with outputs that enable emergence. Your system should have a similar loop.
+
+===== Key Points
+
+* RAG pipeline: query → retrieval (intake) → generation (transform) → response (output)
+* Knowledge lives nowhere static—it flows through store, model, output, user
+* User feedback may retrain or update—closes the loop
+* Your explorer: ingest (intake), traverse (transform), surface (distribute), extend (feedback)
+* Design data flow: what enters, what transforms, what exits
+
+==== Philosophical Reflection
+
+What does it mean to say intelligence "emerges"? We use the term when a system exhibits behavior that is not explicitly programmed—when the whole seems to exceed the sum of its parts. In a metabolic view, emergence is not mysterious; it is the result of feedback and circulation. Outputs become inputs; the system reacts to its own products. There is no central controller that "has" the intelligence; it is distributed across the circuit. Agency without a single locus.
+
+Foucault wrote that power is exercised through networks. So is intelligence. The question "where is the mind?" has no simple answer when we take metabolism seriously. The mind is in the loop—in the intake, the transformation, the circulation, the feedback. Your knowledge graph does not "contain" intelligence; it participates in an intelligent circuit. The distinction matters for design: we optimize for flow, not for storage alone.
+
+===== Key Points
+
+* Emergence: behavior not explicitly programmed; whole exceeds parts
+* In metabolism: emergence from feedback and circulation
+* Agency without a single locus—intelligence distributed across circuit
+* Foucault: power through networks; intelligence, too
+* Your graph participates in intelligent circuit; optimize for flow
+
+.Figure 1.4: Metabolism of Knowledge (flow diagram)
+[plantuml,ch01-l04,png,theme=sketchy-outline]
+....
+@startuml
+skinparam backgroundColor #FDF6E3
+skinparam handwritten true
+
+title Metabolism of Knowledge (flow)
+
+(*) --> :Intake\n(data, query, sensor)
+ --> :Transform\n(retrieval, inference)
+ --> :Distribute\n(output to users, services)
+ --> :Output / Externalization
+ --> :Feedback\n(user rating, correction)
+ --> :Intake
+
+note right of Output
+  Emergence
+  (intelligent behavior)
+end note
+
+note bottom of diagram
+  Legend:
+  * Intake = data ingestion
+  * Transform = retrieval / inference
+  * Distribute = distribution to users
+  * Feedback = user‑driven update
+end note
+@enduml
+....
+
+==== Discussion Prompts
+
+* Where would you locate "intelligence" in a RAG pipeline—retrieval, generation, or the loop?
+* Can a system be intelligent without any feedback loop? What would that mean?
+* How does the metabolism metaphor change how you think about "storing" knowledge?
+* Who governs the metabolic circuit in an LLM‑powered application?
+* **Draw** the metabolic loop for a system of your choice, labeling intake, transform, distribute, output, and feedback.
+
+==== Lab Prep
+
+Design the data flow for your knowledge graph explorer. Map intake (what enters: files, API responses, user input), transform (what processing: parsing, ingestion, traversal), distribute (what exits: queries, visualizations, exports), and feedback (how user actions update the graph). Lab 2 (Knowledge Graph — Query and Traversal) will implement the transform step; Lab 3 (Explorer) will add the distribute and feedback steps. **Before Lab 2, sketch the flow on paper, explicitly including the feedback arrow shown in Figure 1.4.**
+
+===== Key Points
+
+* Map: intake, transform, distribute, feedback
+* Lab 2: Query and Traversal—transform step
+* Lab 3: Explorer—distribute and feedback
+* Sketch the flow (with feedback) before implementing
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch01,Chapter 1>>).

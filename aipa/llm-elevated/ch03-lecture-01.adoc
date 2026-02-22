@@ -1,0 +1,17 @@
+python
+def succ(state, action):
+    empty = state.index(0)
+    row, col = divmod(empty, 3)
+    if action == '↑' and row > 0:
+        swap = empty - 3
+    elif action == '↓' and row < 2:
+        swap = empty + 3
+    elif action == '←' and col > 0:
+        swap = empty - 1
+    elif action == '→' and col < 2:
+        swap = empty + 1
+    else:
+        return None                     # illegal move
+    new = list(state)
+    new[empty], new[swap] = new[swap], new[empty]
+    return tuple(new)

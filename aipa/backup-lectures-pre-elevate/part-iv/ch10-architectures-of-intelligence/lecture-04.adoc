@@ -1,0 +1,141 @@
+=== 10.4: API Integration — REST, Authentication
+:leveloffset: 2
+
+[.epigraph]
+"APIs are the seams of the digital world."
+— Fielding, _Architectural Styles and the Design of Network-based Software Architectures_ <<Fielding2000>> (adapted)
+
+*The agent connects to external services—APIs extend its reach.*
+
+Imagine an autonomous personal assistant that must schedule a meeting on a user’s Google Calendar, fetch the current weather, and store the result in a corporate database—all without human intervention. The assistant has no direct access to these services; it must reach out through well‑defined API seams, negotiate credentials, respect usage limits, and recover from inevitable failures. This tension between ambition and constraint drives today’s API‑centric intelligence.
+
+==== Example Prompts
+
+* "Call the external API for this." — _REST, authentication; API integration_
+* "Handle API failures gracefully." — _Rate limits, errors; dependency risk_
+* "Connect to the calendar service." — _OAuth; arbitrary APIs; governance_
+
+==== Conceptual Core
+
+REST fundamentals define a uniform interface: resources are identified by URLs, and standard HTTP verbs (GET for reading, POST for creating or updating) convey intent. Responses are typically encoded as JSON, a lightweight, language‑agnostic data interchange format that agents can parse and generate with ease.
+
+Authentication is the gatekeeper that lets an agent act on behalf of a user or service. The simplest scheme uses static API keys placed in request headers, while more robust delegated access relies on OAuth 2.0 flows that issue short‑lived tokens scoped to specific resources. Understanding the trade‑off between ease of use and security is essential for reliable integration.
+
+Operational concerns arise as soon as the agent begins making calls. Providers enforce rate limits—often expressed as “X requests per minute”—to protect their infrastructure. Agents must detect HTTP 429 responses and implement exponential back‑off before retrying. Transient network glitches and server‑side 5xx errors also demand retry logic with sensible timeouts.
+
+A growing ecosystem of service families illustrates the breadth of the API economy. Productivity suites (e.g., Google Workspace) expose calendar, drive, and mail endpoints; data platforms (e.g., public weather services, relational databases) offer query and ingestion APIs; and custom micro‑services present domain‑specific operations. Each family shares the same REST/JSON contract but differs in authentication and rate‑limit policies.
+
+Reliance on external APIs introduces brittleness. Versions evolve, contracts break, and outages propagate into the agent’s workflow. Mitigation strategies include version pinning, contract testing, and observability (logging request IDs, latency, and error codes) so that agents can adapt or degrade gracefully when a seam fails.
+
+===== Key Points
+
+* Use HTTP verbs (GET, POST, PUT, DELETE) to express intent
+* Encode payloads and responses as JSON
+* Authenticate with API keys or OAuth 2.0 tokens
+* Observe rate limits and apply exponential back‑off
+* Implement retries for transient 429 / 5xx errors
+* Distinguish service families (productivity, data, custom)
+* Guard against brittleness with versioning and observability
+* Treat APIs as seams that both empower and expose vulnerabilities
+
+==== Technical Example
+
+Below is a minimal Python snippet that demonstrates a GET request to a weather API, includes an `Authorization` header, and applies exponential back‑off on rate‑limit responses:
+
+[source,python]
+----
+import time, requests
+
+API_URL = "https://api.example.com/weather"
+TOKEN   = "Bearer <your_oauth_token>"
+MAX_RETRIES = 5
+
+def fetch_weather(city):
+    headers = {"Authorization": TOKEN}
+    params  = {"q": city}
+    backoff = 1
+
+    for attempt in range(MAX_RETRIES):
+        resp = requests.get(API_URL, headers=headers, params=params)
+        if resp.status_code == 200:
+            return resp.json()
+        if resp.status_code in (429, 502, 503, 504):
+            time.sleep(backoff)
+            backoff *= 2  # exponential back‑off
+            continue
+        resp.raise_for_status()
+    raise RuntimeError("Maximum retries exceeded")
+----
+The agent’s orchestrator would wrap this call as a tool‑server endpoint, exposing a uniform interface to higher‑level reasoning modules. Errors are surfaced as structured exceptions, enabling the planner to decide whether to retry, fall back to cached data, or abort the task.
+
+===== Key Points
+
+* Perform authenticated GET/POST with `Authorization` header
+* Parse JSON responses into native data structures
+* Detect 429 / 5xx and apply exponential back‑off
+* Limit retries to a configurable maximum
+* Surface errors as structured exceptions for higher‑level handling
+* Integrate the call into the orchestrator’s tool‑server API
+
+==== Philosophical Reflection
+
+APIs are the seams that stitch together the fragmented digital ecosystem. By weaving through these seams, an autonomous agent extends its cognition beyond its own code, tapping into specialized knowledge and capabilities that would otherwise be inaccessible.
+
+Yet every seam is a point of vulnerability. Changes in contract, deprecation of endpoints, or sudden service outages can cripple the agent’s reasoning pipeline. Governance—through version pinning, token scopes, and observability—becomes the ethical backbone that ensures the agent remains trustworthy and resilient in a volatile API landscape.
+
+In the next lecture we will see how the orchestrator mediates these API calls, turning them into reusable tool‑server endpoints. Your Lab 3 implementation will be the first concrete step toward that orchestration, giving you hands‑on experience in turning raw API seams into reliable, composable tools.
+
+===== Key Points
+
+* APIs act as connective seams extending agent capabilities
+* Seam vulnerability demands governance (versioning, scopes, observability)
+* Orchestrator will abstract seams into reusable tool‑server endpoints
+* Lab 3 provides practical experience in building resilient API integrations
+
+.Figure 10.4: Agent, orchestrator, and external API interaction
+[plantuml,ch10-l04,png,theme=sketchy-outline]
+....
+@startuml
+skinparam componentStyle rectangle
+
+component Agent
+component "Orchestrator\n(tool server)" as Orchestrator
+component "External API\n[Auth, Rate‑limit]" as API
+
+Agent --> Orchestrator : request (GET/POST)
+Orchestrator --> API : call (Auth header)
+API --> Orchestrator : response (JSON)
+Orchestrator --> Agent : result
+
+alt error 429 / 5xx
+    Orchestrator --> Orchestrator : exponential back‑off & retry
+end
+@enduml
+....
+
+==== Discussion Prompts
+
+* What are the risks of API dependency, and how can versioning mitigate them?
+* How does the diagram illustrate the orchestrator’s retry loop, and why is it important?
+* In what situations should the agent prefer a local tool over a remote API call?
+* How does OAuth’s delegated model affect the agent’s ability to act on behalf of users?
+* What governance policies would you enforce when exposing arbitrary APIs to the agent?
+* How might you extend the diagram to include observability (e.g., logging, tracing)?
+
+==== Lab Prep
+
+Lab 3: Add API integration to the orchestrator. Support at least one external API (e.g., Google Workspace, a public weather service, or a database endpoint). Implement authentication, exponential back‑off, and structured error handling. Document the integration, including the request/response flow and any governance decisions (scopes, version pins).
+
+===== Key Points
+
+* Implement a concrete API call within the orchestrator
+* Use OAuth or API‑key authentication as appropriate
+* Apply exponential back‑off and retry logic
+* Document request/response contracts and governance choices
+* Test failure scenarios (rate limit, 5xx errors)
+
+==== Reading
+
+* RFC 7231 – Hypertext Transfer Protocol (HTTP/1.1): Semantics and Content <<RFC7231>>
+* RFC 6749 – The OAuth 2.0 Authorization Framework <<RFC6749>>
+* For the full chapter reading list, see the <<reading-list,Reading List>> (<<reading-ch10,Chapter 10>>).

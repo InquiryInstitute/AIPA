@@ -1,0 +1,126 @@
+=== 12.6: The Written Thesis
+:leveloffset: 2
+
+You have just finished building a conversational agent that outperforms the baseline, but when you sit down to write the thesis you stare at a blank page.  
+What should you include to convince a skeptical reader that your work is sound, reproducible, and worth building upon?
+
+[.epigraph]
+"Writing is thinking."
+— Wittgenstein, _Philosophical Investigations_ <<Wittgenstein1953>> (adapted)
+
+*The thesis documents the journey and the result.*
+
+==== Example Prompts
+
+* "Document your capstone." — _Written thesis: problem, approach, evaluation_
+* "What did you build and why?" — _Journey and result; evidence of mastery_
+* "Explain your design choices." — _Thesis documents the artifact_
+
+==== Conceptual Core
+
+**Structure**  
+A thesis follows the classic technical‑report form: problem (what? for whom? why?), approach (how did you solve it?), implementation (what did you build?), evaluation (what evidence?), and discussion (limitations, future work). Each section answers a concrete question that guides the reader through your contribution.
+
+**Clarity & Reproducibility**  
+Technical writing demands that a reader be able to understand *and* replicate your work. Use precise language, define terminology, and present algorithms or configurations in a way that can be re‑executed. Include enough detail that another researcher could rebuild your system from scratch.
+
+**Citations & Figures**  
+Ground your work in the existing literature with proper citations. Visual aids—architecture diagrams, result plots, or code snippets—compress complex ideas into an instantly readable form. Place figures close to the text that references them.
+
+**Appendix & Supplemental Material**  
+Reserve an appendix for material that would interrupt the narrative flow: full code listings, prompt corpora, raw data tables, or extended experimental logs. Provide links to version‑controlled repositories so reviewers can inspect the exact artefacts you used.
+
+**Competency Artifact**  
+The thesis is the culminating proof of graduate competence. It demonstrates that you can define a problem, design a solution, implement it, evaluate it rigorously, and communicate the entire process. It also serves as a public claim that you are prepared to be held accountable for your results.
+
+===== Key Points
+
+* Structure: problem, approach, implementation, evaluation, discussion
+* Clarity, reproducibility
+* Citations, figures, appendix
+* Thesis = competency artifact
+* Documentation = accountability
+* Bridge to future work
+* Writing = thinking
+* Thesis = part of work, not afterthought
+
+==== Technical Example
+
+**Detailed Outline**  
+A typical thesis allocates space roughly as follows:  
+*Problem* – 1–2 pages describing the gap, target users, and significance.  
+*Approach* – 2–3 pages outlining the design rationale, theoretical foundations, and high‑level architecture.  
+*Implementation* – 2–3 pages presenting the concrete system, key components, and customisations, supported by diagrams.  
+*Evaluation* – 2–3 pages reporting metrics, experimental setup, results, and user feedback.  
+*Discussion* – 1–2 pages reflecting on limitations, ethical considerations, and avenues for future research.
+
+**Draft‑Iterate‑Submit Workflow**  
+Begin drafting early, treating each section as a living document. Share drafts with your advisor or peers, incorporate feedback, and version‑control every revision (e.g., using Git). Align each section with the evaluation metrics you plan to report, ensuring that the evidence directly supports the claims made in the problem and approach. After multiple iterations, polish the narrative, verify reproducibility, and submit the final thesis.
+
+===== Key Points
+
+* Outline sections
+* Draft problem, approach, implementation, evaluation, discussion
+* Iterate with feedback
+* Use version‑controlled drafts
+* Align sections with evaluation metrics
+* Submit
+
+==== Philosophical Reflection
+
+**Documentation as Accountability**  
+Writing a thesis is a public claim: “I built this, it works, here is the evidence.” By exposing your work to scrutiny, you invite verification, critique, and extension. This accountability is a cornerstone of scholarly practice and reinforces the integrity of the research community.
+
+**Thesis as Bridge to the Future**  
+Future readers—including your own future self—will rely on your thesis to understand the design decisions, reproduce the experiments, and build upon the results. Imagine a researcher who re‑uses your architecture to explore a new domain; the clarity of your documentation determines how smoothly that bridge is crossed.
+
+**Writing = Thinking**  
+The act of committing ideas to text forces you to resolve ambiguities, sharpen arguments, and surface hidden assumptions. Consequently, the thesis is not an afterthought but an integral part of the research process that shapes both the artefact and your understanding of it.
+
+===== Key Points
+
+* Documentation = accountability
+* Thesis = public claim
+* Bridge to future
+* Writing = thinking
+* Thesis = part of work
+
+.Figure 12.6: Thesis structure template
+[plantuml,ch12-l06,png,theme=sketchy-outline]
+....
+@startuml
+start
+:Problem;
+:Approach;
+:Implementation;
+:Evaluation;
+:Discussion;
+note right: Future work & conclusions
+if (Appendix needed?) then (yes)
+  :Appendix;
+endif
+stop
+@enduml
+....
+
+==== Discussion Prompts
+
+* How much technical detail belongs in the thesis?
+* How do we write for multiple audiences (faculty, peers, future readers)?
+* What does "reproducibility" require? What would someone need to replicate your work?
+* How do we balance clarity and completeness?
+* What is the role of the thesis in graduate education?
+* How does writing the thesis change your understanding of the work?
+
+==== Lab Prep
+
+Draft the thesis using the prescribed structure: problem, approach, implementation, evaluation, discussion. Iterate with feedback from advisor and peers, version‑control your drafts, and align each section with your evaluation metrics. Submit the polished document for assessment. *By drafting your thesis you will experience how writing sharpens your technical understanding.*
+
+===== Key Points
+
+* Draft thesis
+* Structure: problem, approach, implementation, evaluation, discussion
+* Iterate, version‑control, submit
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch12,Chapter 12>>).

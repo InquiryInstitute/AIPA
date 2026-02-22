@@ -1,0 +1,13 @@
+pseudocode
+function BFS(start, goal):
+    frontier ← Queue()
+    frontier.enqueue(start)
+    explored ← Set()
+    while not frontier.isEmpty():
+        node ← frontier.dequeue()
+        if node == goal:
+            return reconstructPath(node)
+        explored.add(node)
+        for child in expand(node):
+            if child not in explored and child not in frontier:
+                frontier.enqueue(child)

@@ -1,0 +1,166 @@
+=== 7.2: Vector Stores and Similarity Search
+:leveloffset: 2
+
+Imagine a personal assistant that can instantly pull up the exact paragraph from a ten‑million‑page legal archive that best answers a user’s question. How does it know *which* paragraph to fetch, and how quickly can it do so?  
+
+[.epigraph]
+"Similarity is not identity—but it is often enough."
+— Reimers & Gurevych, *Sentence‑BERT* <<Reimers2019>>
+
+*Vector stores: embed, index, retrieve by similarity.*
+
+==== Example Prompts
+
+* "Find documents similar to this query." — _Embed query, search vector store, return top‑k_  
+* "Index our knowledge base." — _Documents → chunks → embed → index_  
+* "What's most relevant to this question?" — _Similarity search; retrieval quality matters_
+
+==== Conceptual Core
+
+When Jane asked the assistant for the *force majeure* clause in a contract, the system returned a paragraph about “termination for convenience” – a clearly wrong answer, yet one that lived in the same region of the embedding space because the training data had never seen the exact legal phrase. This failure illustrates the central tension of vector stores: **semantic proximity is a proxy for relevance, not a guarantee**.
+
+A *vector store* is an index of dense vectors that supports similarity search (e.g., nearest‑neighbors). An *embedding* is a function that maps text (or any modality) to a point in ℝ^d such that semantically similar inputs occupy nearby positions. The store holds the embeddings of all document chunks; retrieval consists of finding the *k* vectors closest to a query embedding. This idea dates back to early information‑retrieval experiments in the 1990s, but modern large‑language‑model embeddings have made it practical at web‑scale.
+
+Dense vectors typically have 384, 768, or 1 536 dimensions, depending on the model. Similarity is measured with cosine similarity or dot product. Given a query embedding **q**, we seek the set  
+
+\[
+\operatorname*{arg\,min}_{i\in\mathcal{D}} \; \text{dist}(q, v_i)
+\]
+
+where \(v_i\) is the stored vector for chunk *i*. Exact nearest‑neighbor search is **O(n)**, which becomes prohibitive for millions of vectors. Approximate nearest‑neighbor (ANN) algorithms such as HNSW (hierarchical navigable small world) and IVF (inverted file) trade a small loss in recall for sub‑linear query time. In a 1 M‑doc corpus, exact search returns the true nearest neighbor 99.8 % of the time, while HNSW returns it 97 % of the time in ~10 ms instead of ~800 ms – an acceptable loss for most Retrieval‑Augmented Generation (RAG) pipelines.
+
+Chunking is the bridge between raw documents and vectors. Documents are split into overlapping chunks (typically 256–512 tokens with 50‑token overlap) before embedding. Chunk size influences retrieval quality: too small fragments lose context; too large fragments dilute relevance. Semantic chunking—splitting at sentence or paragraph boundaries—usually outperforms naïve fixed‑size splits. Overlap helps preserve continuity across chunk borders, which is crucial for legal texts where a single clause may span multiple sentences.
+
+Finally, the politics of similarity cannot be ignored. Embeddings inherit the distributional biases of their training data: dominant viewpoints cluster, while minority voices may be pushed to the periphery. Consequently, a vector store can systematically under‑represent certain dialects, domains, or perspectives, shaping what the agent “knows” and what it fails to retrieve.
+
+===== Key Points
+
+* Dense vectors encode meaning in high‑dimensional space  
+* Cosine similarity / dot product operationalises “closeness”  
+* ANN structures (HNSW, IVF) trade a few percent recall for order‑of‑magnitude speed gains  
+* Chunk size, overlap, and semantic boundaries critically affect retrieval quality  
+* Indexing pipeline: document → chunks → embed → store  
+* Query pipeline: embed → ANN search → top‑k results  
+* Retrieval is a memory‑access operation that shapes the agent’s knowledge  
+* Embedding bias → retrieval bias → epistemic bias in downstream agents  
+
+==== Technical Walk‑through & Lab Prep
+
+**Step 1: Building the Index**  
+Take a corpus of legal contracts, split each file into 512‑token chunks with a 50‑token overlap, and embed each chunk with a sentence‑BERT model (`llm.embed`). Store the resulting vectors in an ANN‑enabled backend such as Chroma or FAISS, configuring HNSW with `M=32` and `efConstruction=200` to balance recall and latency.
+
+**Step 2: Query Execution**  
+When a user submits a query, the system first embeds the query text. The ANN index then performs a greedy graph traversal: starting from an entry point, it explores neighbor layers, pruning paths that cannot improve the current best similarity score. The traversal typically visits only a few hundred nodes, yielding a top‑k list in ~10 ms for a million‑vector store.  
+
+A concrete illustration:  
+
+1. Encode “force majeure clause” → **q**  
+2. Locate entry point `v₀` (randomly chosen)  
+3. For each layer `ℓ` from top to bottom:  
+   * Examine neighbors of the current candidate set  
+   * Keep those with cosine similarity > current threshold  
+4. After the lowest layer, return the 5 highest‑scoring chunks  
+
+**Step 3: Evaluation & Tuning**  
+Measure *recall@k* (fraction of ground‑truth relevant chunks retrieved) and latency. If recall falls below 90 % on a validation set, experiment with larger `efSearch` values or increase chunk overlap. Conversely, if latency exceeds 200 ms, consider reducing `M` or increasing chunk size.
+
+**Lab 1: Mini‑Challenge**  
+You are the engineer tasked with building a legal‑assistant that answers queries in under 200 ms. Implement the full pipeline: chunking, embedding, ANN indexing, and a search API that accepts either raw text (performing the embedding internally) or a pre‑computed embedding. The API must return the chunk text, source metadata, and similarity score. Document your chunking strategy, index parameters, and observed recall‑latency trade‑offs. This API will become the retrieval component for the RAG system in Lab 2.
+
+===== Key Points
+
+* Chunk (512 tokens, 50 overlap), embed, index with HNSW  
+* Search API: `query → embed → ANN search → top‑k chunks`  
+* Evaluate with recall@k and latency; tune `efSearch`/`M` as needed  
+* Lab 1 goal: sub‑200 ms response time for legal queries  
+* API serves as the retrieval layer for the next RAG lecture  
+
+==== Philosophical Reflection
+
+Retrieval as memory access is an approximation: we do not retrieve “the” relevant document, we retrieve what is *similar* in the embedding space. Two chunks can be mathematically close while being conceptually unrelated—exactly what happened in Jane’s “force majeure” query. This approximation is usually sufficient, but it can break down for rare terminology, niche domains, or culturally specific expressions that the embedding model has never seen.
+
+The politics of similarity ask: *who decides what counts as “similar”?* Embeddings inherit the distributional statistics of their training corpora. If a corpus over‑represents corporate law and under‑represents indigenous legal traditions, the vector store will preferentially surface corporate clauses, marginalising other perspectives. Retrieval therefore becomes a political act, shaping which voices are amplified and which are silenced.
+
+**Mitigation strategies** include:  
+
+* Augmenting the store with under‑represented sources (e.g., community‑generated legal texts).  
+* Applying debiasing transformations—projecting embeddings away from identified gender or racial subspaces—before indexing.  
+* Conducting periodic audits: sample queries across demographic slices and compare recall rates.  
+* Incorporating hybrid retrieval (sparse lexical + dense) to rescue rare terms that dense vectors miss.
+
+By consciously curating the vector store, we can steer the memory system toward a more inclusive epistemic landscape, even while accepting that similarity will never be a perfect proxy for relevance.
+
+===== Key Points
+
+* Similarity ≠ identity; retrieval is an approximation  
+* Embedding bias → retrieval bias → epistemic bias  
+* Politics of similarity: dominant training data shapes what is retrieved  
+* Failure cases arise for rare or domain‑specific language  
+* Mitigation: augment, debias, audit, hybrid retrieval  
+* Designing a vector store is both an engineering and a normative act  
+
+==== Discussion Prompts
+
+* When is similarity “enough” and when does it fail? Give examples.  
+* How does chunking affect retrieval quality? What would you try for a legal corpus vs. a chatbot log?  
+* What are the politics of “relevant”? Who benefits from current embedding and retrieval designs?  
+* How would you detect and mitigate bias in a vector store?  
+* Is ANN “good enough” for your use case? What would require exact search?  
+* How does the choice of embedding model shape what the agent can “remember”?
+
+*See Key Point 5 when answering “When is ANN good enough?” and Key Point 7 for “Retrieval = memory access.”*
+
+==== Closing Bridge
+
+Having built a fast, bias‑aware vector store, the next step is to see how retrieved chunks are fed into a generative language model to produce coherent answers. In Lecture 7.3 we will explore the **retrieval‑augmented generation** pipeline, examine prompt engineering for retrieved context, and measure end‑to‑end answer quality.
+
+==== Lab Prep
+
+Lab 1: Index documents. Implement the search API. The API takes a query (text or embedding) and returns the top‑k chunks together with metadata and similarity scores. This feeds the Retrieval‑Augmented Generation system in Lab 2, where the agent will call `search` to retrieve context before generation. Document the API, chunking strategy, index configuration, and the recall‑latency trade‑offs you observed.
+
+===== Key Points
+
+* Lab 1: build index and search API  
+* API: `query → embed → ANN search → top‑k`  
+* Provides retrieval layer for Lab 2’s RAG system  
+* Document strategy, parameters, and performance metrics  
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch07,Chapter 7>>).
+
+.Figure 7.2: Vector store pipeline (indexing vs. querying)
+[plantuml,ch07-l02,png,theme=sketchy-outline]
+....
+@startuml
+skinparam ArrowColor #555555
+skinparam FontSize 12
+skinparam PackageBorderColor #888888
+
+package "Index Construction" {
+  start
+  :Document;
+  :Chunk (256‑512 tokens);
+  :Embedding (model);
+  :Add Vector to Store;
+  stop
+}
+
+package "Query Execution" {
+  start
+  :User Query;
+  :Embedding (query);
+  if (Use ANN?) then (yes)
+    :HNSW / IVF Index;
+  else (no)
+    :Brute‑force Scan;
+  endif
+  :Search VectorStore;
+  note right: similarity = cosine / dot‑product
+  :Return Top‑k;
+  stop
+}
+
+'Forward link to next stage
+:Return Top‑k --> :RAG Generator;
+@enduml
+....

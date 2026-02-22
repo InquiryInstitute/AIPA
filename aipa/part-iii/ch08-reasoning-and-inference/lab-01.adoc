@@ -1,0 +1,43 @@
+=== Lab 1: Reasoning — Propositional and First-Order Logic
+:leveloffset: 2
+
+*Milestone toward: Inference Engine (tool)*
+
+==== Tool Deliverable
+
+Builds toward tool server `reasoning` — tools: `assert`, `query`, `prove`. Agent performs logical inference via tool invocation (student-ai/reasoning/).
+
+==== Prerequisites
+
+* Review 8.1–8.2: propositional logic; resolution; first-order logic
+
+==== Objectives
+
+* Represent knowledge in logic (propositional, FOL)
+* Implement resolution or forward chaining
+* Prove simple theorems
+
+==== Steps
+
+. Encode a small domain in propositional logic: define atoms and rules (e.g., P → Q, Q → R, P). Use a KB format (list of clauses or sentences).
+. Implement resolution: negate goal, add to KB, resolve until empty clause or no new clauses. Or use a SAT solver (PySat, Z3) for propositional.
+. Prove a simple theorem: given KB, prove R. Verify the proof is correct.
+. Optionally: extend to FOL. Encode a domain (e.g., family relations: Parent(x,y), Ancestor(x,y)). Use skolemization and unification. Prove Ancestor(Alice, Bob).
+. Expose assert(fact) and query(question) or prove(goal). assert adds to KB; query/prove returns result.
+. Submit: logic representation (KB format), inference implementation, GitHub Classroom repo (ch08-lab-01).
+
+==== Deliverables
+
+* Logic representation
+* Inference implementation
+* GitHub Classroom repo (ch08-lab-01)
+
+*Acceptance criteria:*
+* KB encodes at least 5 facts/rules
+* Resolution or SAT returns correct result for at least 2 queries
+* assert() adds fact; query() or prove() returns answer
+* README documents KB format and usage
+
+==== Lab Prep
+
+* Review 8.1–8.2: propositional; resolution; FOL

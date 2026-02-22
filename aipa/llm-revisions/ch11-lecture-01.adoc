@@ -1,0 +1,119 @@
+=== 11.1: Governance — Policies and Constraints
+:leveloffset: 2
+
+[.epigraph]
+"Power is exercised through norms."
+— Foucault, _Discipline and Punish_ <<Foucault1975>>
+
+*Governance structures what the AI can and cannot do.*
+
+==== Example Prompts
+
+* "Don't output PII." — _Policies: rules, constraints; compliance check_
+* "Rate limit to 10 requests per minute." — _Governance: what is allowed, what is prohibited_
+* "Check if this action is allowed." — _Before/after compliance; policies define the system_
+
+*What if a medical chatbot must never reveal a patient’s SSN?* The very architecture of the system changes: the model’s output layer, the post‑processor, and the user‑interface must all be designed with that prohibition in mind. This tension between freedom and restriction is the hook that drives our exploration of governance.
+
+==== Conceptual Core
+
+A chatbot that is forbidden to output PII is not the same system as one that can. That is the central claim of this chapter: governance does not sit outside the system—it defines what the system is. So before we ask "how do we enforce rules?" we ask "what rules, and who decides?"
+
+Policies are rules, constraints, and guardrails that define what an AI system can and cannot do. What is allowed? What is prohibited? Compliance is the check: does the system adhere to the policies? We can check before an action (is this allowed?) or after (did we violate?). Pre‑action checks prevent violations; post‑action checks enable audit and correction. The choice of when to check affects both safety and latency.
+
+We need to represent policies in a form the system can use. Formal rules (logic) are precise but rigid; natural language is human‑readable but ambiguous; code is enforceable but requires implementation. Real systems often use a hybrid: policies written in a structured format (e.g., JSON or a DSL) that can be interpreted by enforcement code. The governance tool you build will define a schema: policy_id, type (allow/block), condition, scope. Conditions might reference input content (e.g., "no PII"), rate limits, tool blocklists, or output filters. That schema is the first deliverable of this chapter.
+
+Policy tradeoffs are unavoidable: safety vs. utility. Stricter policies may reduce harm but also reduce capability. A policy that blocks all external API calls prevents misuse but also prevents useful tool use. Foucault: power is exercised through norms. Who writes the policies? Designers, regulators, users, or some combination? The answer is political. The governance tool you build will embody these choices—and reflecting on who writes policies and who is affected is part of responsible AI practice. We close where we began: governance structures what the AI can and cannot do, and in doing so it structures what the AI *is*.
+
+===== Key Points
+
+* Policies: rules, constraints, guardrails
+* Compliance: check adherence
+* Representation: formal, natural language, code
+* Tradeoffs: safety vs. utility
+* Governance = constitutive
+* Who writes policies?
+
+Having clarified why policies matter, let’s see how they are encoded and enforced in practice.
+
+==== Technical Example
+
+Define policies for an AI system. Example 1: no PII in outputs—condition checks output text for patterns (SSN, email, etc.); action is block if detected. Example 2: rate limit 10 req/min per user—condition checks request count in sliding window; action is block if exceeded. Example 3: blocklist for tools—condition checks tool name against list; action is block if match. Each policy has a scope: which components or users does it apply to? Check compliance: before action (is this allowed?), after (did we violate?). Pre‑check prevents the action; post‑check logs violations for audit.
+
+Lab 1: Represent governance policies. Define schema: policy_id, type (allow/block), condition (expression or predicate), scope. Policies as structured data enable the governance simulator to load, evaluate, and report.
+
+===== Key Points
+
+* Policy schema fields: policy_id, type, condition, scope (and optional priority)
+* Evaluation order: prioritize more specific or higher‑priority policies first
+* Enforcement modes: pre‑action check (allow/block) vs. post‑action audit
+* Logging & audit: record every violation with timestamp, user, and policy ID
+* Extensibility: custom predicates or plug‑in modules can be added without changing core code
+* Error handling: fallback to safe defaults when a policy cannot be evaluated
+* Reporting: aggregate metrics for compliance dashboards
+
+==== Philosophical Reflection
+
+Governance as constitutive: policies do not merely constrain—they define. The system is what it is permitted to be. A system that cannot output PII is different from one that can; the policy is not an external add‑on but part of its constitution. Who writes the policies? Power resides in those who define the rules. Designers choose defaults; regulators impose requirements; users may have limited say. Foucault: power through norms—norms shape behavior without explicit force. The governance tool you build will embody these choices.
+
+Reflecting on who writes policies and who is affected is part of responsible AI practice. Multiple stakeholders may propose competing policies, leading to normative pluralism that must be negotiated. There is a risk of policy capture, where dominant interests embed their biases into the rule set, reinforcing existing inequities. Transparency and explainability of policy decisions are therefore essential: users should be able to see which policy blocked an action and why.
+
+How will the cost of enforcing these policies shape who gets to use the system?
+
+===== Key Points
+
+* Policies are constitutive, not merely constraining
+* Power resides with policy authors (designers, regulators, users)
+* Normative pluralism: competing stakeholder policies must be reconciled
+* Risk of policy capture and bias reinforcement
+* Transparency & explainability of policy decisions
+* Accountability through audit trails and public documentation
+
+.Figure 11.1: Policy‑driven compliance flow (pre‑check vs. post‑check)
+[plantuml,ch11-l01,png,theme=sketchy-outline]
+....
+@startuml
+start
+:Load Policy Store;
+if (Pre‑check?) then (yes)
+  :Evaluate Policy Condition;
+  if (Condition satisfied?) then (allow)
+    :Proceed with Action;
+  else (block)
+    :Reject Action;
+  endif
+else (no)
+  :Execute Action;
+  :Post‑check Policy;
+  if (Violation?) then (log)
+    :Record Audit Event;
+    :Optionally Block/Notify;
+  endif
+endif
+stop
+@enduml
+....
+
+==== Discussion Prompts
+
+* Who should write AI governance policies?
+* How do we balance safety and utility?
+* When should compliance block vs. warn?
+* How does governance shape the orchestrator (Ch10)?
+* How do policies integrate with the agent's guardrails (Ch9)?
+* When should governance be external vs. built‑in?
+
+==== Lab Prep
+
+Lab 1: Represent governance policies. Define schema: policy_id, type (allow/block), condition, scope. The governance simulator will use these. See Lab 1 for objectives.
+
+===== Key Points
+
+* Lab 1: Policy schema
+* Type, condition, scope
+* Priority & extensibility
+* Logging & audit
+* Evaluation order
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch11,Chapter 11>>).

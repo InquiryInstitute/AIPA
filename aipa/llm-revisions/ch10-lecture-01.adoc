@@ -1,0 +1,6 @@
+python
+def pipeline(query):
+    docs = retrieve(query)          # Stage 1
+    ranked = rerank(docs, query)    # Stage 2
+    summary = generate(ranked)      # Stage 3
+    return summary

@@ -1,0 +1,4 @@
+= Part IV: System Integration
+:part:
+
+This part integrates the student's AI—architectures (Ch10), institutional context and governance (Ch11), and the future of intelligence (Ch12). The epistemic machine becomes a single system: knowledge flows through the orchestrator; Ch11 asks who shapes that flow. Ch12 is about the future: integration and deployment prepare the ground; the final lecture is delivered by the machine, on the metabolism of knowledge and what kind of intelligence societies are choosing to build. The book closes there; the epilogue returns the loop to the reader.

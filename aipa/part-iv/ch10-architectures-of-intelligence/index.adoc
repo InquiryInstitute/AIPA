@@ -1,0 +1,50 @@
+= Chapter 10: Architectures of Intelligence
+
+This chapter covers agent architectures: pipelines vs. loops, multi-agent systems, orchestration (tool client), API integration, monitoring and debugging, scaling, and the orchestrator. The orchestrator ties everything together—llm, memory, reasoning, search, audit, governance. It lives in student-ai/orchestration/. Labs 1–3 build the pipeline design, tool client, and full orchestrator with APIs and monitoring. By chapter end, the agent is a complete distributed system. Ch11 adds governance; Ch12 is the capstone deployment.
+
+==== Learning Objectives
+After this chapter you will be able to:
+* Compare pipelines vs. loops and design multi-agent systems
+* Implement orchestration (tool client) and API integration
+* Add monitoring, debugging, and scaling to the agent stack
+* Build the orchestrator integrating llm, memory, reasoning, search, audit, governance
+
+==== Course Learning Outcomes (CLOs)
+By the end of this course, you will be able to:
+* Compare pipelines vs. loops and design multi-agent systems (PLO 2).
+* Implement orchestration (tool client) and API integration (PLO 2).
+* Add monitoring, debugging, and scaling to the agent stack (PLO 4).
+* Build the orchestrator integrating llm, memory, reasoning, search, audit, governance (PLO 5).
+
+include::lecture-01.adoc[]
+****
+include::lab-01.adoc[]
+****
+
+include::lecture-02.adoc[]
+include::lecture-03.adoc[]
+****
+include::lab-02.adoc[]
+****
+
+include::lecture-04.adoc[]
+include::lecture-05.adoc[]
+include::lecture-06.adoc[]
+****
+include::lab-03.adoc[]
+****
+
+include::lecture-07.adoc[]
+include::lecture-08.adoc[]
+
+==== Chapter Summary
+The orchestrator ties all components together. Pipelines and loops, multi-agent coordination, API integration, and monitoring complete the architecture. The agent is now a distributed system. Ch11 adds governance; Ch12 deploys the capstone.
+
+==== Further Reading
+Readings for this chapter are collected in the <<reading-list,Reading List>> (<<reading-ch10,Chapter 10>>).
+
+* Fielding, "REST" <<Fielding2000>> — Architectural styles for network-based software.
+* Schick et al., "Toolformer" <<Schick2023>> — Tool use in LLMs.
+* Yao et al., "ReAct" <<Yao2022>> — Multi-step tool use.
+
+include::exercises.adoc[]

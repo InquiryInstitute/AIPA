@@ -1,0 +1,81 @@
+=== 10.8: Lab Integration — Agent Orchestrator
+:leveloffset: 2
+
+[.epigraph]
+"The architecture is the theory made concrete."
+— Russell & Norvig, _AIMA_ <<RussellNorvig2020>> (adapted)
+
+*The orchestrator is the spine of the student's AI—everything connects through it.*
+
+==== Example Prompts
+
+* "Run the full agent pipeline." — _Orchestrator completes the stack_
+* "What theory does our architecture encode?" — _Design choices; metabolism_
+* "Deploy with governance." — _Orchestrator + governance; capstone_
+
+==== Conceptual Core
+
+Recap: pipeline, multi-agent, tool client, APIs, monitoring, scaling. Orchestrator in student-ai/orchestration/. Connection to Ch11: governance constrains the orchestrator—policies, audits, compliance. Connection to Ch12: capstone deploys the full stack. The integrated agent as epistemic machine: it knows (memory), reasons (reasoning), speaks (llm), acts (tools). From modules to system: we have built a complete AI agent. The architecture is the theory made concrete—our beliefs about intelligence are encoded in the design.
+
+===== Key Points
+
+* Recap: pipeline, multi-agent, client, APIs, monitoring, scaling
+* student-ai/orchestration/
+* Ch11: governance
+* Ch12: capstone
+* Architecture = theory
+
+==== Technical Example
+
+Deploy the orchestrator with all tools. Document the architecture: diagram of components, data flow, deployment. Prepare for Ch11 governance: the audit tool will assess the system. Lab 3: Complete Labs 1–3. Submit orchestrator. Integrate into student-ai. Prepare for Ch11.
+
+===== Key Points
+
+* Deploy
+* Document architecture
+* Lab 3: Complete, submit, prepare Ch11
+
+==== Philosophical Reflection
+
+The integrated agent as epistemic machine: it produces knowledge (summaries, recommendations), reasons (logic, CoT), and acts (tools). From modules to system: the whole exceeds the parts when orchestration works. The architecture is the theory—we have built our understanding of intelligence into the system.
+
+===== Key Points
+
+* Epistemic machine
+* Whole exceeds parts
+* Theory made concrete
+
+.Figure 10.8: Orchestrator and Ch11/Ch12
+[plantuml,ch10-l08,png,theme=sketchy-outline]
+....
+@startuml
+start
+:Orchestrator;
+:Ch11 Governance;
+:Ch12 Capstone;
+stop
+@enduml
+....
+
+==== Discussion Prompts
+
+* What theory of intelligence does our architecture encode?
+* How does governance (Ch11) change the orchestrator?
+* What is the capstone (Ch12) delivering?
+* How does the orchestrator complete the agent stack?
+* How does the architecture reflect the metabolism thesis (Ch1)?
+* What would the student-ai/ system look like without the orchestrator?
+
+==== Lab Prep
+
+Complete Labs 1–3 for Chapter 10. Submit the orchestrator. Integrate into student-ai. Prepare for Ch11 governance—the audit tool will assess the system; governance policies will constrain it. See Lab 3 for requirements.
+
+===== Key Points
+
+* Complete Labs 1–3
+* Submit orchestrator
+* Prepare Ch11 governance
+
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch10,Chapter 10>>).

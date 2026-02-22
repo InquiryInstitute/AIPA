@@ -1,0 +1,44 @@
+=== Lab 1: ML — Data Preparation and Feature Engineering
+:leveloffset: 2
+
+*Milestone toward: ML Model Trainer (tool)*
+
+==== Tool Deliverable
+
+Builds toward tool server `ml_trainer` — tools: `load_data`, `preprocess`, `define_features`. Agent prepares datasets via tool invocation.
+
+==== Prerequisites
+
+* Review 4.1–4.2: risk and generalization; bias-variance; linear models; data splits
+
+==== Objectives
+
+* Load and clean dataset
+* Define features and target
+* Split train/validation/test
+
+==== Steps
+
+. Choose a dataset (e.g., UCI, Kaggle, or a small custom dataset). Ensure it has a clear prediction task (classification or regression).
+. Load the data and inspect: missing values, duplicates, outliers. Clean or document handling.
+. Define features and target. Document feature types (categorical, numerical) and any encoding (one-hot, label, scaling).
+. Implement or use a data loader that returns (X, y) with consistent interface. Support config for path, target column, feature subset.
+. Split into train/validation/test (e.g., 70/15/15). Use stratification for classification if applicable.
+. Submit: data pipeline (load + clean + split), feature documentation, GitHub Classroom repo (ch04-lab-01).
+
+==== Deliverables
+
+* Data pipeline
+* Feature documentation
+* GitHub Classroom repo (ch04-lab-01)
+
+*Acceptance criteria:*
+* Pipeline loads data without errors
+* Train/val/test splits are non-overlapping and reproducible (fixed seed)
+* Feature documentation lists at least 5 features with type and encoding
+* README documents how to run the pipeline and data format
+
+==== Lab Prep
+
+* Review 4.1–4.2: data; features; overfitting; splits
+* For minimal path options (e.g. pair programming, simplified deliverables), see Instructor Manual §1.

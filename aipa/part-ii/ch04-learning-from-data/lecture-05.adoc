@@ -1,0 +1,13 @@
+python
+from statsmodels.stats.contingency_tables import mcnemar
+
+# b = # cases where A correct, B wrong
+# c = # cases where B correct, A wrong
+result = mcnemar([[0, b],
+                  [c, 0]], exact=False, correction=True)
+
+print(f"McNemar chi2={result.statistic:.2f}, p={result.pvalue:.3f}")
+if result.pvalue < 0.05:
+    print("Significant difference between models")
+else:
+    print("No significant difference")

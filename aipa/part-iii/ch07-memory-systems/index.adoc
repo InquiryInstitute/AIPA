@@ -1,0 +1,51 @@
+= Chapter 7: Memory Systems
+
+This chapter covers memory: the need for external storage (context limits, persistence), vector stores and similarity search, RAG (retrieve → generate), symbolic memory (graphs, hybrid), updates and eviction, memory in the agent loop, and the memory tool. The memory tool—index, search, rag_retrieve, add, update—is the agent's persistence layer. It integrates into student-ai/memory/ and feeds llm (RAG context), reasoning (retrieval), and tools. Labs 1–3 build the vector store, RAG pipeline, and full memory system with optional hybrid (Ch1 graph). By chapter end, the agent has external memory—RAG, experience, knowledge.
+
+==== Learning Objectives
+After this chapter you will be able to:
+* Explain context limits, external memory, and working memory
+* Implement vector stores, similarity search, and RAG pipelines
+* Integrate episodic, semantic, and procedural memory
+* Build the memory tool (index, search, rag_retrieve, add, update)
+
+==== Course Learning Outcomes (CLOs)
+By the end of this course, you will be able to:
+* Explain context limits, external memory, and working memory (PLO 1).
+* Implement vector stores, similarity search, and RAG pipelines (PLO 2).
+* Integrate episodic, semantic, and procedural memory (PLO 2).
+* Build the memory tool (index, search, rag_retrieve, add, update) (PLO 2).
+
+include::lecture-01.adoc[]
+****
+include::lab-01.adoc[]
+****
+
+include::lecture-02.adoc[]
+include::lecture-03.adoc[]
+****
+include::lab-02.adoc[]
+****
+
+include::lecture-04.adoc[]
+include::lecture-05.adoc[]
+include::lecture-06.adoc[]
+****
+include::lab-03.adoc[]
+****
+
+include::lecture-07.adoc[]
+include::lecture-08.adoc[]
+
+==== Chapter Summary
+External memory extends the agent beyond the context window. Vector stores, RAG, and hybrid memory provide persistence. The memory tool integrates retrieval, storage, and RAG into the agent loop. Memory feeds reasoning (Ch8) and the tool-calling agent (Ch9).
+
+==== Further Reading
+Readings for this chapter are collected in the <<reading-list,Reading List>> (<<reading-ch07,Chapter 7>>).
+
+* Lewis et al., "RAG" <<Lewis2020>> — Retrieval-augmented generation.
+* Izacard & Grave, "DPR" <<Izacard2020>> — Dense passage retrieval.
+* Bartlett, _Remembering_ <<Bartlett1932>> — Memory as reconstruction.
+* Reimers & Gurevych, "Sentence-BERT" <<Reimers2019>> — Sentence embeddings.
+
+include::exercises.adoc[]

@@ -1,0 +1,209 @@
+=== 9.1: Agents — Perception, Reasoning, Action
+:leveloffset: 2
+
+[.epigraph]
+"An agent is an entity that perceives and acts."
+— Russell & Norvig, _AIMA_ <<RussellNorvig2020>>
+
+*Hook.* You ask your virtual assistant, “Book me a flight to Tokyo next Friday.” Within seconds the system has parsed your spoken request, consulted your calendar, queried airline APIs, and returned a confirmed reservation. But what invisible machinery turned that single utterance into a concrete action in the world? The answer lies in a *problem‑driven* view of the **agent‑environment loop**: the assistant must *handle uncertainty*, *remember context*, and *plan a multi‑step interaction* before it can act.
+
+==== Example Prompts
+
+* “Do this task.” — _Agent: perceive (input), reason (plan), act (invoke tools)_
+* “What should I do next?” — _Goals, environment, rationality — maximize expected utility_
+* “React to this situation.” — _Reflex vs. model‑based; perceive → reason → act_
+
+==== Conceptual Core
+
+The flight‑booking scenario forces us to ask: **How can an agent act when it does not see the whole world and when the task unfolds over several turns?**  A *reflex* mapping from “hello” to a greeting works for a single, fully observable cue, but it collapses as soon as the user says, “I need a flight but I’m not sure about the date.”  To succeed, the agent must maintain an internal *state* (what has been asked, what is still unknown) and *reason* about possible futures before committing to an action.
+
+[.formal-definition]
+****
+*Key Idea (Agent)*  
+An agent continuously receives **percepts** from its environment and maps the *history* of percepts to an **action**.  The mapping may be a simple rule (reflex) or a deliberative process that updates a **world model**, evaluates **utility**, and selects the action with the highest expected utility.  This view subsumes the formal definition in AIMA <<RussellNorvig2020>> while emphasizing the *temporal* and *uncertain* aspects that matter in practice.
+****
+
+The **environment** can be described along three orthogonal dimensions (see Table 1).  Each dimension determines which agent architecture is viable.
+
+[cols="1,1,1", options="header"]
+|===
+| Dimension | Fully observable | Partially observable
+| Deterministic | The thermostat (temperature known) | Simple robot in a known maze
+| Stochastic | Slot‑machine (outcome random but state known) | Voice assistant (speech recognition noise)
+| Episodic | Spam filter (each email independent) | Multi‑turn dialogue (current turn influences future)
+|===
+
+*Table 1 – Environment dimensions and illustrative examples.*
+
+**Rationality** provides the normative guide: an agent should choose the action that maximizes its *expected utility* given its current belief about the world.  Utility encodes the agent’s goals (e.g., “book a flight that satisfies the user’s constraints”) and the expectation accounts for stochastic outcomes (e.g., flight‑price fluctuations).  This principle underlies reinforcement‑learning agents, utility‑based planners, and even simple rule‑based bots when we interpret “rule” as a shortcut for “max‑EU under certainty”.
+
+**Agent taxonomy.** Reflex agents implement a direct *percept → action* mapping; they are fast but cannot maintain hidden state or plan ahead.  Model‑based (deliberative) agents keep an internal **state / world model**, update it from each percept, and run a **planner** that evaluates possible action sequences against the utility function.  Table 2 summarizes the trade‑offs.
+
+[cols="1,1,1,1", options="header"]
+|===
+| Feature | Reflex | Model‑based
+| Memory | None | Belief state
+| Planning horizon | 0 (instant) | Variable (look‑ahead)
+| Handles uncertainty | Poor | Good (via belief update)
+| Suitable tasks | Simple, fully observable | Sequential, partially observable
+|===
+
+*Table 2 – Reflex vs. model‑based agents.*
+
+===== Key Points
+
+* Agents must *perceive*, *reason*, and *act* in a feedback loop.  
+* Environments vary along observability, determinism, and episodicity.  
+* Rationality = maximizing expected utility under uncertainty.  
+* Reflex agents: no internal state, instant response, limited scope.  
+* Model‑based agents: maintain a world model, plan, handle uncertainty.  
+* The agent‑environment loop is a *closed feedback system*; each action generates new percepts.  
+* Tables 1 & 2 give a quick diagnostic for choosing an architecture.  
+* Active‑learning moment: **Poll** – “Do you think your phone’s voice assistant is reflex or model‑based?” (show of hands).
+
+==== Technical Example
+
+**Reflex agent (percept → action)**  
+
+[source,python]
+----
+def reflex_agent(percept: str) -> str:
+    """
+    Very simple rule‑based agent.
+    Percept: raw user utterance.
+    Action: name of a function the orchestrator will call.
+    """
+    if "hello" in percept.lower():
+        return "greet_user()"          # direct mapping
+    if "flight" in percept.lower():
+        # No memory of date or destination → fails gracefully
+        return "ask_for_details()"
+    return "do_nothing()"
+----
+*Explanation.* The agent examines the incoming string, applies a single rule, and returns the name of an actuator.  No belief state is kept, so the second rule cannot distinguish “I need a flight” from “I already gave the date”.  This mirrors the *reflex shortcut* in the diagram.
+
+**Model‑based agent (state update + planner)**  
+
+[source,python]
+----
+class ModelBasedAgent:
+    def __init__(self):
+        self.belief = {}                     # internal world model
+
+    def update_belief(self, percept: str):
+        # Very naive NLU → extract key‑value pairs
+        if "flight" in percept.lower():
+            self.belief["task"] = "book_flight"
+        if "tokyo" in percept.lower():
+            self.belief["destination"] = "Tokyo"
+        if "next friday" in percept.lower():
+            self.belief["date"] = "2026-03-05"
+
+    def evaluate_utility(self, action: str) -> float:
+        # Simple utility: +1 for each filled slot
+        filled = sum(1 for k in ("destination","date") if k in self.belief)
+        return float(filled)
+
+    def plan(self) -> str:
+        # Choose action that maximizes utility
+        if self.belief.get("task") != "book_flight":
+            return "ask_for_task()"
+        if "destination" not in self.belief:
+            return "ask_destination()"
+        if "date" not in self.belief:
+            return "ask_date()"
+        return "search_flights()"           # all slots filled → act
+
+    def act(self, percept: str) -> str:
+        self.update_belief(percept)
+        return self.plan()
+----
+*Explanation.* Each turn the agent **updates its belief** from the percept, then **plans** by checking which slots are still missing.  The utility function is implicit: the more slots filled, the higher the utility.  This structure supports the multi‑turn dialogue introduced in the hook and gracefully handles partial observability.
+
+===== Key Points
+
+* Reflex agents need no internal state; they are fast but brittle.  
+* Model‑based agents maintain a belief state and a planner.  
+* The belief update corresponds to the *Percept Processor → State* arrow in the diagram.  
+* The planner embodies *rationality* by selecting the action with maximal expected utility.  
+* Tool schemas (Lab 1) define the concrete functions (`greet_user()`, `search_flights()`) that the planner can invoke.  
+* Failure mode demo: a reflex agent cannot ask for missing information, whereas the model‑based agent does so automatically.  
+* Mini‑design activity: **Think‑Pair‑Share** – sketch a new percept (e.g., “I need a hotel”) and predict how the model‑based agent would update its belief.
+
+==== Philosophical Reflection
+
+**Distributed agency.** When the model‑based agent calls `search_flights()`, it delegates the actual lookup to an external airline API.  The *agency* is therefore distributed across the reasoning core and the toolbox it commands.  In this view, the “agent” is not a monolithic entity but a *composite system* whose identity emerges from the tight coupling of perception, model, planner, and actuators.  This perspective invites us to ask: *who is responsible when the API returns a misleading price?*  Responsibility must be allocated across the AI developer, the API provider, and the end‑user.
+
+**Goal design as ethical engineering.** The utility function we embed—“book the cheapest flight that meets the user’s date”—encodes a value judgment.  Suppose we augment the goal with a carbon‑offset preference: “minimize price *and* carbon footprint”.  The agent now has to balance competing objectives, and the weighting we choose reflects stakeholder values.  Mis‑aligned goals can produce harmful outcomes (e.g., booking a flight that violates a user’s travel policy).  Hence, **goal selection is a design responsibility** that must be transparent, auditable, and revisable as contexts evolve.
+
+===== Key Points
+
+* Agency is *distributed* across the reasoning core and its toolset.  
+* The agent’s identity emerges from the *percept‑reason‑act* loop plus external services.  
+* Goals (utility functions) encode normative choices and must be designed responsibly.  
+* Ethical design requires stakeholder participation, impact assessment, and revision mechanisms.  
+* Model‑based agents expose a clear point for inserting ethical constraints (during utility evaluation).  
+* Reflex agents are sufficient only for fully observable, single‑step tasks where ethical nuance is minimal.
+
+==== Discussion Prompts
+
+* Where does “the agent” reside in a system that heavily relies on external APIs?  
+* How would you redesign the utility function to incorporate a carbon‑offset goal?  
+* Is expected‑utility maximization always the right normative standard for AI assistants?  
+* In what situations might a reflex agent be preferable despite its limitations?  
+* How does the agent‑environment loop relate to the orchestrator introduced in Chapter 10?  
+* What safeguards would you propose to ensure that tool‑level failures do not propagate to the agent’s decisions?
+
+==== Lab Prep
+
+*Lab 1 – Define tool schemas.* For each tool you plan to expose to the agent, create a JSON‑Schema description that includes: **name**, **description**, **input parameters**, and **output format**.  These schemas become the *action space* that the planner can invoke.  
+
+*Implementation tip.* In the diagram, the **Actuator** box will be annotated with “invokes tool (see Lab 1)”.  Your lab deliverable is a set of `.json` files and a short README that maps each schema to a concrete Python function (e.g., `search_flights()`).
+
+===== Key Points
+
+* Identify at least three tools (e.g., `search_flights`, `ask_destination`, `greet_user`).  
+* Write a JSON‑Schema for each tool: name, description, parameters, returns.  
+* Register the schemas in a central registry that the agent’s planner can query.  
+* Verify that the schemas are compatible with the **Actuator** component in the diagram.  
+* Prepare a short demo script that calls one tool from a mock planner.
+
+==== Closing Remark
+
+By dissecting the flight‑booking scenario we have seen how *perception, reasoning, and action* intertwine, why a **model‑based architecture** is essential for partially observable, multi‑step tasks, and how agency and goals become ethical design concerns.  Mastering this loop equips you to treat the **orchestrator** of Chapter 10 as a higher‑level agent that composes multiple tool‑driven agents.  In Lab 1 you will turn these abstractions into concrete tool schemas, laying the groundwork for building robust, value‑aligned AI assistants.
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch09,Chapter 9>>).
+
+.Figure 9.1: Agent‑environment loop (revised)
+[plantuml,ch09-l01,png,theme=sketchy-outline]
+....
+@startuml
+skinparam ArrowColor Black
+skinparam BackgroundColor #F9F9F9
+
+package "Environment" {
+  [World] as W
+}
+package "Agent" {
+  [Percept Processor] as P
+  [Belief / Model] as B
+  [Planner / Utility Evaluator] as U
+  [Actuator (Tool Invoker)] as A
+}
+
+W --> P : new percept
+P --> B : update belief
+B --> U : current model
+U --> A : select action (max EU)
+A --> W : action (affects world)
+
+' Reflex shortcut (dashed)
+P -[#gray,dashed]-> A : direct mapping (reflex)
+
+note right of A
+  Invokes tool schema
+  (see Lab 1)
+end note
+@enduml
+....

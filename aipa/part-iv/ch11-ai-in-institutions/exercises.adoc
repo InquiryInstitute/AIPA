@@ -1,0 +1,7 @@
+=== Exercises
+
+. *Conceptual* Why is governance "constitutive"? How does it define the system rather than merely constrain it?
+. *Conceptual* Distinguish fairness metrics: equalized odds, demographic parity, individual fairness. When might they conflict?
+. *Computational* Implement a policy checker: given a policy (allow/block, condition) and an action, return compliance (true/false).
+. *Computational* Design an A/B test for two agent configurations: null hypothesis, metric, sample size. How would you decide the winner?
+. *Design* Design a governance tool schema: define_policy, check_compliance, simulate(action). What would the agent receive?

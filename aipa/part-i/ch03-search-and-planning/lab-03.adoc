@@ -1,0 +1,46 @@
+=== Lab 3: Search Engine — Indexing and Retrieval
+:leveloffset: 2
+
+*Final deliverable: Search Engine (tool)*
+
+==== Tool Deliverable
+
+Complete tool server `search`. Tools: `index`, `search`, `rank`. Document retrieval and ranking. Register in agent tool config (student-ai/tools/search/).
+
+==== Prerequisites
+
+* Complete Labs 1 and 2 (state space, BFS/DFS/A*)
+* Review 3.5–3.8: planning; retrieval; ranking; search API
+
+==== Objectives
+
+* Build inverted index for document retrieval
+* Implement ranking (TF-IDF, BM25, or similar)
+* Expose search API for agent integration
+
+==== Steps
+
+. Build an inverted index: tokenize documents, build term → document posting lists. Support at least plain text or Markdown.
+. Implement ranking: TF-IDF, BM25, or similar. Given a query, return top-k documents sorted by score.
+. Expose a search API: `index(documents)` and `search(query, k)`. Optionally: `rank(query, doc_ids)`.
+. Test on a small corpus (e.g., course notes, Wikipedia subset). Run example queries and verify ranking.
+. Add configurable options: max time per query, top-k early return, or quality threshold (optional).
+. Register the search tool in agent config. Document the tool schema.
+. Submit: working search engine, query interface, integration as submodule in student-ai/tools/search/.
+
+==== Deliverables
+
+* Working search engine
+* Query interface
+* Integration as submodule in student-ai/tools/search/
+
+*Acceptance criteria:*
+* Index builds successfully for at least 10 documents
+* Search returns ranked results; top results are relevant to query (spot-check)
+* API supports `index` and `search` (or equivalent)
+* Tool schema documented for agent integration
+* README documents how to run and integrate
+
+==== Lab Prep
+
+* Review 3.5–3.8: retrieval; ranking; search API; agent integration

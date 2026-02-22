@@ -1,0 +1,7 @@
+=== Exercises
+
+. *Conceptual* Distinguish reflex and model-based agents. When would each be appropriate?
+. *Conceptual* Why does ReAct interleave thought and action rather than plan fully then act?
+. *Computational* Implement a simple tool schema (JSON): name, description, parameters. Parse it and validate a tool call.
+. *Computational* Implement a ReAct loop: prompt LLM, parse action, execute, append observation, repeat. Run for 3 steps on a simple task.
+. *Design* Design a tool-calling agent architecture: how does it discover tools, parse LLM output, execute, and handle errors?

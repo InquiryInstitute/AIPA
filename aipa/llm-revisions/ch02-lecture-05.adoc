@@ -1,0 +1,116 @@
+=== 2.6: Failure Modes and Brittterness
+:leveloffset: 2
+
+[.epigraph]
+"The map is not the territory."
+— Korzybski, _Science and Sanity_ <<Korzybski1933>>
+
+*Every model is a map. When the territory shifts, the map fails—sometimes silently.*  
+*What would happen if the map your AI relies on suddenly became outdated?*
+
+==== Example Prompts
+
+* "Classify this image." — _Adversarial examples: small perturbation → wrong output; edge cases_
+* "Process this request from a new region." — _OOD: input distribution shifted—model may fail silently_
+* "Why did the model fail on this case?" — _Failure documents limits—what the model can and cannot capture_
+
+==== Conceptual Core
+
+Models do not fail arbitrarily; they exhibit characteristic modes that can be identified and studied.  
+**Adversarial examples** are inputs that are altered by imperceptibly small perturbations yet provoke large, often catastrophic changes in the output. A stop sign covered with a few stickers may be read as a speed‑limit sign, and a seemingly innocuous suffix can jailbreak a language model.
+
+**Distribution shift**, also called out‑of‑distribution (OOD), occurs when inputs come from a statistical regime that differs from the training data. A classifier trained on daytime street scenes will stumble on night‑time images, and an LLM trained primarily on English will falter on code‑mixed or non‑English queries.
+
+**Edge cases** and **long‑tail failures** refer to rare or atypical inputs that lie far out in the tails of the data distribution. These inputs are under‑represented during training, so the model’s behavior is often unpredictable or outright wrong.
+
+These failure modes expose a deeper property: **brittleness**. Models that are highly specialized for a narrow training distribution excel within that niche but become fragile when confronted with anything outside it. The map (model) was drawn for a particular territory (training data); when the territory changes, the map no longer aligns.
+
+Recognizing and documenting these failure modes is therefore an act of epistemic humility. By cataloguing where the map breaks, we delineate the boundaries of competence and lay the groundwork for responsible deployment.
+
+===== Key Points
+
+* Adversarial examples: small perturbation → large output change  
+* Distribution shift / OOD: inputs from a different distribution  
+* Edge cases & long‑tail: rare inputs where the model fails  
+* Evaluation blind spots: metrics that miss important failures  
+* Brittleness: specialization trades robustness for performance  
+* Failure as epistemic signal—reveals model’s limits  
+* Document failure modes for responsible deployment  
+
+==== Technical Example
+
+A practical way to surface these modes is to **stress‑test** the model. Begin by assembling a suite of inputs that target each failure category: OOD samples (e.g., non‑English prompts, night‑time images), adversarial perturbations (pixel‑level noise, semantic token swaps), and edge‑case scenarios (extremely long prompts, ambiguous queries). Run the model on this suite and record where performance degrades or confidence is misplaced.
+
+Next, organize the observed failures into a **taxonomy** (see Figure 2.5). The taxonomy groups failures into Drift (Data, Concept), Adversarial (Input, Perturbation), Edge Cases (Long‑tail, OOD), and Evaluation (Blind spots). This structure not only clarifies what has gone wrong but also guides the next step: **remediation**. For drift failures you may need to retrain with newer data; adversarial failures call for robustness‑enhancing techniques; edge‑case failures suggest expanding the training set or augmenting with synthetic examples; evaluation blind spots require richer metrics.
+
+Finally, embed the taxonomy into your **audit pipeline**. When a failure is detected, classify it according to the taxonomy; this classification drives automated alerts, informs trace fields, and populates the audit report (Lab 3). By linking observed failures to concrete remediation pathways, the taxonomy becomes a living tool rather than a static list.
+
+===== Key Points
+
+* Stress‑test: OOD, adversarial, edge cases  
+* Document: what fails, how it fails  
+* Taxonomy: Drift, Adversarial, Edge Cases, Evaluation  
+* Classify failures to inform remediation  
+* Lab 2: Include failure‑mode analysis in trace design  
+
+==== Philosophical Reflection
+
+Korzybski’s warning that “the map is not the territory” reminds us that any model is a **simplified representation** of a far richer reality. The territory—the world we wish to act upon—is messy, dynamic, and often beyond the scope of our training data. When the map misaligns, the failure can be glaring (a wrong label) or silent (high confidence in a wrong answer).
+
+Sometimes a failure signals a **framing problem** rather than a model defect. An ImageNet classifier that misclassifies a radiology scan is not “broken”; we simply applied the wrong map to a different territory. Recognizing this distinction helps us avoid blaming the model for tasks it was never designed to solve.
+
+Documenting failure modes therefore embodies **epistemic humility**. It acknowledges that our models have limits, that those limits are discoverable, and that they must be communicated to users, operators, and regulators. An audit that surfaces “this system may fail when presented with non‑English input” is more honest—and ultimately safer—than a claim that “the system works in all contexts.”
+
+===== Key Points
+
+* Map ≠ territory—limits of representation  
+* Silent failure: confident wrong answer  
+* Failure may reveal framing limits, not model flaws  
+* Documenting failure = epistemic humility  
+* Audit surfaces boundaries: “may fail when …”  
+
+==== Take‑away
+
+The failure‑mode taxonomy (Figure 2.5) provides a concise, visual framework for identifying, classifying, and remediating model brittleness. In Lab 2 you will translate this taxonomy into concrete trace fields (`failure_mode: drift|adversarial|edge_case|evaluation`) so that failures are captured **before** they cause downstream harm.
+
+==== Discussion Prompts
+
+* Have you encountered "silent" failure—a system that failed confidently?  
+* When does a failure indicate a model problem vs. a framing problem?  
+* How would you stress‑test your student‑ai/ system?  
+* What failure modes should an audit report disclose to users?  
+* How does documenting failure modes support responsible deployment?  
+
+==== Lab Prep
+
+Lab 2: Include failure‑mode analysis in the trace design. When logging a decision or event, consider: could this be a drift failure? Adversarial? Edge case? Add fields if needed to classify failures (e.g., `failure_mode: drift|adversarial|edge_case|evaluation`). The audit report (Lab 3) will use this to surface known failure modes and recommend mitigations. See Lab 2 for the trace schema.
+
+===== Key Points
+
+* Add failure‑mode classification to trace  
+* `failure_mode: drift | adversarial | edge_case | evaluation`  
+* Audit report surfaces failure modes and mitigations  
+
+.Figure 2.5: Failure mode taxonomy (incl. evaluation blind spots)
+[mermaid,ch02-l05,png]
+....
+mindmap
+  root((Failure Modes))
+    Drift
+      Data:::leaf
+      Concept:::leaf
+    Adversarial
+      Input:::leaf
+      Perturbation:::leaf
+    Edge Cases
+      Long-tail:::leaf
+      OOD:::leaf
+    Evaluation
+      Blind spots:::leaf
+    Documentation:::doc
+  classDef leaf fill:#e8f5e9,stroke:#2e7d32;
+  classDef doc fill:#fff3e0,stroke:#ef6c00;
+....
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch02,Chapter 2>>).

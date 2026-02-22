@@ -1,0 +1,7 @@
+=== Exercises
+
+. *Conceptual* Compare pipeline vs. loop architectures. When would you use each?
+. *Conceptual* What is the role of the orchestrator? What does it coordinate?
+. *Computational* Implement a simple tool client: given a list of tool schemas, select the appropriate tool for a user request (e.g., via keyword match or LLM).
+. *Computational* Add structured logging to an agent: request_id, step, tool_call, result, timestamp. Trace a multi-step task.
+. *Design* Design an orchestrator API: how would it receive requests, route to tools, aggregate results, and return responses?

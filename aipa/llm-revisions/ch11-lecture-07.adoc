@@ -1,0 +1,25 @@
+python
+# Register the governance tool server
+governance = GovernanceToolServer()
+agent.register_tool("governance", governance)
+
+# Define a simple cost‑cap policy
+policy = {
+    "max_cost_per_user": 5_000,   # euros
+    "blocked_patterns": ["*suspicious*"]
+}
+governance.define_policy(policy)
+
+# Agent attempts a financial transfer
+action = {
+    "type": "transfer",
+    "amount": 10_000,
+    "currency": "EUR",
+    "recipient": "client_xyz"
+}
+decision, reason = governance.check_compliance(action)
+
+if decision == "allow":
+    agent.execute(action)
+else:
+    agent.escalate(reason)   # e.g., ask human supervisor

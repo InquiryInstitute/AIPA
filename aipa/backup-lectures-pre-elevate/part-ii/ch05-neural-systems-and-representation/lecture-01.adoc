@@ -1,0 +1,150 @@
+=== 5.1: Perceptrons and the Linear Boundary
+:leveloffset: 2
+
+[.epigraph]
+"The brain is a three‑pound mass you can hold in your hand that can conceive of a universe."
+— Rosenblatt, *The Perceptron* <<Rosenblatt1958>> (adapted)
+
+*The perceptron: one step from linear model to “neuron.”*
+
+==== Example Prompts
+
+* “Classify this as A or B.” — _Linear decision boundary; weighted sum + threshold_
+* “Learn the AND/OR function.” — _Linearly separable; perceptron converges_
+* “Why can’t it learn XOR?” — _Not linearly separable—need multiple layers_
+
+==== Conceptual Core
+
+What if we could put a neuron in silicon—one simple unit that learns from examples instead of being programmed by hand? In 1958 Rosenblatt offered exactly that: the pass:q[\aimaterm{perceptron}]. It is the simplest pass:q[\aimaterm{neural network}] unit: a weighted sum of inputs plus a bias (the negative of the threshold).  
+Output = stem:[σ(∑ w_i x_i + b)] where σ is the step function: 1 if stem:[∑ w_i x_i + b > 0], else 0. For two inputs the decision boundary is a line; for *n* inputs, a hyperplane. The unit “fires” (output 1) when the weighted sum exceeds the bias; otherwise it stays off (0). Biologically inspired: dendrites receive inputs, the soma aggregates, the axon fires when a threshold is crossed. Mathematically: one step from a linear model to a “neuron.”
+
+The promise was real. A dataset is **linearly separable** if a hyperplane can correctly classify all points. The perceptron can learn any linearly separable function—AND, OR, majority. The perceptron convergence theorem (Rosenblatt; Minsky & Papert) guarantees that if the data is linearly separable, the algorithm will find a separating hyperplane in finite time. The learning rule is simple: if the output is wrong, adjust weights toward the correct response. For each example *(x, y)*, compute output *o*; if *o ≠ y*, update  
+
+stem:[w ← w + η (y‑o) x] and stem:[b ← b + η (y‑o)].
+
+The update pushes the boundary toward the mis‑classified point. Over many passes, the boundary converges to a separator when one exists. The learning rate *η* controls step size and stability.
+
+Then came XOR. The four points (0,0)→0, (0,1)→1, (1,0)→1, (1,1)→0 cannot be separated by a single line. No amount of training will make the perceptron learn XOR. That limitation was not a bug—it was a fundamental limit of the representation. Minsky & Papert’s 1969 book emphasized it; early enthusiasm for single‑layer networks cooled. The way forward was not to abandon the neuron but to stack it: multilayer networks (next lecture) overcome XOR by composing linear boundaries. The perceptron is the starting point, not the end. The path from here runs through multiple layers, back‑propagation, and the *neural_classifier* tool you will build in this chapter.
+
+[.quiz]
+*Quick Check*  
+1. Which of the following statements about the perceptron learning rule is **true**?  
+  a) The bias term is never updated.  
+  b) The learning rate *η* can be set to zero without affecting convergence.  
+  c) Both weights **and** bias are adjusted toward the target when a mis‑classification occurs.  
+  d) The rule works for any Boolean function, regardless of separability.  
+
+2. In a two‑dimensional perceptron, the weight vector **w** determines:  
+  a) The slope of the decision line.  
+  b) The intercept on the *x*‑axis.  
+  c) The colour of the plotted points.  
+  d) None of the above.
+
+===== Key Points
+
+* Perceptron = weighted sum **w·x** + bias *b*, passed through a step activation σ(·).  
+* The weight vector **w** defines the orientation of the separating hyperplane.  
+* Linear decision boundary ⇔ hyperplane in ℝⁿ.  
+* Linear separability guarantees convergence; XOR is not linearly separable.  
+* Learning rule adjusts **w** *and* *b* on error: w ← w + η(y‑o)x, b ← b + η(y‑o).  
+* Biological inspiration is a drastic reduction: dendrites → inputs, soma → sum, axon → step.  
+* Learning rate *η* trades off speed vs. stability; too large can cause oscillation.  
+
+==== Technical Example
+
+[.algorithm]
+****
+*Perceptron Learning Algorithm*  
+.Input: Examples (x⁽ⁱ⁾, y⁽ⁱ⁾), learning rate η  
+.Output: Weights **w**, bias *b*  
+
+* Initialize **w**, *b* to small random values  
+* Repeat until convergence or max‑epochs:  
+.. For each example (x, y):  
+... Compute output: stem:[o = σ(∑ w_i x_i + b)]  
+... If stem:[o ≠ y]:  
+.... **w** ← **w** + η (y‑o) x  
+.... *b* ← *b* + η (y‑o)  
+****
+
+Implement a perceptron in code. Forward pass: compute the dot product **w·x**, add bias, apply the step function (or `numpy.heaviside`). Training loop: iterate over examples; on each mis‑classification apply the update above. On AND and OR the perceptron converges within a few epochs; on XOR the loss never reaches zero and the decision line oscillates.  
+
+Extend to the 2‑D plane:  
+
+*AND* – points (0,0), (0,1), (1,0) are class 0; (1,1) is class 1. A line can separate them.  
+
+*XOR* – points (0,0) and (1,1) are 0; (0,1) and (1,0) are 1. No single line works.  
+
+Lab 1: Neural architecture – start with a single layer (perceptron or linear layer). The single layer is the baseline; Lab 1 extends to multilayer, where the composition of linear + non‑linear layers can represent XOR and beyond.
+
+===== Key Points
+
+* Forward pass: **w·x + b**, then σ(·).  
+* Update rule modifies both **w** and *b*.  
+* Guarantees convergence only for linearly separable data.  
+* Typical stopping criteria: zero misclassifications or a maximum number of epochs.  
+* AND/OR succeed quickly; XOR never reaches zero loss.  
+* Lab 1 builds the baseline before moving to multilayer networks.  
+
+==== Philosophical Reflection
+
+Reduction of mind to threshold logic: the perceptron was hailed as a model of the neuron. One step from a linear model to a “neuron”—but the step is vast. Biological neurons exhibit temporal dynamics, neuromodulation, and intricate connectivity; the perceptron is a static, instantaneous threshold. We keep the idea of weighted aggregation and firing; we lose almost everything else. The perceptron is a cartoon—useful for intuition, misleading if taken as literal. Every representation excludes (Ch 3 made this explicit for state spaces): the perceptron excludes time, neuromodulation, and the very possibility of XOR in a single layer. That exclusion is an epistemic choice—we design the representation to make certain questions tractable and others invisible.
+
+The limits of linearity extend beyond XOR. Many real‑world problems—speech, vision, language—are not linearly separable in the raw input space. The XOR failure was a signal: we need more. Representation learning (later lectures) will show that multiple layers can learn hierarchical features; the first layer can transform the input so that subsequent layers see a linearly separable problem. The perceptron is the starting point; it is not the end. The path from perceptron to deep learning passes through multi‑layer networks, back‑propagation, and the discovery that stacking simple units yields emergent representations.
+
+===== Key Points
+
+* Perceptron as a highly abstracted cartoon of a biological neuron.  
+* Linear models are biased toward axis‑aligned features and cannot capture XOR‑type relationships.  
+* The choice of representation makes some phenomena invisible (e.g., temporal dynamics, neuromodulation).  
+* Multilayer architectures and back‑propagation overcome linearity limits.  
+* Understanding the perceptron’s constraints prepares us for deeper representation learning.  
+
+.Figure 5.1: Perceptron computation flow
+[plantuml,ch05-l01,png,theme=sketchy-outline]
+....
+@startuml
+start
+:x1;
+:x2;
+:w1;
+:w2;
+:b = -θ;
+:x1 --> * : mul1;
+:w1 --> * : mul1;
+:x2 --> * : mul2;
+:w2 --> * : mul2;
+mul1 --> + : sum;
+mul2 --> + : sum;
+b   --> + : sum;
+:+ --> : σ(step) : activation;
+:σ(step) --> : Output;
+note right of Output
+  Linear decision boundary
+  (hyperplane in ℝⁿ)
+end note
+stop
+@enduml
+....
+
+==== Discussion Prompts
+
+* What is lost when we reduce a neuron to a perceptron?  
+* Why does XOR matter? What does it represent?  
+* Is linear separability a natural or artificial constraint?  
+* When is a linear decision boundary sufficient?  
+* How does the perceptron connect to the *neural_classifier* tool?  
+* When does the *ml_trainer* (Ch 4) need neural vs. linear models?  
+
+==== Lab Prep
+
+Lab 1 (Neural Nets — Architecture and Forward Pass): start with a single‑layer architecture. Implement the forward pass for a linear layer + activation. The perceptron is the minimal case. Lab 1 extends to multilayer; the forward pass generalizes. See Lab 1 for objectives.
+
+===== Key Points
+
+* Lab 1: single‑layer baseline, forward pass implementation.  
+* Perceptron is the minimal linear‑threshold unit.  
+* Extends naturally to multilayer networks for later lectures.  
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch05,Chapter 5>>).

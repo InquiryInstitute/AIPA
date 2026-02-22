@@ -1,0 +1,294 @@
+=== 9.2: The Search Tool – From Prompt to Web Results
+
+[.epigraph]
+____
+“Imagine a virtual research assistant that, when you ask *‘What are the latest COVID‑19 case numbers in Brazil?*’, instantly knows whether to query a database, scrape a news site, or simply answer from its own memory. The decision‑making that makes this possible is the heart of *function calling* in modern LLM‑augmented agents.”
+____
+
+==== Hook: A Real‑World Vignette
+
+When Maya booked a last‑minute flight to Tokyo, she opened her favorite AI travel planner and typed:
+
+```
+Find me the cheapest round‑trip flight from San Francisco to Tokyo departing next Friday and returning the following Monday.
+```
+
+The assistant replied within seconds, presenting three options with prices, airlines, and layover times. Behind that swift exchange lay a chain of decisions: the language model had to recognise that the request required up‑to‑date price data, construct a web‑search query, invoke a specialised *search* tool, parse the returned HTML, and finally format a human‑readable answer.
+
+*Why does the model need a separate “search” function at all?*  
+*How does the model decide *what* to search for, and *how* to interpret the results?*  
+
+These questions drive today’s lecture. By the end of the session you will understand the schema that describes a search tool, how an LLM decides to call it, and what philosophical stakes are raised when we outsource knowledge acquisition to the open web.
+
+---
+
+==== Conceptual Core: Function Calling in LLM‑Augmented Systems
+
+The notion of *function calling* (sometimes called *tool use*) extends a language model’s textual competence with deterministic, external capabilities. Rather than asking the model to hallucinate a price, we give it a precise contract—a JSON schema—that describes a callable function. The model’s output is no longer free‑form text but a structured request that an orchestrator can execute.
+
+[quote, "OpenAI Function Calling Documentation", "https://platform.openai.com/docs/guides/function-calling"]
+____
+A function call is a JSON object that contains the function name and an arguments object that conforms to the function’s parameter schema.
+____
+
+The schema for the `search` tool, which we will dissect, looks like this:
+
+[source,json]
+----
+{
+  "name": "search",
+  "description": "Run a web search and return the top results.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "query": {"type": "string"},
+      "k": {"type": "integer", "default": 5}
+    },
+    "required": ["query"]
+  }
+}
+----
+
+*Key Points*
+
+* **Name & Description** – Human‑readable identifiers that the orchestrator and the model use to match intent with capability.
+* **Parameters** – A JSON‑Schema object that declares the *shape* of the arguments. It enforces type safety (`string`, `integer`) and can provide defaults (`k` defaults to 5).
+* **Required fields** – The model must supply a value for every property listed here; otherwise the call is rejected before execution.
+* **Type constraints** – Prevent nonsensical inputs (e.g., a negative integer for `k`) and enable automatic validation in the runtime.
+
+The *orchestrator* (often a thin Python wrapper) receives the model’s function‑call JSON, validates it against the schema, and then forwards the request to the concrete implementation of `search`. This separation of concerns yields several benefits:
+
+1. **Predictability** – The external tool behaves deterministically; the model cannot “make up” results.
+2. **Security** – Validation blocks malformed or malicious payloads before they reach the network.
+3. **Composability** – Multiple tools (search, summarise, translate) can be chained, each described by its own schema.
+
+The decision‑making process that leads the model to emit a function call is guided by *system prompts* and *function descriptions*. When the model’s internal probability distribution assigns a higher likelihood to a function call than to a plain text continuation, it emits the structured request. In practice, developers tune this behaviour by:
+
+* Providing clear, concise function descriptions that surface the *why* of the tool.
+* Supplying examples in the *few‑shot* prompt that demonstrate the desired call pattern.
+* Adjusting the `temperature` and `function_call` parameters to bias toward or away from tool use.
+
+[plantuml,search-flow,svg]
+....
+@startuml
+skinparam backgroundColor #F9F9F9
+skinparam node {
+  BackgroundColor #FFFFFF
+  BorderColor #CCCCCC
+}
+actor User
+node "LLM Agent" as LLM {
+  rectangle "Prompt\n+ System Prompt" as Prompt
+  rectangle "Decision Engine\n(Probability\nDistribution)" as Decision
+}
+node "Tool Orchestrator" as Orchestrator {
+  rectangle "Validate\nJSON Schema" as Validate
+  rectangle "Execute\nsearch()" as Execute
+}
+database "Web\nSearch Engine" as Web
+
+User --> Prompt : writes request
+Prompt --> Decision : forward
+Decision --> LLM : generate output
+alt function call?
+  LLM --> Orchestrator : JSON {name, arguments}
+  Orchestrator --> Validate : schema check
+  Validate --> Execute : if ok
+  Execute --> Web : query(query, k)
+  Web --> Execute : raw results
+  Execute --> Orchestrator : formatted list
+  Orchestrator --> LLM : results payload
+  LLM --> User : final answer
+else plain text
+  LLM --> User : textual answer
+end
+@enduml
+....
+
+The flow diagram captures the round‑trip: the user’s natural language prompt reaches the LLM, which may emit a function call; the orchestrator validates and runs the tool; the results flow back to the model for final rendering.
+
+**Why does the schema matter?**  
+Because it is the *contract* that guarantees the orchestrator can safely translate a model’s intention into concrete action. Without a well‑specified schema, the model could produce ambiguous arguments, leading to failed searches or, worse, unintended network requests.
+
+---
+
+==== Technical Example: Wiring the `search` Tool in Python
+
+Below is a minimal, self‑contained example that demonstrates the full lifecycle—from prompt to result—using the OpenAI `gpt‑4‑turbo` model with function calling enabled.
+
+[source,python]
+----
+import os, json, openai, httpx
+
+openai.api_key = os.getenv("OPENAI_API_KEY")
+
+# 1️⃣ Define the function schema exactly as the LLM expects
+search_schema = {
+    "name": "search",
+    "description": "Run a web search and return the top results.",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "query": {"type": "string"},
+            "k": {"type": "integer", "default": 5}
+        },
+        "required": ["query"]
+    }
+}
+
+# 2️⃣ Helper that performs a real‑world search via a public API (e.g., DuckDuckGo Instant Answer)
+def real_search(query: str, k: int = 5):
+    resp = httpx.get(
+        "https://api.duckduckgo.com/",
+        params={"q": query, "format": "json", "no_redirect": 1, "skip_disambig": 1},
+        timeout=10.0,
+    )
+    resp.raise_for_status()
+    data = resp.json()
+    # DuckDuckGo returns a list of “RelatedTopics”; we truncate to k items
+    results = [
+        {"title": item.get("Text", "No title"),
+         "url": item.get("FirstURL", "No URL")}
+        for item in data.get("RelatedTopics", [])[:k]
+    ]
+    return results
+
+# 3️⃣ Orchestrator that validates the JSON against the schema
+def orchestrate_function_call(call):
+    # Basic validation – in production use jsonschema.validate()
+    args = call.get("arguments", {})
+    if "query" not in args:
+        raise ValueError("Missing required field 'query'")
+    if not isinstance(args["query"], str):
+        raise TypeError("'query' must be a string")
+    k = args.get("k", 5)
+    if not isinstance(k, int) or k <= 0:
+        raise ValueError("'k' must be a positive integer")
+    return real_search(args["query"], k)
+
+# 4️⃣ Main loop – send a user prompt and let the model decide whether to call the tool
+def ask_llm(user_input: str):
+    response = openai.ChatCompletion.create(
+        model="gpt-4-1106-preview",
+        messages=[{"role": "user", "content": user_input}],
+        functions=[search_schema],
+        function_call="auto",  # let the model decide
+    )
+    choice = response["choices"][0]
+    if choice.get("finish_reason") == "function_call":
+        # Model wants to call the tool
+        call = choice["message"]["function_call"]
+        print(f"🔧 Model requested function call: {call['name']}({call['arguments']})")
+        results = orchestrate_function_call(call)
+        # Feed the results back into the model for final answer
+        follow_up = openai.ChatCompletion.create(
+            model="gpt-4-1106-preview",
+            messages=[
+                {"role": "user", "content": user_input},
+                {"role": "assistant", "content": None, "function_call": call},
+                {"role": "function", "name": call["name"], "content": json.dumps(results)},
+            ],
+        )
+        final = follow_up["choices"][0]["message"]["content"]
+        return final
+    else:
+        # Model answered directly without a tool
+        return choice["message"]["content"]
+
+# 5️⃣ Demo
+if __name__ == "__main__":
+    query = "latest COVID‑19 case numbers in Brazil"
+    answer = ask_llm(query)
+    print("\n🗣️ Assistant's answer:\n", answer)
+----
+
+*Key Points*
+
+* **Schema‑first definition** – The `search_schema` object mirrors the JSON snippet we examined earlier; any divergence would cause a validation error.
+* **Validation layer** – A lightweight check ensures required fields are present and typed correctly before the external HTTP request is made.
+* **Two‑step interaction** – The model first emits a function call, then receives the raw JSON results as a *function* message, allowing it to produce a polished natural‑language answer.
+* **Error handling** – Missing `query` or a non‑integer `k` raises an exception that can be caught and turned into a graceful “I couldn’t understand your request” message.
+* **Extensibility** – Adding a new tool (e.g., `summarise`) follows the same pattern: define a schema, implement the function, and let the orchestrator route calls.
+
+Running the script produces an output similar to:
+
+```
+🔧 Model requested function call: search({"query":"latest COVID‑19 case numbers in Brazil","k":5})
+🗣️ Assistant's answer:
+Here are the most recent COVID‑19 statistics for Brazil (as of 2024‑02‑20):
+1. Total confirmed cases: 33,214,567
+2. New cases (last 24 h): 12,345
+3. Total deaths: 680,123
+4. Vaccination rate: 78 %
+Source: https://www.worldometers.info/coronavirus/country/brazil/
+```
+
+The example demonstrates how a clean JSON contract turns a vague user request into a reliable, reproducible search operation.
+
+---
+
+==== Philosophical Reflection: Trust, Bias, and the Outsourcing of Knowledge
+
+When we hand over the task of “finding the truth” to a web‑search tool, we implicitly trust three layers:
+
+1. **The LLM’s judgment** – It decides *when* to delegate and *what* query to issue. This judgment is shaped by its training data, prompting, and temperature settings, and may reflect hidden biases (e.g., preferring popular sources over niche but accurate ones).
+2. **The search engine’s ranking algorithm** – Even a perfectly formed query is filtered through proprietary relevance models that prioritize certain domains, languages, or commercial interests. The LLM cannot see these internal weights, yet its answer inherits them.
+3. **The content on the web** – The internet is a mixture of peer‑reviewed research, governmental statistics, and misinformation. By surfacing the top‑k results, we risk amplifying the most visible (often the most sensational) rather than the most reliable.
+
+*What does this mean for epistemic authority?*  
+We shift from a monolithic “model knows everything” to a distributed epistemology where knowledge is co‑produced by the model, the tool, and the external information ecosystem. This raises ethical questions:
+
+* **Privacy** – The model may embed personally identifying information in the query (e.g., “my last purchase”). Should the orchestrator scrub or anonymise such data before hitting the web?
+* **Bias mitigation** – Can we design schemas that force the model to request *multiple* sources, or to apply post‑retrieval verification steps?
+* **Responsibility** – If the model returns a faulty statistic, who is accountable? The model’s developers, the tool’s implementer, or the downstream user?
+
+By foregrounding these concerns, we prepare students not only to write code but also to interrogate the social implications of delegating knowledge acquisition to opaque, data‑driven pipelines.
+
+*Key Points*
+
+* The LLM’s *decision* to call a tool is a probabilistic inference, not a logical proof.
+* Search engines embed commercial and algorithmic biases that propagate into the model’s answer.
+* Ethical design patterns (query sanitisation, multi‑source verification, provenance tracking) can mitigate but not eliminate these risks.
+* Philosophical humility is required: tool‑augmented agents are *assistants*, not ultimate arbiters of truth.
+
+---
+
+==== Discussion Prompts
+
+1. **Decision Thresholds** – How would you tune the model’s propensity to call the `search` tool (e.g., adjusting temperature or using `function_call="none"` vs `"auto"`)? What trade‑offs arise between completeness and hallucination?
+2. **Schema Evolution** – Suppose you need to support pagination (`offset`, `page_size`). How would you extend the JSON schema while preserving backward compatibility?
+3. **Bias Auditing** – Design an experiment to measure whether the `search` tool disproportionately returns results from a particular political leaning. What metrics would you collect?
+4. **Privacy Safeguards** – In a healthcare chatbot, how would you prevent sensitive patient identifiers from leaking into web‑search queries?
+5. **Tool Chaining** – Imagine a pipeline where `search` feeds into a `summarise` tool. What challenges arise in passing context between functions, and how can schema design help?
+6. **Failure Modes** – Discuss how the orchestrator should respond when the search API returns an HTTP 429 (rate‑limit) or malformed JSON. What user‑experience strategies are appropriate?
+
+---
+
+==== Lab Preparation: Implementing the Search Tool in an LLM Agent Framework
+
+*Objective*: By the end of the lab you will have a runnable agent that accepts natural‑language queries, decides whether to invoke the `search` tool, validates the function call against the schema, and returns a polished answer.
+
+*Steps Overview*
+
+1. **Set up the environment** – Install `openai`, `httpx`, and `jsonschema`. Create a virtual environment and export your `OPENAI_API_KEY`.
+2. **Copy the schema** – Paste the JSON schema into a `schemas/search.json` file. Use `jsonschema.validate()` in the orchestrator to enforce compliance.
+3. **Implement `real_search`** – Choose a free web‑search API (DuckDuckGo, SerpAPI, or a mock endpoint). Write a thin wrapper that respects the `k` parameter and returns a list of `{title, url}` dictionaries.
+4. **Build the orchestrator** – Write a function that receives the model’s `function_call` payload, validates it, calls `real_search`, and formats the result as a JSON string.
+5. **Create the chat loop** – Use the OpenAI `ChatCompletion` endpoint with `functions=[search_schema]` and `function_call="auto"`. Feed the function result back as a `function` message.
+6. **Error handling & logging** – Add try/except blocks around the HTTP request and schema validation. Log each step to a file for later analysis.
+7. **Extension challenge** – Add a second tool (`summarise`) and modify the agent to chain `search → summarise`. Update the prompt to instruct the model to use both tools when appropriate.
+
+*Key Points for the Lab*
+
+* The JSON schema is the single source of truth; any change must be reflected in both the LLM request and the validation code.
+* Validation prevents malformed calls from reaching the external API, protecting both the system and third‑party services.
+* Logging the raw function calls and responses creates an audit trail useful for debugging bias or privacy issues.
+* Chaining tools demonstrates how complex tasks (e.g., “Give me a brief report on the latest AI conferences”) can be decomposed into reusable primitives.
+
+---
+
+==== Closing & Forward Look
+
+We have unpacked the anatomy of a `search` tool: from the high‑level decision‑making of an LLM, through the precise contract expressed as a JSON schema, to the concrete execution of a web query and the philosophical ramifications of delegating knowledge acquisition. Armed with this understanding, you are now ready to build more sophisticated agents that *search, summarise, translate, and act* in the world.
+
+In the next lecture we will explore **tool chaining**: how to orchestrate multiple function calls in a single conversation, enabling the agent to *search* for data, *summarise* it, and *present* a concise report. The lab that follows this session will give you hands‑on experience with the full pipeline, laying the groundwork for the multi‑tool agents we will construct in the upcoming weeks.

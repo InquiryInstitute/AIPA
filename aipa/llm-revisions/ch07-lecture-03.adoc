@@ -1,0 +1,135 @@
+=== 7.3: RAG — Retrieval-Augmented Generation
+:leveloffset: 2
+
+[.epigraph]
+"Retrieval grounds generation—or tries to."
+— Lewis et al., "Retrieval‑Augmented Generation" <<Lewis2020>>
+
+*Hook*: A customer‑service chatbot once answered a legal question with a fabricated clause, “the contract may be terminated with 30 days’ notice,” even though no such clause existed in the company’s policy. After wiring a retrieval step that pulled the actual policy document, the bot began citing the correct paragraph and stopped hallucinating. *Retrieval can turn a confident liar into a trustworthy assistant.*
+
+==== Example Prompts
+
+* "Answer based on our company docs." — _Retrieve → inject into prompt → generate_
+* "Summarize the relevant passages." — _RAG pipeline: query → embed → search → augment → generate_
+* "Cite where you found that." — _Retrieved chunks as sources; grounding in retrieval_
+
+==== Conceptual Core
+
+[.formal-definition]
+****
+*Formal Definition (RAG)*
+*RAG* (Retrieval‑Augmented Generation) is a pipeline in which retrieval augments the prompt before generation. Given a query *q*, RAG: (1) retrieves top‑*k* chunks from a vector store via similarity search, (2) constructs an augmented prompt = [retrieved context] + [q], (3) generates via the LLM. Knowledge is added by retrieval, not by retraining. See <<Lewis2020>>.
+****
+
+RAG (retrieval‑augmented generation) extends the LLM with external knowledge. The pipeline: query → retrieve (top‑*k* from vector store) → concatenate (query + context) → generate (LLM with augmented prompt). The model sees both the user's question and retrieved passages; it generates an answer informed by that context. We add knowledge by retrieving, not by updating weights. No retraining required—we update the store, not the model.
+
+Chunking strategies affect RAG quality. Fixed‑size chunks are simple but can split sentences or paragraphs awkwardly. Semantic chunking (split at natural boundaries) often works better. Sliding‑window with overlap preserves local context. For long documents, consider hierarchical retrieval: retrieve coarse chunks first, then zoom into relevant sections. Reranking can help: retrieve many candidates (e.g., 50), then rerank with a cross‑encoder or LLM to select the top 5–10. Two‑stage retrieval trades latency for quality.
+
+*Because chunking and reranking shape what the model sees, they directly influence whether retrieval improves or harms downstream performance.*  
+
+When RAG helps: factual QA, domain‑specific tasks, citation, reducing hallucination on knowable facts. When RAG hurts: retrieval returns irrelevant or wrong context; the model may copy errors, anchor on bad information, or confuse retrieved content with its own knowledge. Grounding: does retrieval reduce hallucination? It provides a source—the model *can* cite and adhere to it. But the model may still ignore, distort, or fabricate. Retrieval is a strong hint, not a guarantee. Evaluation metrics: accuracy (is the answer correct?), citation fidelity (does the model cite retrieved passages accurately?), and faithfulness (does the answer stay within the retrieved context?).
+
+===== Key Points
+
+* **Construct** the pipeline: query → embed → search → (optional rerank) → concatenate → generate  
+* **Add** knowledge without retraining: update the store, not the model  
+* **Choose** chunking strategy: fixed, semantic, sliding‑window, hierarchical  
+* **Apply** two‑stage retrieval when precision matters  
+* **Leverage** RAG for factual QA, domain tasks, citation, hallucination reduction  
+* **Avoid** RAG when retrieval quality is low or context is noisy  
+* **Recognize** grounding as a strong hint, not a guarantee  
+* **Measure** accuracy, citation fidelity, and faithfulness  
+
+==== Technical Example
+
+[.algorithm]
+****
+*RAG Pipeline*  
+.Input: Query *q*, vector store *V*, LLM *M*, *k*  
+.Output: Generated answer  
++
+1. embed(*q*) → *q_emb*  
+2. *V*.search(*q_emb*, *k*) → *chunks*  
+3. if reranking required then  
+  a. score each *chunk* with cross‑encoder or secondary LLM  
+  b. select *top_chunks* ← highest‑scoring *n*  
+    else *top_chunks* ← *chunks*  
+4. prompt = "Context: [top_chunks]\nQuery: [q]\nAnswer based on the context."  
+5. *M*.generate(prompt) → *answer*  
+6. Return *answer*  
+****
+
+Build a minimal RAG. Given a query: (1) embed the query, (2) search the vector store for top‑*k* chunks, (3) assemble a prompt that prefixes the retrieved passages, (4) generate with the LLM. Evaluate by comparing runs **with** and **without** retrieval on a held‑out test set. Ask: does retrieval improve accuracy? Does the model cite the context correctly? Does it ever invent facts not present in the retrieved passages?
+
+Add reranking (optional): retrieve 20–50 chunks, score each with a cross‑encoder or a second LLM call, keep the top 5. Reranking often improves precision—we filter noise before generation. The trade‑off: extra latency and cost.
+
+Lab 2: Implement the RAG pipeline. Query → embed → retrieve → (optional rerank) → generate. The memory tool will expose `rag_retrieve(query, k)` that returns formatted context for the prompt. See Lab 2 for requirements.
+
+===== Key Points
+
+* **Implement** embed, retrieve, (optional rerank), prompt, generate  
+* **Use** a prompt template that concatenates context and query  
+* **Evaluate** with vs. without retrieval on factual QA  
+* **Optionally** add reranking to boost precision  
+* **Integrate** LLM and vector store via the provided memory tool  
+
+==== Philosophical Reflection
+
+Grounding in retrieval: we hope retrieval grounds generation. We provide the model with a source; we expect it to use it. The boundary between *retrieved* and *generated* is blurry. The model may quote verbatim, paraphrase, synthesize, or invent. It may cite a passage and add fabrication. It may ignore the context entirely. Retrieval reduces hallucination on average—but it does not eliminate it. The model is still a generator; we are biasing it toward the retrieved content, not constraining it.
+
+What does *grounded* mean? One definition: the answer is entailed by or supported by the retrieved context. Another: the model cites its sources. Another: the answer does not contradict the context. These are different; evaluation should specify which we care about. Citation fidelity—does the model attribute correctly?—is a separate concern from factual accuracy. A model can cite accurately and still be wrong; it can be right and fail to cite. Both matter for trustworthy RAG.
+
+The epistemology of RAG: we are outsourcing part of the model's *knowledge* to a store. The model becomes a reasoner over retrieved content. That shifts the locus of truth: the store is the source; the model interprets and presents. Who curates the store? Who decides what gets retrieved? RAG systems encode epistemic authority in the retrieval pipeline.
+
+===== Key Points
+
+* **Acknowledge** that grounding is a hope, not a guarantee  
+* **Recognize** the blurry line between retrieved and generated text  
+* **Note** that the model can ignore or distort context  
+* **Define** “grounded” explicitly for each evaluation scenario  
+* **Separate** citation fidelity from factual accuracy  
+* **Understand** that the vector store becomes the epistemic authority  
+
+.Figure 7.3: RAG pipeline
+[plantuml,ch07-l03,png,theme=sketchy-outline]
+....
+@startuml
+start
+:Embed query → q_emb;
+:Search vector store (k) → chunks;
+if (Rerank?) then (yes)
+  :Cross‑encoder / LLM rerank → top_chunks;
+else (no)
+  :top_chunks = chunks;
+endif
+:Assemble prompt = "Context: [top_chunks]\\nQuery: [q]\\nAnswer:"; 
+:LLM generate → answer;
+:Return answer;
+stop
+@enduml
+....
+
+==== Discussion Prompts
+
+* When does RAG reduce hallucination? When does it fail?
+* How do we evaluate “grounded” generation? What metrics matter?
+* What if retrieval returns wrong or misleading context? How can we mitigate?
+* Who is epistemically responsible when a RAG system gives a wrong answer—the model, the store, or the designer?
+* How does RAG change the relationship between the model and “knowledge”?
+* What are the trade‑offs between single‑stage and two‑stage (reranked) retrieval?
+
+==== Lab Prep
+
+Lab 2: Implement RAG. Query → embed → retrieve → (optional rerank) → generate. The memory tool will expose `rag_retrieve(query, k)` that returns formatted context. Test: run factual QA with and without retrieval; compare accuracy, citation fidelity, and faithfulness. If retrieval fails to return relevant chunks, fall back to plain generation as a safety net.
+
+===== Key Points
+
+* **Complete** Lab 2 by building the full RAG pipeline  
+* **Optionally** integrate two‑stage retrieval for higher precision  
+* **Integrate** LLM embedding, generation, and vector‑store search  
+* **Test** both with and without retrieval, reporting accuracy, citation fidelity, and faithfulness  
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch07,Chapter 7>>).
+
+Take‑away: *RAG lets us outsource knowledge to a curated store, but we must remain vigilant about the source we trust.*

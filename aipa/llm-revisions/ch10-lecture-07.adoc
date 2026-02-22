@@ -1,0 +1,7 @@
+python
+ROUTING = {
+    "search": ["web_search"],
+    "summarise": ["llm"],
+    "audit": ["process_audit"],
+    "govern": ["governance"]
+}

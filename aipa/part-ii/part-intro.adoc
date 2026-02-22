@@ -1,0 +1,4 @@
+= Part II: Learning Systems
+:part:
+
+This part covers representation and adaptation—how systems learn from data, how neural architectures encode structure, and how language models reframe the metabolism of knowledge.

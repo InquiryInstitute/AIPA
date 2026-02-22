@@ -1,0 +1,143 @@
+=== 11.3: Responsible AI — Fairness, Bias, Transparency
+:leveloffset: 2
+
+[.epigraph]
+"Bias is not a bug—it is baked into the data and the design."
+— Buolamwini & Gebru, "Gender Shades" <<Buolamwini2018>>; Mehrabi et al. <<Mehrabi2019>> (adapted)
+
+*Responsible AI: fairness, bias detection, transparency.*
+
+[.instructor]
+****
+*Note for Instructors:* Fairness and bias are sensitive topics. Students may have personal experience with discriminatory systems. Frame discussions as design choices with tradeoffs; avoid implying that any single fairness definition is "correct." Reference Buolamwini & Gebru, Mehrabi et al. for grounding.
+****
+
+==== Opening Hook
+
+A loan‑approval model deployed at a regional bank approves **95 %** of applicants from Group A but only **70 %** of applicants from Group B, even though both groups have similar credit histories. *Is this model fair?* The stark disparity invites us to ask what fairness means, how we can detect it, and what we must disclose to the people affected.
+
+==== Example Prompts
+
+* "Is this model fair across groups?" — _Demographic parity, equalized odds; audit for bias_
+* "Explain why you made this decision." — _Transparency: explainability, documentation_
+* "Document limitations." — _Intended use; what the model can and cannot do_
+
+==== Conceptual Core
+
+Fairness is not a single question but a family of questions. Different stakeholders—regulators, users, affected communities—often invoke distinct notions of fairness, and these notions can conflict with one another.
+
+Formal fairness definitions give us concrete metrics. **Demographic parity** requires equal positive‑outcome rates across groups. **Equalized odds** demands equal true‑positive and false‑positive rates. **Calibration** insists that predicted probabilities match observed frequencies within each group. No single definition captures all ethical concerns; the choice of metric is itself a design decision.
+
+Bias can enter the pipeline at three stages. **Data bias** reflects historical inequities encoded in the training set. **Model bias** arises when the learned function amplifies or introduces disparities. **Deployment bias** appears when the context of use privileges some groups over others. Recognizing these sources is the first step toward mitigation.
+
+Auditing for bias means measuring the relevant fairness metrics across demographic or other relevant groups. We compare accuracy, TPR, FPR, precision, recall, and calibration error to surface disparities. The audit results become the evidence base for any subsequent mitigation or policy decision.
+
+Finally, fairness is contested. Optimizing for one metric often harms another, and trade‑offs with overall accuracy are common. Transparency—through explainability and thorough documentation—provides the accountability needed for stakeholders to evaluate those trade‑offs.
+
+===== Key Points
+
+* Fairness definitions: demographic parity, equalized odds, calibration.
+* Metric incompatibility: optimizing one can degrade another.
+* Sources of bias: data, model, deployment.
+* Auditing workflow: group‑wise metric comparison.
+* Trade‑offs: fairness vs. accuracy and other performance goals.
+* Regulatory relevance: many frameworks require documented fairness assessments.
+* Fairness is contested: no universal “correct” definition.
+
+==== Technical Example
+
+**Step‑by‑step bias audit.** Split the test set into groups (e.g., by gender, ethnicity, or geography). Compute the suite of metrics—accuracy, TPR, FPR, precision, recall, calibration error—for each group. Use statistical significance testing (e.g., bootstrap confidence intervals) to determine whether observed gaps are likely due to chance.
+
+**Visualization and reporting.** Render disparity dashboards that plot metric differences side‑by‑side, highlighting thresholds set by policy or regulation. Export a versioned audit report that records the data snapshot, metric definitions, and any mitigation actions taken.
+
+**Documentation and intended‑use statement.** Write a concise statement describing the model’s purpose, its validated domains, and known limitations (e.g., “Not validated for loan decisions involving applicants under 21”). Link this documentation to the audit report so that reviewers can trace the provenance of each claim.
+
+**Lab integration.** In Lab 2, students will extend the governance simulator to run the bias audit pipeline, select different fairness definitions, and observe how mitigation (re‑weighting, post‑processing) changes both the audit results and the governance report.
+
+===== Key Points
+
+* Group‑wise metric computation (accuracy, TPR, FPR, calibration).
+* Statistical significance testing (bootstrap, confidence intervals).
+* Disparity dashboards for visual inspection.
+* Versioned audit reports for traceability.
+* Transparency documentation: intended‑use and limitation statements.
+* Mitigation techniques: re‑weighting, post‑processing, constraint optimization.
+* Lab 2 outcome: produce a bias‑audit report and a mitigation plan.
+
+==== Philosophical Reflection
+
+The contested nature of fairness forces us to confront power asymmetries: who gets to choose the metric that governs a system’s behavior? Selecting demographic parity may benefit historically marginalized groups, while emphasizing calibration may favor overall predictive reliability. These choices embed political values into technical artifacts.
+
+Transparency functions as a mechanism of accountability. By publishing explainability analyses, audit results, and limitation statements, developers invite scrutiny from regulators, civil society, and the very users whose lives are affected. This openness creates a feedback loop that can reshape institutional policies and public expectations.
+
+Beyond the immediate numbers, fairness decisions have long‑term societal impacts. A model that systematically under‑serves a community can reinforce structural inequities, while a well‑audited, transparent system can become a tool for redress. Embedding public participation in metric selection and audit review strengthens democratic legitimacy and aligns AI deployment with broader ethical pluralism.
+
+===== Key Points
+
+* Power asymmetries in metric selection.
+* Transparency as a feedback loop for accountability.
+* Ethical pluralism: respecting multiple moral perspectives.
+* Institutional accountability: linking audits to governance frameworks.
+* Long‑term societal impact of biased AI systems.
+* Role of public participation in defining fairness.
+
+.Figure 11.3: Fairness metrics, bias sources, and audit pipeline
+[plantuml,ch11-l03,png,theme=sketchy-outline]
+....
+@startuml
+skinparam shadowing false
+skinparam defaultFontSize 14
+
+start
+:Collect Training Data;
+if (Data contains bias?) then (yes)
+  :Data Bias\n(Historical inequity);
+endif
+
+:Train Model;
+if (Model amplifies bias?) then (yes)
+  :Model Bias;
+endif
+
+:Deploy Model;
+if (Deployment context biased?) then (yes)
+  :Deployment Bias;
+endif
+
+fork
+  :Fairness Metric\n(Demographic Parity);
+fork again
+  :Fairness Metric\n(Equalized Odds);
+fork again
+  :Fairness Metric\n(Calibration);
+end fork
+
+:Audit & Compare Metrics;
+:Generate Transparency Docs;
+:Governance Report;
+stop
+@enduml
+....
+
+==== Discussion Prompts
+
+* Which fairness definition would you prioritize in the loan‑approval vignette, and why?
+* How do we detect bias in generative AI systems that produce text or images?
+* What concrete artifacts constitute “transparency” for a deployed model?
+* How does fairness auditing integrate with the audit tool introduced in Chapter 2?
+* In what ways can the governance simulator’s bias‑audit module inform institutional policy?
+* When does fairness constrain deployment, and when can it enable broader adoption?
+
+==== Lab Prep
+
+Lab 2: Simulate governance scenarios that include a bias audit. Students will select a fairness definition, run the audit pipeline, visualize disparities, and produce a governance report that includes a mitigation plan and a transparent documentation package.
+
+===== Key Points
+
+* Lab 2: bias audit with selectable fairness definitions.
+* Simulate multiple deployment contexts.
+* Produce a versioned audit report and mitigation plan.
+* Document findings and intended‑use statements.
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch11,Chapter 11>>).

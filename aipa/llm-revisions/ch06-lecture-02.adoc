@@ -1,0 +1,163 @@
+=== 6.2: Attention and the Transformer
+:leveloffset: 2
+
+[.epigraph]
+"Attention is all you need."
+— Vaswani et al., "Attention Is All You Need" <<Vaswani2017>>
+
+==== Example Prompts
+
+* "Summarize this long document." — _Self‑attention: each token attends to all; long‑range dependencies_
+* "Translate this sentence." — _Transformer: Q, K, V; positional encoding_
+* "Put key info at the start of the prompt." — _Attention structure shapes what the model “sees”_
+
+==== Hook
+
+You ask GPT‑4 to summarise a 30‑page PDF, but the model stalls, producing only the first few paragraphs. Classic recurrent networks would have to read the text token by token, remembering only a limited window, and would simply run out of memory. **Why do modern LLMs breeze through such massive contexts, and how does the Transformer make this possible?** The answer lies in a single, elegant operation: *self‑attention*.
+
+==== Conceptual Core
+
+*Self‑Attention* – For every token we create three vectors: a **Query (Q)**, a **Key (K)** and a **Value (V)**. The attention score between two tokens is the scaled dot‑product of their Q and K vectors, passed through a softmax so the scores sum to one. The output for a token is the weighted sum of all V vectors, letting each token “look at” every other token in the sequence.
+
+*Scaled Dot‑Product* – The raw dot‑product can grow with the dimensionality *d*. Dividing by √d stabilises the gradients and prevents the softmax from becoming overly peaky.
+
+*Multi‑Head Attention* – Instead of a single Q/K/V projection we compute *h* parallel heads, each with its own learned linear maps. The heads capture different relational patterns (e.g., syntax vs. semantics). Their outputs are concatenated and linearly transformed back to the model dimension.
+
+*Positional Encoding* – Pure attention is permutation‑invariant; it would treat “cat sat” and “sat cat” identically. Sinusoidal or learned positional vectors are added to the token embeddings so the model knows the order of the sequence.
+
+*Transformer Architecture* – An encoder layer consists of (1) multi‑head self‑attention, (2) a position‑wise feed‑forward network, (3) residual connections and layer‑norm after each sub‑layer. A decoder layer adds a causal mask to the self‑attention and a second cross‑attention sub‑layer that attends to the encoder output. This stack replaces recurrence entirely, enabling full parallelism and O(n²) time‑complexity versus O(n) sequential steps for RNNs.
+
+*Complexity & Scaling* – Because every token interacts with every other token, the attention matrix has size n × n. This yields quadratic memory cost, which is why research on sparse or linear‑time attention is so active. Nonetheless, the parallel nature of the computation makes Transformers far faster on modern hardware than RNNs for long sequences.
+
+===== Key Points
+
+* Self‑attention: Q, K, V; scaled dot‑product
+* Multi‑head: parallel Q/K/V projections, concatenation
+* Positional encoding injects order information
+* Encoder layer: attention → feed‑forward → residual → layer‑norm
+* Decoder adds causal mask and cross‑attention
+* Residual connections & layer‑norm stabilise deep stacks
+* Complexity O(n²) vs. O(n) for RNNs; motivates efficient‑attention research
+
+==== Technical Example
+
+We will trace self‑attention for a three‑token sequence using NumPy. The code builds random embeddings, projects them to Q, K, V, computes the scaled dot‑product, applies softmax, and finally produces the attention output.
+
+[source,python]
+----
+import numpy as np
+
+# 3 tokens, embedding dimension d=4, head dimension dh=2
+X = np.random.rand(3, 4)               # input embeddings
+W_Q = np.random.rand(4, 2)
+W_K = np.random.rand(4, 2)
+W_V = np.random.rand(4, 2)
+
+Q = X @ W_Q          # (3,2)
+K = X @ W_K
+V = X @ W_V
+
+# Scaled dot‑product
+dk = Q.shape[1]
+scores = Q @ K.T / np.sqrt(dk)          # (3,3)
+
+# Softmax over the last axis
+weights = np.exp(scores) / np.exp(scores).sum(axis=1, keepdims=True)
+
+# Weighted sum of values
+output = weights @ V                     # (3,2)
+
+print("Attention scores:\\n", scores)
+print("Softmax weights:\\n", weights)
+print("Attention output:\\n", output)
+----
+
+**Interpretation** – The `weights` matrix is the attention heat‑map: each row shows how much the corresponding token attends to every token (including itself). By visualising this matrix (e.g., with a heat‑map library) we can see whether the model focuses on nearby words or captures long‑range dependencies. Re‑running the snippet with *h* = 2 heads (by stacking two independent Q/K/V projections) reveals distinct patterns per head, illustrating the multi‑head advantage.
+
+===== Key Points
+
+* Initialise random embeddings and projection matrices
+* Compute Q, K, V and the scaled dot‑product scores
+* Apply softmax to obtain attention weights (heat‑map)
+* Multiply weights by V to get the attention output
+* Visualise the weight matrix to see token‑to‑token focus
+* Compare single‑head vs. multi‑head results
+* Explain causal masking for decoder‑side attention
+* Link the experiment to Lab 2 prompt‑design activities
+
+==== Philosophical Reflection
+
+Attention can be seen as a form of *working memory* for the model: at each layer the network decides which pieces of the input deserve immediate processing power. Unlike a human’s explicit focus, the model’s “relevance” is learned from massive corpora; it is not a hand‑crafted rule but an emergent property of gradient descent.
+
+Because attention weights are *soft* and distributed across many heads, they provide only a coarse glimpse into the model’s reasoning. This opacity raises ethical concerns: a model might attend heavily to biased or toxic tokens without us noticing, propagating hidden harms. Understanding that attention is *learned*—not a fixed, interpretable filter—reminds us to treat attention visualisations as hypotheses rather than definitive explanations.
+
+The Transformer’s general‑purpose nature means the same attention machinery powers translation, code generation, and even image captioning. Prompt engineering becomes a way of *steering* that machinery: by placing key information early in a prompt we bias the attention distribution toward the desired context. Yet the very flexibility that makes attention powerful also makes it a double‑edged sword for interpretability and accountability.
+
+===== Key Points
+
+* Attention as emergent working memory
+* Relevance is learned from data, not hand‑crafted
+* Visualising attention offers hypotheses, not proofs
+* Opaque attention patterns can hide biases and harms
+* Prompt engineering steers attention distribution
+* Ethical stakes: transparency vs. performance trade‑offs
+* Ongoing research into attention‑based explanations
+
+==== Diagram
+
+.Figure 6.2: Simplified Transformer Encoder Layer – Q, K, V, Scaled Dot‑Product Attention, Multi‑Head, Residual & Layer‑Norm
+[plantuml,ch06-l02,png,theme=sketchy-outline]
+....
+@startuml
+skinparam backgroundColor #F9F9F9
+title Transformer Encoder Layer (simplified)
+
+entity Input as "Input Embedding\\n+ Positional Encoding"
+entity Q as "Q = X·W_Q"
+entity K as "K = X·W_K"
+entity V as "V = X·W_V"
+
+Input --> Q
+Input --> K
+Input --> V
+
+rectangle "Scaled‑dot‑product\\nAttention" {
+  Q --> A1 : dot
+  K --> A1 : dot
+  A1 --> Softmax : /√d
+  Softmax --> A2 : weights
+  V --> A2 : weighted sum
+}
+A2 --> ConcatenatedHeads
+ConcatenatedHeads --> FFN : Feed‑Forward
+FFN --> Add : + (Residual)
+Add --> Norm : Layer‑Norm
+Norm --> Output : "Layer Output"
+
+Input -[#gray]-> Add : Residual skip
+@enduml
+....
+
+==== Discussion Prompts
+
+* What does “attention” really mean for a neural network?
+* Why does the Transformer scale better than RNNs on long sequences?
+* Is attention a computational analogue of “working memory”?
+* How does attention enable massive parallelisation?
+* In what ways can prompt structure amplify or diminish attention to key information?
+* What are the practical limits of attention for extremely long contexts (e.g., whole books)?
+
+==== Lab Prep
+
+Lab 2 (Prompting): Design prompts that exploit the attention structure—e.g., place crucial facts at the beginning, use few‑shot examples, or experiment with token ordering. The attention heat‑maps you generate in the technical example will guide you in evaluating whether your prompt succeeds.
+
+===== Key Points
+
+* Lab 2 focuses on prompt design informed by attention
+* Token ordering influences attention distribution
+* Use heat‑maps to diagnose prompt effectiveness
+* Iterate: move key info, add examples, observe changes
+* Connect findings to upcoming agent‑building exercises in Chapter 9
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch06,Chapter 6>>).

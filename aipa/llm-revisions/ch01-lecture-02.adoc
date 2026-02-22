@@ -1,0 +1,128 @@
+=== 1.2: History of AI — Symbolic, Connectionist, Hybrid
+:leveloffset: 2
+
+[.epigraph]
+"There is nothing outside the text."
+— Derrida, _Of Grammatology_ <<Derrida1967>>
+
+*We build intelligence from texts, traces, and weights—and every "outside" we claim is another layer of representation.*
+
+==== Hook
+
+You are in an emergency room. An AI must **diagnose** a patient from a list of symptoms **and** **explain** why it chose that diagnosis. Should the system rely on a hand‑crafted rule base that a physician can audit, or on a neural classifier that has learned patterns from millions of records? This tension between **symbolic** and **connectionist** reasoning frames the entire history of artificial intelligence.
+
+==== Example Prompts
+
+* "Diagnose this patient based on these symptoms." — _Symbolic rules vs. neural classifier vs. hybrid_
+* "Explain how you reached that conclusion." — _Interpretable (symbolic) vs. opaque (connectionist)_
+* "Find relevant medical literature and summarize." — _Knowledge graph (symbolic) + embedding (connectionist) + generation_
+
+==== Conceptual Core
+
+The history of AI is often told as a series of paradigms: symbolic, connectionist, and now hybrid. The symbolic tradition—logic, rules, expert systems—treats intelligence as manipulation of discrete symbols. Knowledge is explicit: if‑then rules, predicate logic, knowledge bases. The connectionist tradition—neural networks, distributed representation—treats intelligence as pattern completion over weighted connections. Knowledge is implicit: embeddings, activations, gradients. Neither tradition has won; both persist in different forms.
+
+The symbolic era had a canonical language: Lisp (McCarthy <<McCarthy1960>>, 1958–1960). Lisp's S‑expressions—lists and symbols as a universal representation for data and code—were designed for the symbolic manipulation that search and reasoning require; much of classical AI (state‑space search, STRIPS, early planners) was implemented in Lisp. The symbolic era peaked with expert systems of the 1980s: MYCIN, XCON, rule‑based diagnosis. When those systems hit limits—brittleness, knowledge‑acquisition bottlenecks—funding cooled and the first “AI winter” arrived.
+
+Early connectionism began with the perceptron in the 1950s and 1960s, but limited theoretical results and the 1970s funding cutback ushered in the first winter. The revival came in the late 1980s with back‑propagation and the promise of learning from data, sparking a second wave of optimism that again faded into a second winter (mid‑1990s to early‑2000s). These cycles of hype → winter → revival repeat throughout AI history.
+
+Today’s large language models are connectionist at the core, but retrieval‑augmented generation, tool use, and reasoning chains reintroduce symbolic structure. The “return of the symbolic” is not a revival of 1980s expert systems; it is integration. No paradigm is purely one or the other. A knowledge graph is symbolic (nodes, edges, schemas) but embedding models that populate it are connectionist. The question is not which approach is correct but how they combine in practice. The labs in this chapter build a knowledge graph—a symbolic structure that will later connect to neural retrieval and generation. We begin with representation; we end with flow.
+
+===== Key Points
+
+* Symbolic AI: logic, rules, expert systems—knowledge as explicit structures
+* Connectionist AI: neural nets, distributed representation—knowledge as weights
+* Expert systems (1980s): MYCIN, XCON; limits led to the first AI winter
+* Early connectionism (perceptron) and the 1970s winter set the stage for later revivals
+* Back‑propagation revived connectionism in the late 1980s; a second winter followed
+* Cycles of optimism and winter—narratives of progress, not linear advancement
+* Hybrid architectures: LLMs + retrieval, tools, reasoning—symbolic structure returns
+* Knowledge graphs: symbolic structure (nodes, edges) + connectionist embedding
+* No paradigm is purely one or the other; we combine them in practice
+
+==== Technical Example
+
+Consider a medical diagnosis task. A symbolic expert system encodes rules: if symptom X and Y, then consider condition Z. The rules are transparent; we can trace each inference. A neural classifier, by contrast, learns from labeled examples. Given symptoms as input, it outputs a probability distribution over conditions. The reasoning is opaque—hidden in the weights. Which is "better"? The symbolic system is interpretable but brittle; the neural system generalizes but offers little explanation.
+
+Neuro‑symbolic systems combine both. A knowledge graph stores medical entities and relations (symbolic); an embedding model retrieves relevant subgraphs given a query (connectionist); a language model generates an explanation that cites the retrieved structure (connectionist with symbolic grounding). The hybrid does not choose between paradigms—it layers them. Retrieval augments generation; symbolic structure constrains and explains the output. Your knowledge‑graph explorer will sit at the intersection of symbolic and connectionist layers: symbolic data model, connectionist‑ready for later embedding and retrieval.
+
+===== Key Points
+
+* Expert system: rules, traceable inference, interpretable but brittle
+* Neural classifier: learned from data, generalizes but opaque
+* Neuro‑symbolic: knowledge graph (symbolic) + embedding (connectionist) + generation
+* Retrieval augments generation; symbolic structure constrains output
+* Your knowledge‑graph: symbolic structure, ready for connectionist retrieval
+
+==== Philosophical Reflection
+
+Lyotard wrote of "incredulity toward meta‑narratives"—suspicion of grand stories of progress. The history of AI is often told as such a narrative: from symbolic to connectionist to hybrid, each phase an improvement. But the story is messier. Symbolic systems never died; they persist in databases, ontologies, and program logic. Connectionist systems did not replace them; they added a new layer. The "myth of one true approach" obscures the fact that we build with both, in different configurations for different tasks.
+
+Derrida's "there is nothing outside the text" reminds us that every representation—whether symbols or weights—is a trace, a mediation. We do not access the world directly; we build models that stand in for it. The choice between symbolic and connectionist is not a choice between truth and approximation; it is a choice about what kind of trace we want to work with, and for whom.
+
+===== Key Points
+
+* Grand narratives of AI progress: seductive but incomplete
+* Lyotard: incredulity toward meta‑narratives—each paradigm has limits
+* Symbolic never died; connectionist added a layer
+* The myth of "one true approach" obscures hybrid reality
+* Derrida: representation is trace, mediation—no direct access to world
+
+.Figure 1.2: Timeline — AI paradigms and overlaps
+[mermaid,ch01-l02,png]
+....
+timeline
+  title AI Paradigm Timeline
+  %% Overlapping eras
+  section Symbolic & Connectionist
+    1956-1990 : Symbolic reasoning, early connectionism
+  section Symbolic
+    1956 : Logic, Rules, Expert Systems
+  section Connectionist
+    1986 : Neural Nets (Back‑propagation), Distributed Representations
+  section Hybrid
+    1990s : Early neuro‑symbolic research
+    2010s : Neuro‑Symbolic resurgence
+    2020s : LLMs, Agents
+  %% AI winters shading
+  classDef winter fill:#f2f2f2,stroke:#999;
+  class winter1,winter2;
+  winter1 : 1974-1980
+  winter2 : 1993-2005
+....
+
+.Figure 1.3: Simple neuro‑symbolic pipeline
+[plantuml,neuro-symbolic-pipeline,svg]
+....
+@startuml
+title Neuro‑Symbolic Pipeline for Medical QA
+actor User
+User -> LLM : Query (symptoms)
+LLM -> KG : Retrieval request (embedding similarity)
+KG --> LLM : Subgraph (nodes/edges)
+LLM -> LLM : Generate answer citing KG
+LLM --> User : Diagnosis + explanation
+@enduml
+....
+
+==== Discussion Prompts
+
+* How have you encountered a system that felt “symbolic” versus “connectionist,” and what practical differences did you notice?
+* Why do AI winters happen, and what mechanisms could help the community avoid the next one?
+* In what way does the “knowledge‑graph + embedding” pattern embody hybrid AI?
+* Can connectionist systems ever be truly interpretable, or is interpretability inherently a symbolic virtue?
+* How will the knowledge‑graph you build in Lab 1 serve as the symbolic scaffold for later neural retrieval?
+
+==== Lab Prep
+
+In Lab 1 you will construct the **symbolic scaffold** that later becomes the substrate for neural retrieval and generation. Sketch how a knowledge graph sits between symbolic and connectionist layers: the schema (nodes, edges, properties) is symbolic—explicit structure we can inspect; the data you ingest may come from neural extraction or human curation. Later, embeddings and retrieval will add a connectionist layer. Before starting the lab, draw a rough diagram: where does the symbolic boundary end, and where does connectionist processing begin? See Lab 1 (Knowledge Graph — Data Model and Ingestion) for the first deliverable.
+
+===== Key Points
+
+* Knowledge graph schema: symbolic (nodes, edges, properties)
+* Data ingestion: may come from neural extraction or human curation
+* Later: embeddings and retrieval add connectionist layer
+* Draw the boundary: where symbolic ends, where connectionist begins
+* Lab 1: Data Model and Ingestion—first deliverable
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch01,Chapter 1>>).

@@ -1,0 +1,7 @@
+=== Exercises
+
+. *Conceptual* When is propositional logic sufficient? When do we need first-order logic?
+. *Conceptual* Explain Bayes' rule. How does it update beliefs given evidence?
+. *Computational* Implement resolution for propositional logic on a small knowledge base (3–5 clauses). Prove or disprove a query.
+. *Computational* Build a small Bayesian network (3–4 nodes). Perform exact inference via variable elimination for one query.
+. *Design* Design a reasoning tool schema: assert(fact), query(goal), chain_of_thought(prompt). How would the agent combine symbolic and LLM reasoning?

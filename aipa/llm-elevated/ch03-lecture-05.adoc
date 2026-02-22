@@ -1,0 +1,6 @@
+pddl
+(:action pick-up
+ :parameters (?x)
+ :precondition (and (clear ?x) (on-table ?x) (hand-empty))
+ :effect (and (not (on-table ?x)) (not (hand-empty))
+              (holding ?x) (not (clear ?x))))

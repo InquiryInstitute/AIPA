@@ -1,0 +1,134 @@
+=== 7.2: Vector Stores and Similarity Search
+:leveloffset: 2
+
+Imagine a personal assistant that can instantly pull up the exact paragraph from a ten‑million‑page legal archive that best answers a user’s question. How does it know *which* paragraph to fetch, and how quickly can it do so? 
+
+[.epigraph]
+"Similarity is not identity—but it is often enough."
+— Reimers & Gurevych, "Sentence-BERT" <<Reimers2019>>
+
+*Vector stores: embed, index, retrieve by similarity.*
+
+==== Example Prompts
+
+* "Find documents similar to this query." — _Embed query, search vector store, return top‑k_
+* "Index our knowledge base." — _Documents → chunks → embed → index_
+* "What's most relevant to this question?" — _Similarity search; retrieval quality matters_
+
+==== Conceptual Core
+
+[.formal-definition]
+****
+*Formal Definitions (Vector Store, Embedding)*
+A *vector store* is an index of vectors that supports similarity search (e.g., nearest neighbors). An *embedding* is a function that maps text (or other input) to a dense vector in ℝ^d such that semantically similar inputs map to nearby vectors. The vector store stores embeddings of documents; retrieval finds vectors nearest to the query embedding. See AIMA <<RussellNorvig2020>> (representation), <<Reimers2019>> (sentence embeddings).
+****
+
+Dense vectors represent meaning. Each document (or chunk) is embedded into a high‑dimensional vector—typically 384, 768, or 1536 dimensions—via a model trained to place semantically similar text near each other. Similarity is measured by cosine similarity or dot product. Given a query embedding, we find the *k* vectors closest to it. That is the core of vector search: embed, index, retrieve by similarity.
+
+Exact nearest neighbor search is **O(n)**—we compare the query to every vector. For millions of documents, that is too slow. Approximate nearest neighbor (ANN) algorithms trade accuracy for speed. HNSW (hierarchical navigable small world) and IVF (inverted file index) are common index structures. They build a graph or partition of the space; search follows local structure and typically reaches a near‑optimal result in sublinear time. The trade‑off: we may miss the true nearest neighbor, but we usually get “good enough” results much faster. *In a 1 M‑doc corpus, exact search returns the true nearest neighbor 99.8 % of the time, while HNSW returns it 97 % of the time but in ~10 ms instead of ~800 ms—an acceptable loss for most RAG pipelines.*
+
+Chunking matters. Documents are split into chunks—typically 256–512 tokens with optional overlap—before embedding. Chunk size affects retrieval quality: too small, we lose context; too large, we dilute relevance. Semantic chunking (split at sentence or paragraph boundaries) often outperforms fixed‑size splits. Overlap (e.g., 50 tokens) can help preserve context across chunk boundaries. The indexing pipeline: document → chunks → embed (via LLM or embedder) → index. Query: embed query → search index → return top‑k.
+
+Retrieval as memory access: what gets retrieved shapes what the agent “knows.” The politics of similarity: embeddings encode the training distribution. Dominant perspectives, common phrasing, and majority viewpoints tend to cluster; minority or marginalized content may be under‑represented. Bias in embeddings becomes bias in retrieval—we retrieve what is “similar” in embedding space, which may not match what we would call relevant by other criteria.
+
+===== Key Points
+
+* Dense vectors: semantic representation in high dimensions
+* Cosine similarity, dot product for nearest neighbors
+* ANN: HNSW, IVF—trade accuracy for speed
+* Chunking: size, overlap, semantic vs. fixed
+* Pipeline: document → chunks → embed → index
+* Query: embed → search → top‑k
+* Retrieval = memory access; shapes what the agent knows
+* Politics of similarity: bias in embeddings → bias in retrieval
+
+==== Technical Walk‑through & Lab Prep
+
+Index a document collection. Chunk documents—e.g., 512 tokens per chunk with 50‑token overlap. Embed each chunk using `llm.embed` or a dedicated embedder. Index in Chroma, FAISS, or another backend. Implement the search API: given a query (text or embedding), return the top‑k most similar chunks.
+
+Compare exact vs. approximate search. Exact search scans all vectors; it is correct but slow at scale. ANN search uses the index structure; it is fast but may return a slightly different (often still relevant) set. For most applications, ANN is sufficient. Measure: recall@k (did we retrieve the “right” chunks?) and latency. Tune chunk size and overlap; different corpora benefit from different strategies.
+
+**Lab 1:** Build the index and the search API. The API must accept either raw text (performing the embedding internally) or a pre‑computed embedding, and return the chunk text together with optional metadata (source, score). This API becomes the interface for the RAG system in Lab 2, which will call `search` to retrieve context before generation. Document the API, chunking strategy, and index configuration according to the Lab 1 specification.
+
+===== Key Points
+
+* Chunk (512 tokens, 50 overlap), embed, index
+* Search API: query → top‑k chunks
+* Exact vs. ANN: correctness vs. speed
+* Lab 1: Index, search API
+* API = interface for RAG
+
+==== Philosophical Reflection
+
+Retrieval as memory access: we do not retrieve “the” relevant document. We retrieve what is *similar* in embedding space. Similarity is not identity. Two chunks can be similar without being equivalent; the model receives an approximation of relevance. That approximation is often good enough—but it can fail. Queries that rely on rare phrasings, niche domains, or non‑standard terminology may retrieve poorly. The embedding model's biases become the retrieval system's biases.
+
+The politics of similarity: who decides what counts as “similar”? Embeddings encode the training data. If the training data over‑represents certain voices, topics, or formats, retrieval will favor them. Minority viewpoints, dialectal variation, and domain‑specific jargon may be under‑represented. When we build memory systems, we are making epistemic choices—what gets stored, how it is chunked, how it is indexed. Retrieval is not neutral; it reflects those choices.
+
+**Mitigation tip:** Augment the vector store with under‑represented sources and, where possible, apply debiasing transformations (e.g., projection‑based removal of gender or racial subspaces) to the embeddings before indexing. Periodically audit recall across demographic slices to surface systematic gaps.
+
+Thus, the design of a vector store determines not only how fast an agent can recall, but also *what* it remembers and whose voices are amplified.
+
+===== Key Points
+
+* Similarity ≠ identity
+* Retrieval = approximation of relevance
+* Bias in embeddings → bias in retrieval
+* Politics of similarity: who decides what counts?
+* Similarity is often enough—but not always
+* Memory = curated, approximate, politicized
+* Mitigation: augment, debias, audit
+
+.Figure 7.2: Vector store pipeline (indexing vs. querying)
+[plantuml,ch07-l02,png,theme=sketchy-outline]
+....
+@startuml
+skinparam ArrowColor #555555
+skinparam FontSize 12
+
+'--- Index construction ---
+start
+:Documents;
+:Chunk;
+:Embed;
+:Add to VectorStore;
+stop
+
+'--- Query execution ---
+start
+:User Query;
+:Embed Query;
+if (ANN?) then (yes)
+  :HNSW / IVF index;
+else (no)
+  :Brute‑force scan;
+endif
+:Search VectorStore;
+note right: similarity = cosine / dot‑product
+:Return Top‑k;
+stop
+@enduml
+....
+
+==== Discussion Prompts
+
+* When is similarity “enough” and when does it fail? Give examples.
+* How does chunking affect retrieval quality? What would you try for a legal corpus vs. a chatbot log?
+* What are the politics of “relevant”? Who benefits from current embedding and retrieval designs?
+* How would you detect and mitigate bias in a vector store?
+* Is ANN “good enough” for your use case? What would require exact search?
+* How does the choice of embedding model shape what the agent can “remember”?
+
+*See Key Point 5 when answering “When is ANN good enough?” and Key Point 7 for “Retrieval = memory access.”*
+
+==== Lab Prep
+
+Lab 1: Index documents. Implement the search API. The API takes a query (text or embedding) and returns the top‑k chunks. This feeds RAG (Lab 2)—RAG will call search to retrieve context before generation. Document the API, chunking strategy, and index configuration. See Lab 1 for requirements.
+
+===== Key Points
+
+* Lab 1: Index, search API
+* API: query → top‑k
+* Feeds RAG (Lab 2)
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch07,Chapter 7>>).

@@ -1,0 +1,130 @@
+=== 11.4: Experimental AI — A/B Testing and Statistical Rigor
+:leveloffset: 2
+
+A popular news‑feed platform rolled out a new recommendation model overnight. Within hours, user engagement appeared to spike, but the engineering team couldn’t tell whether the bump was real or just random noise. The pressure to ship fast collides with the need for trustworthy evidence—this tension drives the whole practice of experimental AI.
+
+[.epigraph]
+"Without comparison, we have only anecdotes."
+— NIST, _AI Risk Management Framework_ <<NIST2023>> (evaluation)
+
+*Evaluate rigorously: A/B tests, statistical significance.*
+
+==== Example Prompts
+
+* "Does the new config beat the baseline?" — _A/B test: control vs. treatment; significance_
+* "Compare these two models." — _Statistical comparison; p-value, confidence intervals_
+* "What is rigorous evaluation?" — _Multiple metrics; effect size; report honestly_
+
+==== Conceptual Core
+
+Without comparison, we have only anecdotes. A single run or a handful of examples cannot tell us whether a change truly improves performance; random fluctuations can masquerade as progress. Controlled experiments—A/B tests—provide the systematic way to separate signal from noise.
+
+An A/B test splits incoming traffic into two arms: a **control** that runs the existing configuration and a **treatment** that runs the new one. Random assignment guarantees that the two groups are statistically comparable, eliminating selection bias. Each arm generates the same set of metrics—accuracy, latency, cost, user satisfaction—so we can directly contrast outcomes.
+
+Statistical inference turns observed differences into evidence. The *p‑value* quantifies how unlikely the observed gap would be if the null hypothesis (no real difference) were true. A *confidence interval* (e.g., 95 % CI) gives a plausible range for the true effect size. Effect‑size measures (Cohen’s d, relative lift) tell us whether a statistically significant result is also practically meaningful.
+
+Pitfalls abound. Testing many hypotheses inflates the false‑positive rate; corrections such as Bonferroni or false‑discovery‑rate (FDR) control this risk. Small‑sample studies suffer from low power, increasing type II errors. Moreover, a tiny but statistically significant improvement may be irrelevant in practice. Honest reporting—showing p‑values, CIs, effect sizes, and sample sizes, and publishing negative results—protects against “p‑hacking” and over‑interpretation.
+
+===== Key Points
+
+* Anecdotes ≠ evidence; need controlled comparison  
+* Randomization eliminates selection bias  
+* Split traffic: control vs. treatment arms  
+* Metrics must be identical across arms (accuracy, latency, cost, satisfaction)  
+* p‑value = probability of observed gap under null hypothesis  
+* Confidence interval = plausible range for true effect  
+* Effect size (Cohen’s d, lift) conveys practical importance  
+* Multiple‑comparison corrections (Bonferroni, FDR) guard false positives  
+* Power analysis determines required sample size  
+* Reporting standards: pre‑registration, full CI, effect size, negative results  
+
+==== Technical Example
+
+Below is a concise pseudo‑code sketch for adding an A/B test to the governance simulator. The API `addABTest(controlConfig, treatmentConfig, metrics, sampleSize)` creates two parallel arms, streams traffic, logs raw observations, and returns an analysis object.
+
+[source,python]
+----
+def addABTest(control_cfg, treatment_cfg, metrics, n):
+    results = {'control': [], 'treatment': []}
+    for i in range(n):
+        request = get_next_request()
+        arm = random.choice(['control', 'treatment'])
+        cfg = control_cfg if arm == 'control' else treatment_cfg
+        response = run_agent(cfg, request)
+        results[arm].append(compute_metrics(response, metrics))
+    return analyze_ab_test(results['control'], results['treatment'])
+----
+The `analyze_ab_test` routine aggregates the metric vectors, performs a two‑sample t‑test (or a permutation test when distributional assumptions are violated), and returns the mean difference, 95 % CI, p‑value, and effect size. Decision logic—*go/no‑go*—can be encoded as a simple threshold rule (e.g., p < 0.05 and lift > 1 %). All raw data are persisted for auditability, and alerts can be wired to trigger when significance thresholds are crossed.
+
+===== Key Points
+
+* Step‑by‑step A/B setup: split, collect, aggregate, test  
+* Use permutation tests if normality assumptions fail  
+* Log raw per‑request data for audit trails  
+* Automate alerts for significance and effect‑size thresholds  
+* Sample‑size planning via power analysis ensures reliable results  
+* Lab 2: integrate `addABTest` into the governance simulator  
+
+==== Philosophical Reflection
+
+Evidence and inference are the epistemic foundations of AI governance. By insisting on controlled comparison, we move from anecdotal confidence to reproducible knowledge, enabling policymakers to make decisions that are *evidence‑based* rather than intuition‑driven. This shift also clarifies accountability: when a model change is rolled back, the statistical record shows exactly why.
+
+Statistical rigor, however, is a *process* virtue, not a guarantee of truth. Relying solely on p‑values can obscure practical relevance, and the pressure to ship quickly may tempt teams to shortcut pre‑registration or to cherry‑pick analyses. Embedding pre‑registration—declaring hypotheses, metrics, and analysis plans before data collection—mitigates p‑hacking and aligns experimental practice with ethical governance. Moreover, policies should encode minimum effect‑size thresholds, ensuring that only changes with meaningful impact are adopted, regardless of statistical significance alone.
+
+===== Key Points
+
+* Comparison = the engine of evidence‑based governance  
+* Statistical rigor is a process, not an absolute guarantee  
+* Pre‑registration prevents p‑hacking and clarifies intent  
+* Governance policies should require minimum effect‑size, not just p‑value cut‑offs  
+* Balancing speed and rigor is an ethical tension in operational AI  
+
+.Figure 11.4: A/B test design
+[plantuml,ch11-l04,png,theme=sketchy-outline]
+....
+@startuml
+start
+:Incoming traffic;
+if (Randomly assign) then (Control)
+  :Control arm;
+  :Collect metrics\n(accuracy, latency, cost);
+else (Treatment)
+  :Treatment arm;
+  :Collect metrics\n(accuracy, latency, cost);
+endif
+:Aggregate results;
+:Statistical test\n(t‑test / permutation);
+:Report CI, p‑value, effect size;
+stop
+@enduml
+....
+
+==== Discussion Prompts
+
+* When is A/B testing sufficient, and when do we need complementary evaluation methods?  
+* How do we handle multiple metrics without inflating false‑positive risk?  
+* What does “rigorous” evaluation look like in practice?  
+* How does A/B testing support governance decisions such as policy thresholds and roll‑backs?  
+* How does the governance simulator support A/B scenarios, and what audit logs are essential?  
+* When does the demand for statistical rigor conflict with operational speed, and how can we negotiate that trade‑off?  
+* **Design a pre‑registration plan** for an A/B test you might run on a recommendation system—what hypotheses, metrics, sample size, and analysis methods would you declare up front?
+
+==== Lab Prep
+
+Lab 2: Add A/B testing to the governance simulator. Implement a `addABTest(controlConfig, treatmentConfig, metrics, sampleSize)` API, ensure raw data logging, and integrate automated significance alerts. See the Lab 2 specification for detailed requirements, including support for permutation testing and pre‑registration metadata.
+
+===== Key Points
+
+* Lab 2: implement `addABTest` API  
+* Control vs. treatment arms, metric collection, aggregation  
+* Significance testing (t‑test or permutation) and CI reporting  
+* Log raw data for auditability  
+* Pre‑registration metadata to prevent p‑hacking  
+
+==== Looking Ahead
+
+Having learned how to measure change reliably, we will next explore how to *act* on those measurements—policy thresholds, automated roll‑backs, and continuous monitoring that keep AI systems aligned with organizational goals. Your A/B module will become the evidence engine that powers those governance decisions in Chapter 12.
+
+==== Reading
+* Kohavi, R., Longbotham, R., Sommerfield, D., & Henne, R. (2020). *Online Controlled Experiments*. Cambridge University Press.  
+* For additional readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch11,Chapter 11>>).

@@ -1,0 +1,50 @@
+= Chapter 4: Learning from Data
+
+This chapter covers statistical learning: risk and generalization (bias-variance, overfitting), linear models and gradient descent, regularization and model selection (L1/L2, cross-validation), trees and ensembles (Random Forest, boosting), evaluation metrics (precision, recall, F1, imbalanced data), experiment tracking and reproducibility (MLflow), and the ml_trainer tool. The ml_trainer—load_data, train, evaluate, export_model—is the first "learning" module. It integrates into student-ai/ and connects to Ch5 (neural classifiers) and Ch7 (memory for training data). Labs 1–3 build data prep, training loop, and the config-driven ml_trainer with tracking. By chapter end, the agent can train models on demand.
+
+==== Learning Objectives
+After this chapter you will be able to:
+* Explain risk, generalization, bias-variance tradeoff, and overfitting
+* Implement linear models, gradient descent, regularization (L1/L2), and model selection
+* Use trees, ensembles (Random Forest, boosting), and evaluation metrics
+* Build the ml_trainer tool (load_data, train, evaluate, export_model)
+
+==== Course Learning Outcomes (CLOs)
+By the end of this course, you will be able to:
+* Explain risk, generalization, bias-variance tradeoff, and overfitting (PLO 1).
+* Implement linear models, gradient descent, regularization (L1/L2), and model selection (PLO 2).
+* Use trees, ensembles (Random Forest, boosting), and evaluation metrics (PLO 3).
+* Build the ml_trainer tool (load_data, train, evaluate, export_model) (PLO 2).
+
+include::lecture-01.adoc[]
+include::lecture-02.adoc[]
+****
+include::lab-01.adoc[]
+****
+
+include::lecture-03.adoc[]
+include::lecture-04.adoc[]
+****
+include::lab-02.adoc[]
+****
+
+include::lecture-05.adoc[]
+include::lecture-06.adoc[]
+include::lecture-07.adoc[]
+****
+include::lab-03.adoc[]
+****
+
+include::lecture-08.adoc[]
+
+==== Chapter Summary
+Statistical learning compresses experience into models. Risk, loss, and the bias-variance tradeoff govern generalization. The ml_trainer tool lets the agent train models on demand. This foundation underlies neural representation (Ch5), language models (Ch6), and memory-augmented training (Ch7).
+
+==== Further Reading
+Readings for this chapter are collected in the <<reading-list,Reading List>> (<<reading-ch04,Chapter 4>>).
+
+* Box, "Science and Statistics" <<Box1976>> — All models are wrong; some useful.
+* Geman et al., "Bias/Variance Dilemma" <<Geman1992>> — Decomposition of generalization error.
+* Vapnik, _Statistical Learning Theory_ <<Vapnik1995>> — VC dimension, generalization bounds.
+
+include::exercises.adoc[]

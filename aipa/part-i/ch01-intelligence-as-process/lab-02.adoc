@@ -1,0 +1,44 @@
+=== Lab 2: Knowledge Graph — Query and Traversal
+:leveloffset: 2
+
+*Milestone toward: Knowledge Graph Explorer (tool)*
+
+==== Tool Deliverable
+
+Extends tool server `knowledge_graph` with query and traversal tools. Agent uses `query_graph` and `traverse` to retrieve paths and subgraphs.
+
+==== Prerequisites
+
+* Complete Lab 1 (schema and ingestion)
+* Review 1.4–1.6: metabolism; epistemic flow; infrastructure; data flow design
+
+==== Objectives
+
+* Implement graph traversal (BFS, DFS, path queries)
+* Support Cypher, SPARQL, or custom query language
+* Measure traversal performance
+
+==== Steps
+
+. Extend the graph from Lab 1 (or use a compatible graph backend) with a query interface.
+. Implement at least two traversal methods: BFS and DFS. Expose them via functions or a simple API.
+. Add support for path queries (e.g., "find path from A to B") or a query language (Cypher, SPARQL, or a minimal custom syntax).
+. Write 3–5 example queries that demonstrate traversal and path-finding. Document the expected results.
+. Optionally: measure traversal performance (nodes visited, time) for representative queries.
+. Submit: query engine or adapter, example queries and results, submodule or integration into student-ai/.
+
+==== Deliverables
+
+* Query engine or adapter
+* Example queries and results
+* Submodule into student-ai/
+
+*Acceptance criteria:*
+* BFS and DFS return correct node order for a given start node
+* At least one path query returns a valid path between two nodes
+* Example queries are documented with input and expected output
+* Code is integrated as submodule or clearly linked for student-ai/ integration
+
+==== Lab Prep
+
+* Review 1.4–1.6: metabolism; epistemic flow; infrastructure

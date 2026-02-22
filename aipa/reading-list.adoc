@@ -1,0 +1,115 @@
+[appendix]
+== Reading List
+:leveloffset: 1
+
+[[reading-list]]
+Readings are organized by chapter. Each chapter's lectures reference this list; see <<reading-ch01>> through <<reading-ch12>> for direct links to a chapter's readings. Full bibliographic details are in the Bibliography.
+
+=== Chapter 1: Intelligence as Process
+[[reading-ch01]]
+
+* Russell & Norvig, _AIMA_ <<RussellNorvig2020>> — Comprehensive treatment of agents, search, and classical AI.
+* Latour, _Reassembling the Social_ <<Latour2005>> — Actor-Network Theory; useful for understanding AI as infrastructure.
+* Foucault, _Discipline and Punish_ <<Foucault1975>> — Power, norms, and institutional context.
+
+=== Chapter 2: AI in Practice
+[[reading-ch02]]
+
+* NIST, _AI Risk Management Framework_ <<NIST2023>> — Governance and risk for AI systems.
+* EU AI Act <<EU2024>> — Regulatory framework for high-risk AI.
+* Foucault, _Power/Knowledge_ <<Foucault1980>> — Governance as constitutive.
+
+=== Chapter 3: Search and Planning
+[[reading-ch03]]
+
+* Russell & Norvig, _AIMA_ <<RussellNorvig2020>> — Search, planning, heuristics, A*.
+* Silver et al., "Mastering the Game of Go" <<Silver2016>> — Search + neural networks.
+* Sutton & Barto, _Reinforcement Learning_ <<Sutton2018>> — MDPs, value iteration.
+
+=== Chapter 4: Learning from Data
+[[reading-ch04]]
+
+* Box, "Science and Statistics" <<Box1976>> — All models are wrong; some useful.
+* Geman et al., "Bias/Variance Dilemma" <<Geman1992>> — Decomposition of generalization error.
+* Vapnik, _Statistical Learning Theory_ <<Vapnik1995>> — VC dimension, generalization bounds.
+
+=== Chapter 5: Neural Systems and Representation
+[[reading-ch05]]
+
+* LeCun, Bengio & Hinton, "Deep Learning" <<LeCun2015>> — Survey of deep learning.
+* Rumelhart et al., "Back-Propagating Errors" <<Rumelhart1986>> — Backprop algorithm.
+* Krizhevsky et al., "ImageNet" <<Krizhevsky2012>> — CNNs for vision.
+* Rosenblatt, "Perceptron" <<Rosenblatt1958>> — Original perceptron.
+
+=== Chapter 6: Language and Models
+[[reading-ch06]]
+
+* Vaswani et al., "Attention Is All You Need" <<Vaswani2017>> — Transformer architecture.
+* Brown et al., "Few-Shot Learners" <<Brown2020>> — GPT-3, in-context learning.
+* Wei et al., "Chain-of-Thought" <<Wei2022>> — CoT prompting.
+* Mikolov et al., "Word Representations" <<Mikolov2013>> — Word2vec, embeddings.
+
+=== Chapter 7: Memory Systems
+[[reading-ch07]]
+
+* Lewis et al., "RAG" <<Lewis2020>> — Retrieval-augmented generation.
+* Izacard & Grave, "DPR" <<Izacard2020>> — Dense passage retrieval.
+* Bartlett, _Remembering_ <<Bartlett1932>> — Memory as reconstruction.
+* Reimers & Gurevych, "Sentence-BERT" <<Reimers2019>> — Sentence embeddings.
+
+=== Chapter 8: Reasoning and Inference
+[[reading-ch08]]
+
+* Pearl, _Probabilistic Reasoning_ <<Pearl1988>> — Bayesian networks, inference.
+* Wei et al., "Chain-of-Thought" <<Wei2022>> — CoT reasoning.
+* Russell & Norvig, _AIMA_ <<RussellNorvig2020>> — Logic, resolution, planning.
+
+=== Chapter 9: Acting in the World
+[[reading-ch09]]
+
+* Yao et al., "ReAct" <<Yao2022>> — Reasoning and acting interleaved.
+* Schick et al., "Toolformer" <<Schick2023>> — LLMs learning to use tools.
+* Russell & Norvig, _AIMA_ <<RussellNorvig2020>> — Agent architectures.
+
+=== Chapter 10: Architectures of Intelligence
+[[reading-ch10]]
+
+* Fielding, "REST" <<Fielding2000>> — Architectural styles for network-based software.
+* Schick et al., "Toolformer" <<Schick2023>> — Tool use in LLMs.
+* Yao et al., "ReAct" <<Yao2022>> — Multi-step tool use.
+
+=== Chapter 11: AI in Institutions
+[[reading-ch11]]
+
+* EU AI Act <<EU2024>> — Regulatory framework.
+* NIST AI RMF <<NIST2023>> — Risk management.
+* Buolamwini & Gebru, "Gender Shades" <<Buolamwini2018>> — Bias in classification.
+* Mehrabi et al., "Bias and Fairness in ML" <<Mehrabi2019>> — Survey.
+
+=== Chapter 12: The Future of Intelligence
+[[reading-ch12]]
+
+* Norman, _Design of Everyday Things_ <<Norman2013>> — Interface design.
+* NIST AI RMF <<NIST2023>> — Evaluation and risk.
+* Dewey, _Democracy and Education_ <<Dewey1916>> — Problem definition, stakeholders.
+
+=== Postmodern fiction and film
+[[reading-fiction-film]]
+
+Optional readings and viewings that extend the postmodern lens (see DESIGN §9.1). Suggested for discussion prompts and thematic depth.
+
+*Fiction*
+
+* Borges, "The Garden of Forking Paths" <<Borges1941>> — Branching time, labyrinth as state space. Suggested for Ch3 (Search).
+* Dick, _Do Androids Dream of Electric Sheep?_ <<Dick1968>> — Reality, replication, memory. Suggested for Ch11 (Governance) and Ch7 (Memory).
+* Gibson, _Neuromancer_ <<Gibson1984>> — Distributed agency, networks. Suggested for Ch9–Ch10 (Agents, orchestration).
+* Pynchon, _Gravity's Rainbow_ <<Pynchon1973>> — Unreliable narrative, paranoia, no single story; "wrong questions" and problem framing. Suggested for Ch12 (Problem definition).
+
+*Film*
+
+* _Blade Runner_ <<BladeRunner1982>> — Memory, identity, replicants. Suggested for Ch11 (Governance).
+* _Eternal Sunshine of the Spotless Mind_ <<EternalSunshine2004>> — Memory erasure and reconstruction. Suggested for Ch7 (Memory).
+* _The Matrix_ <<Matrix1999>> — Simulation, representation. Suggested for Ch4/Ch6 (representation) or Ch11.
+* _Her_ <<Her2013>> — AI as participant, agency, mediation. Suggested for Ch9–Ch10.
+* _Memento_ <<Memento2000>> — Memory as reconstruction, unreliability. Suggested for Ch7 (Memory).
+* _Ex Machina_ <<ExMachina2014>> — Agency, observation, governance. Suggested for Ch11.

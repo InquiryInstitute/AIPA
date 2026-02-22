@@ -1,0 +1,137 @@
+=== 3.8: Search in Agent Architectures
+:leveloffset: 2
+
+Imagine a personal‑assistant AI that must answer a user’s question about the latest research on quantum‑resistant cryptography. It cannot scan the entire web itself; it must call a dedicated search service and then weave the results into its response.
+
+[.epigraph]
+"Search is not a module—it is a way of being in the world."
+— Russell & Norvig, _AIMA_ <<RussellNorvig2020>> (adapted)
+
+*Classical search becomes a tool the agent invokes—via tool invocation.*
+
+==== Example Prompts
+
+* "Search the graph for a path from A to B." — _Agent invokes search tool—delegation extends capability_
+* "Plan the sequence of actions." — _Search tool returns plan; agent executes or delegates_
+* "What can the search tool do?" — _Tool schema: search(state_space, initial, goal) → path or plan_
+
+==== Conceptual Core
+
+First, we re‑conceptualize search as an external capability rather than an internal algorithm.  
+We have spent the chapter on state spaces, heuristics, and search algorithms—but in the student's AI, search does not live inside the agent. It lives in a tool the agent calls. That shift—from "the agent searches" to "the agent invokes a search tool"—is where classical search meets the rest of the curriculum: the agent extends its reach by delegation.
+
+Search is a tool. The agent does not "contain" search as a built‑in capability; it invokes a search tool when needed. The search engine lives in `student-ai/tools/search/`. Tools: `index` (add documents to the index), `search` (query, return results), `rank` (reorder by relevance). When does the agent need search? Document retrieval: user asks a question, agent searches the knowledge base. Planning: agent searches for a sequence of actions to reach a goal. Graph traversal: agent traverses the knowledge graph. The transition from state‑space search (explicit graph of states and transitions) to inverted index and ranking (implicit "graph" of documents and relevance) is a shift in representation—but the logic is the same: find relevant items, ordered by some criterion. The search tool completes the agent's planning capacity for the capstone.
+
+The agent extends its reach through tools. It cannot read all documents; the search tool provides access. It cannot enumerate all plans; the search tool (or planner) finds one. Search as delegated cognition: the agent delegates the search task to a specialized module. The module returns results; the agent integrates them into its reasoning. Tool invocation—the agent calls `search.query(...)`—is the interface. The Orchestrator (Chapter 10) discovers tools, invokes them, receives results. The orchestrator routes requests to the search tool; the agent invokes it as part of its action loop.
+
+===== Key Points
+
+* Search as tool: agent invokes when needed
+* `student-ai/tools/search/`: index, search, rank
+* When: document retrieval, planning, graph traversal
+* Inverted index + ranking: implicit "graph" of documents
+* Search as delegated cognition
+* Tool invocation: agent calls search tool
+
+==== Technical Example
+
+Next, we look at the concrete API and integration steps.  
+
+Expose search API: index documents (from knowledge graph, files, or web), query (text or structured), rank results (TF‑IDF, BM25, or learned ranker). The agent invokes the search tool via the orchestrator. Request: "search for documents about X"; the orchestrator routes to the search tool; the search tool returns ranked results; the agent uses them in its response. Register the search tool in the agent config.
+
+* API surface: `search.index(docs)`, `search.query(text) → results`, `search.rank(results) → ordered`
+* Agent invokes via orchestrator: `orchestrator.invoke("search", query)`
+* Register in agent config under `tools.search`
+* Lab 1–3: Complete search engine, register, integrate
+* Error handling: graceful fallback when index missing or query malformed
+* Caching: store recent query results to reduce latency
+* Logging & metrics: record query latency, hit‑rate, and ranking quality
+* Security/auth: enforce access controls on indexed corpora
+* Performance monitoring: expose Prometheus metrics for indexing throughput
+
+The diagram below visualises the request‑response flow.
+
+.Figure 3.8: Search tool in agent stack
+[plantuml,ch03-l08,png,theme=sketchy-outline]
+....
+@startuml
+skinparam backgroundColor #FDF6E3
+skinparam handwritten true
+
+actor Agent
+rectangle "Orchestrator\n(MCP / Tool Manager)" as Orchestrator
+rectangle "Search Tool\n(search.query, search.index)" as SearchTool
+rectangle "Index\n(inverted index)" as Index
+rectangle "Ranker\n(TF‑IDF / BM25 / Learned)" as Rank
+
+Agent --> Orchestrator : request(search, query)
+Orchestrator --> SearchTool : invoke()
+SearchTool --> Index : lookup()
+SearchTool --> Rank : rank()
+Rank --> SearchTool : results
+SearchTool --> Orchestrator : response()
+Orchestrator --> Agent : deliver(results)
+
+@enduml
+....
+
+===== Key Points
+
+* API: index, query, rank
+* Agent invokes via orchestrator
+* Register in agent config
+* Lab 1–3: Complete search engine, register, integrate
+* Error handling, caching, logging, security, performance metrics
+
+==== Philosophical Reflection
+
+Finally, we step back to ask what delegating search tells us about agency.  
+
+Search as delegated cognition: we delegate to tools what we cannot do ourselves. We cannot hold all documents in mind; we use a search engine. The agent is the same. It delegates retrieval, planning, traversal to the search tool. The agent extends its reach—it can "access" a large corpus through the search API. The tool is not a module in the narrow sense (a subroutine the agent calls); it is a capability the agent acquires by integration. The agent plus tools is a hybrid collective—Latour again. Search is not a module; it is a way of being in the world. The agent that can search is an agent that can reach beyond its immediate context. The tool extends the agent's body.
+
+* Delegated cognition: agent uses tools to extend reach
+* Agent + tools = hybrid collective
+* Search = way of being in the world
+* Tool extends agent's body
+* Tool‑mediated agency challenges the classic “mind‑as‑algorithm” view
+* Ethical implications of delegating to opaque search models
+* Embodiment: the search tool as an external sensory organ
+* Epistemic trust: how the agent validates tool‑generated results
+* Responsibility: who is accountable for errors introduced by the search tool
+
+===== Key Points
+
+* Delegated cognition: agent uses tools to extend reach
+* Agent + tools = hybrid collective
+* Search = way of being in the world
+* Tool extends agent's body
+* Tool‑mediated agency challenges “mind‑as‑algorithm” view
+* Ethical implications of opaque search models
+* Embodiment: search tool as external sensory organ
+* Epistemic trust and responsibility
+
+==== Discussion Prompts
+
+* What does "search as a way of being" mean for the agent?
+* How does tool delegation change the agent's "mind"?
+* What other tools might extend the agent similarly?
+* In what sense does the search tool "extend the agent's body"?
+* How does the search tool integrate with the orchestrator (Ch10)?
+* How does the search tool complete the agent's planning capacity for the capstone?
+
+Thus, by delegating search, the agent becomes a *being* that can reach far beyond its own memory, setting the stage for the orchestrator‑driven tool ecosystem explored in Chapter 10.
+
+==== Lab Prep
+
+Complete Labs 1–3 for Chapter 3. Submit the search engine. Register it as a tool in `student-ai/tools/search/`. Integrate into `student-ai/`—the agent can invoke search for document retrieval, planning queries, or graph traversal. Test the integration: can the agent call the search tool and use the results? Document the API. See Figure 3.8 for the call flow you will implement. The search engine is now part of the capstone.
+
+===== Key Points
+
+* Complete Labs 1–3, submit search engine
+* Register in `student-ai/tools/search/`
+* Test: agent invokes search
+* Document API
+* Verify flow matches Figure 3.8
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch03,Chapter 3>>).

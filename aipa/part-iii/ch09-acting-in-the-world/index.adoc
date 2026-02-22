@@ -1,0 +1,50 @@
+= Chapter 9: Acting in the World
+
+This chapter covers agents: perception, reasoning, action; tool use (schemas, registration, execution); ReAct (think → act → observe); planning with tools; control flow (max steps, safety, guardrails); and the tool-calling agent. The tool-calling agent integrates llm, memory, reasoning, and all tools (search, audit, ml_trainer, neural_classifier). It implements the first complete cognitive loop: perceive, reason, act. Place in student-ai/tools/. Labs 1–3 build tool schemas, execution layer, and the full ReAct agent. By chapter end, the agent can complete complex tasks using multiple tools. Ch10 adds the orchestrator.
+
+==== Learning Objectives
+After this chapter you will be able to:
+* Describe the agent loop (perceive, reason, act) and tool use
+* Implement tool schemas, registration, and execution
+* Build the ReAct agent (think → act → observe) with control flow and guardrails
+* Integrate llm, memory, reasoning, and tools into the tool-calling agent
+
+==== Course Learning Outcomes (CLOs)
+By the end of this course, you will be able to:
+* Describe the agent loop (perceive, reason, act) and tool use (PLO 2).
+* Implement tool schemas, registration, and execution (PLO 2).
+* Build the ReAct agent (think → act → observe) with control flow and guardrails (PLO 2).
+* Integrate llm, memory, reasoning, and tools into the tool-calling agent (PLO 5).
+
+include::lecture-01.adoc[]
+include::lecture-02.adoc[]
+****
+include::lab-01.adoc[]
+****
+
+include::lecture-03.adoc[]
+****
+include::lab-02.adoc[]
+****
+
+include::lecture-04.adoc[]
+include::lecture-05.adoc[]
+include::lecture-06.adoc[]
+****
+include::lab-03.adoc[]
+****
+
+include::lecture-07.adoc[]
+include::lecture-08.adoc[]
+
+==== Chapter Summary
+The agent perceives, reasons, and acts. Tool schemas and ReAct enable the agent to use tools. The tool-calling agent integrates llm, memory, reasoning, search, audit, and classifiers. This is the first complete cognitive loop. Ch10 adds orchestration and scale.
+
+==== Further Reading
+Readings for this chapter are collected in the <<reading-list,Reading List>> (<<reading-ch09,Chapter 9>>).
+
+* Yao et al., "ReAct" <<Yao2022>> — Reasoning and acting interleaved.
+* Schick et al., "Toolformer" <<Schick2023>> — LLMs learning to use tools.
+* Russell & Norvig, _AIMA_ <<RussellNorvig2020>> — Agent architectures.
+
+include::exercises.adoc[]

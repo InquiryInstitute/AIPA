@@ -1,0 +1,123 @@
+=== 2.1: Real-World AI Deployments
+:leveloffset: 2
+
+A hospital deploys a diagnostic LLM that cuts radiology turnaround time by 30 % in a pilot. Three weeks later, error rates spike for pediatric scans, prompting an urgent recall. The incident illustrates how a model that shines in the lab can falter when the real‑world context shifts, exposing hidden feedback loops and stakeholder impacts.
+
+[.epigraph]
+"Technology is neither good nor bad; nor is it neutral."
+— Kranzberg, _Technology and History_ <<Kranzberg1986>> (via Latour)
+
+*AI in practice is always situated—deployed in contexts that shape and are shaped by it.*
+
+==== Example Prompts
+
+* "Summarize this document." — _Lab vs. production: stakeholders, constraints, feedback loops_
+* "Filter applications for this role." — _Who is affected? Applicants, operators, regulators—design for deployment_
+* "Recommend content for this user." — _Unintended consequences: bias amplification, distributional effects_
+
+==== Conceptual Core
+
+Intelligent systems in production differ from prototypes in the lab. Deployment introduces stakeholders, constraints, and feedback loops that theory often ignores. A model that works on benchmark data may fail when the context shifts—different users, different domains, different distributions. The gap between prototype and deployment is not merely technical; it is a translation across worlds. What the researcher optimizes (accuracy, loss) may not align with what the organization needs (trust, interpretability, cost, latency, fairness). Production systems must satisfy multiple objectives simultaneously, often under resource constraints.
+
+Stakeholders multiply in production. **Users** interact with the system directly. **Operators** maintain it—monitoring, updating, debugging. **Regulators** oversee it in sensitive domains. And there are those affected by its decisions even when they never use it directly: applicants filtered by a hiring algorithm, defendants scored by risk assessment, patients whose care is guided by a diagnostic tool.  
+
+Unintended consequences emerge. A recommendation system may amplify bias by surfacing popular content that reinforces existing preferences. A chatbot may leak training data in its responses. An automated decision system may deny opportunities to protected groups. The system seeds the capstone vision: your AI will operate in the world. Design for deployment from the start—not as an afterthought.
+
+Kranzberg's dictum applies: technology is neither good nor bad; nor is it neutral. AI systems embody choices about data, objectives, and deployment. Those choices have distributional effects. The same system may benefit some and harm others. Situated cognition, extended to AI, reminds us that intelligence is context‑dependent. There is no "general" system that works everywhere; there are systems that work in specific contexts. Our task is to understand and design for those contexts. The audit tool you will build in this chapter is the first step: mapping what exists, what depends on what, and what breaks when things change.
+
+===== Key Points
+
+* Production differs from prototype: stakeholders, constraints, feedback loops  
+* Gap between lab and deployment: translation across worlds  
+* Researcher optimizes accuracy; organization needs trust, interpretability, cost, latency, fairness  
+* Stakeholders: **users**, **operators**, **regulators**, **indirectly affected parties**  
+* Unintended consequences: bias amplification, data leakage, denial of opportunity  
+* Technology neither good nor bad nor neutral—choices have distributional effects  
+* Design for deployment from the start  
+* No "general" system—context‑dependent intelligence  
+
+==== Technical Example
+
+Consider a deployed LLM application—e.g., a customer‑service chatbot or document summarizer. A request follows a simple path: the user sends input, the API receives it, the model generates output, and the response returns. In parallel, a data lifecycle runs: training data produced the model; a knowledge store may augment retrieval; logs and feedback are collected for future retraining or fine‑tuning.
+
+These streams are coupled: each request creates logs; accumulated logs can trigger retraining; the updated model then changes future responses. When the context shifts—new product lines, new languages, new user populations—the model may degrade. Edge cases that were rare in development can dominate in production, leading to gradual drift or sudden distribution shifts.
+
+Monitoring this feedback loop is the core of deployment work. Observability components detect drift, behavior shifts, and error spikes. Your audit tool (Lab 1) will catalog the API, model, knowledge store, logs, and monitoring elements. The inventory is the first step toward accountability and observability.
+
+===== Key Points
+
+* Request path: user → API → model → response  
+* Data lifecycle: training data, knowledge store, logs, feedback  
+* Coupled loop: requests generate logs → retraining → updated model → new logs  
+* Context shift (new products, languages, populations) can cause degradation  
+* Monitoring detects drift, behavior shifts, error spikes  
+* Audit catalogs API, model, knowledge store, logs, monitoring  
+
+==== Philosophical Reflection
+
+Situated cognition, developed for human minds, applies to AI. Intelligence is not a disembodied computation; it is enacted in context. A chess engine is intelligent in the context of chess; a medical diagnostic system is intelligent in the context of clinical presentation. When we deploy AI, the surrounding environment—hospital, platform, government office—shapes what the system encounters and how its outputs are interpreted. The myth of the "general" system—one model that solves all tasks—obscures this. Every system has a domain, a distribution, a set of assumptions. When those assumptions fail, the system fails.
+
+The production pipeline makes the coupling explicit. Training data, knowledge store, and logs are not neutral infrastructure; they are the conditions under which the system "knows." Who produces training data? Who curates the knowledge store? Who decides what to log? These are epistemic and political questions. Observability—what we can see—shapes what we can govern. The audit tool you will build extends that observability. By mapping the system, we make it legible. Legibility is a precondition for accountability.
+
+===== Key Points
+
+* Situated cognition: intelligence enacted in context  
+* No "general" system—domain, distribution, assumptions matter  
+* Training data, knowledge store, logs: conditions of "knowing"  
+* Who produces, curates, decides? Epistemic and political dimensions  
+* Observability shapes governability  
+* Legibility is a precondition for accountability  
+
+By inventorying dependencies you make the hidden feedback loop visible, turning a black‑box deployment into a governable system.
+
+==== Discussion Prompts
+
+* Can you think of an AI system that worked in one context but failed in another?  
+* Who are the stakeholders for a system you use? Who might be affected without using it?  
+* What would "design for deployment" mean for your student‑ai/project?  
+* Is the myth of the "general" system still influential? Where do you see it?  
+* How does observability enable accountability?  
+* When has a production system become "visible" to you through failure or controversy?  
+
+==== Lab Prep
+
+Lab 1 (AI System — Inventory and Dependencies) asks you to catalog the components of a deployed AI system. Choose a target: a public API, an internal tool, or a well‑documented system. List: data sources, model(s), APIs, knowledge stores, logging infrastructure. Map dependencies: what does the model depend on? What depends on the model? The inventory is the foundation for the audit tool you will build in Labs 2 and 3. Document your target and the mapping. See Lab 1 for objectives and deliverables.
+
+===== Key Points
+
+* Lab 1: Inventory and Dependencies—catalog a deployed AI system  
+* List: data sources, models, APIs, knowledge stores, logs  
+* Map dependencies: what depends on what?  
+* Foundation for audit tool (Labs 2–3)  
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch02,Chapter 2>>).
+
+.Figure 2.1: Production AI pipeline — data lifecycle (training, knowledge, logs) and feedback loop
+[plantuml,ch02-l01,png,theme=sketchy-outline]
+....
+@startuml
+|Request Path|
+start
+:User;
+:API;
+:Model;
+|Data (lifecycle)|
+:Training Data;
+:Knowledge Store;
+:Logs / Feedback;
+stop
+
+' feedback loop
+Logs / Feedback --> Training Data : "retrain trigger"
+Training Data --> Model : "updated model"
+Model --> Logs / Feedback : "new logs"
+
+' augmentation
+Knowledge Store ..> Model : "retrieval‑augmentation"
+
+' monitoring
+Logs / Feedback --> Monitoring : "metrics"
+Monitoring --> Dashboard : "alerts"
+@enduml
+....

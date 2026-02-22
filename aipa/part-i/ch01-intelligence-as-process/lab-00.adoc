@@ -1,0 +1,49 @@
+=== Lab 0: Documentation — Markdown and PlantUML from the Student LLM
+:leveloffset: 2
+
+*Prerequisite: Have the Student LLM produce documentation and diagrams, not write them by hand.*
+
+==== Tool Deliverable
+
+Not a tool server. This lab establishes that the *agent* (Student LLM) generates Markdown and PlantUML diagrams. The student prompts the LLM to produce prose, structure, and diagram source; the LLM outputs Markdown with embedded PlantUML. Use this workflow throughout the course for READMEs, design docs, and architecture diagrams.
+
+==== Prerequisites
+
+* Review 1.1: representation (Markdown, diagrams) as stored structure; LLM output as process
+* Labs run in GitHub Codespaces; PlantUML and dependencies are in the dev container
+* Access to an LLM (API or local model) for the agent
+
+==== Objectives
+
+* Prompt the LLM to generate Markdown (headings, lists, code blocks)
+* Prompt the LLM to generate PlantUML diagrams (flowcharts, sequence, component)
+* Capture LLM output and render PlantUML to images (Kroki, `plantuml` CLI, or pipeline)
+* Validate that the agent can produce valid Markdown and diagram syntax
+
+==== Steps
+
+. Choose a small domain (e.g., a process, architecture, or concept from Lecture 1.1).
+. Prompt the LLM to generate a Markdown document with headings, at least one list, and at least one code block. Iterate until the output is well-formed.
+. Prompt the LLM to generate a PlantUML diagram (flowchart, sequence, or component diagram) for the same domain. Capture the diagram source.
+. Render the PlantUML to PNG or SVG using Kroki, the `plantuml` CLI, or an equivalent pipeline.
+. Embed the rendered diagram in the Markdown document. Verify that both Markdown and PlantUML syntax are valid.
+. Submit: GitHub repo (ch01-lab-00) or append to student-ai/ docs with a link to the deliverable.
+
+==== Deliverables
+
+* A Markdown document with at least one PlantUML diagram, both produced by the LLM
+* Diagram rendered to PNG or SVG (via Kroki, CLI, or build step)
+* GitHub repo (ch01-lab-00) or appendix in student-ai/ docs
+
+*Acceptance criteria:*
+* Markdown renders correctly (headings, lists, code blocks display properly)
+* PlantUML diagram compiles without errors and displays as intended
+* At least one diagram is embedded in the document
+* README or equivalent documents the workflow (prompt → LLM → render)
+
+==== Lab Prep
+
+* Review 1.1: representation (Markdown, diagrams) as stored structure; LLM output as process
+* Labs run in GitHub Codespaces; PlantUML and dependencies are in the dev container
+* Access to an LLM (API or local model) for the agent
+* For minimal path options (e.g. pair programming, simplified deliverables), see Instructor Manual §1.

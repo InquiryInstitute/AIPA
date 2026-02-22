@@ -1,0 +1,44 @@
+=== Lab 2: AI System — Traceability and Observability
+:leveloffset: 2
+
+*Milestone toward: AI System Audit Tool (tool)*
+
+==== Tool Deliverable
+
+Extends tool server `audit` with `trace_request`, `get_logs`. Agent traces requests and inspects observability data via tool invocation.
+
+==== Prerequisites
+
+* Complete Lab 1 (inventory)
+* Review 2.3–2.5: observability; trace schema; model version; failure modes
+
+==== Objectives
+
+* Design trace schema (inputs, outputs, model version)
+* Implement logging for key decision points
+* Trace a request end-to-end
+
+==== Steps
+
+. Define a trace schema: request_id, timestamp, model version (or hash), input summary, output summary, latency. Add fields for failure classification (drift, adversarial, edge_case, evaluation) if applicable.
+. Implement or instrument logging for at least one decision point (e.g., API call, model inference, retrieval).
+. Build a trace collector: aggregate logs into trace records. Support query by request_id or time range.
+. Trace a sample request end-to-end: from input to output, with all intermediate steps logged.
+. Optionally: add hooks for failure mode classification when a failure is detected.
+. Submit: trace format specification, logging hooks or instrumentation code, example traces, submodule into student-ai/.
+
+==== Deliverables
+
+* Trace format and logging hooks
+* Example traces
+* Submodule into student-ai/
+
+*Acceptance criteria:*
+* Trace schema is documented with all fields and types
+* At least one request produces a complete trace (input → output)
+* Trace includes model version or equivalent identifier
+* Code integrates with student-ai/ or is clearly linkable
+
+==== Lab Prep
+
+* Review 2.3–2.5: observability; trace schema; failure mode taxonomy

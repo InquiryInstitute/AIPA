@@ -1,0 +1,7 @@
+=== Exercises
+
+. *Conceptual* Why is the choice of state representation prior to the choice of search algorithm? What can go wrong if the representation is wrong?
+. *Conceptual* Explain admissibility and consistency for heuristics. Why does A* require both for optimality?
+. *Computational* Implement BFS and DFS for a small state space (e.g., 8-puzzle or grid navigation). Compare nodes expanded.
+. *Computational* Implement A* with Manhattan distance for the 8-puzzle. Verify it finds optimal solutions.
+. *Design* Formulate a real-world problem (e.g., course scheduling, route planning) as a state space. Define S, s₀, G, A, and succ.

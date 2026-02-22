@@ -1,0 +1,131 @@
+=== 2.7: Human-AI Collaboration
+:leveloffset: 2
+
+[.epigraph]
+"The human is not the center; the human is a node in the network."
+— Latour, _Reassembling the Social_ <<Latour2005>>
+
+*Collaboration is not human + AI as separate entities—it is a hybrid collective.*
+
+==== Example Prompts
+
+* "Flag this for human review." — _HITL: AI proposes, human confirms—delegation vs. augmentation vs. partnership_
+* "Should I trust this recommendation?" — _Calibration: over‑trust vs. under‑trust; when to override_
+* "Correct this and use it to improve the model." — _Feedback: human override as training signal—decision in the collective_
+
+==== Conceptual Core
+
+Human‑in‑the‑loop (HITL) systems insert human judgment into the AI pipeline. The AI generates a recommendation; the human reviews, confirms, or corrects it. This pattern is invoked when the stakes are high—medical diagnosis, loan approval, safety‑critical control—when the AI expresses uncertainty, or when domain expertise is indispensable.
+
+The term “human‑in‑the‑loop” covers several interaction modes. **Delegation** occurs when the AI decides and the human merely ratifies; **augmentation** sees the AI assist while the human retains final authority; **partnership** involves co‑decision making, with both agents contributing to the outcome. These modes have distinct accountability implications: who bears responsibility when an error occurs—the approving human, the proposing AI, or the system designer?
+
+Calibration concerns the trust relationship between human and AI. **Over‑trust** leads humans to defer to faulty AI recommendations; **under‑trust** causes them to ignore useful suggestions. Effective collaboration requires a calibrated trust curve, where the human’s willingness to accept AI output matches the AI’s actual reliability.
+
+Accountability is further complicated by Latour’s view that the human is a node in a network rather than the central actor. The decision emerges from the interaction of AI, human, interface, and organizational context. Designing meaningful handoffs therefore demands clear visibility, authority, and the ability to intervene.
+
+===== Key Points
+
+* Human‑in‑the‑loop: AI generates recommendation, human reviews
+* High‑stakes, uncertainty, or expertise trigger HITL
+* Delegation vs. augmentation vs. partnership define accountability
+* Calibration balances over‑trust and under‑trust
+* Feedback loops turn overrides into training signals
+* Distributed cognition: decision lives in the collective
+
+==== Technical Example
+
+Design a human‑AI handoff: the AI proposes a classification or recommendation, surfaces it with a confidence score, and the human can confirm, correct, or reject. Corrections flow back as a training signal—either fine‑tuning the model or enriching a retrieval index. The feedback loop closes, improving future performance.
+
+Document the handoff points:
+
+* **Entry point:** where does the human intervene?
+* **Information displayed:** confidence, rationale, context.
+* **Actions permitted:** approve, reject, edit, request clarification.
+* **Authority level:** does the human have the power to override?
+
+The audit report (Lab 3) should surface these interaction points. For each component, note whether a human is in the loop, at what stage, what they see, and what actions they can take. Meaningful agency requires that the human has sufficient information, time, and authority; otherwise “human‑in‑the‑loop” becomes theater.
+
+===== Key Points
+
+* Handoff: AI proposes → human confirms/corrects
+* Corrections serve as training signals
+* Document entry point, displayed info, and authority
+* Lab 3 audit report surfaces human‑AI interaction points
+* Design for meaningful agency: info, time, authority
+
+==== Philosophical Reflection
+
+Distributed cognition—the view that thinking is spread across people, artifacts, and environments—applies directly to human‑AI collaboration. The “decision” does not reside solely in the human mind or the model; it emerges from the interaction: AI proposes, human evaluates, the interface frames what is visible, and organizational constraints shape what is possible.
+
+This distributed agency complicates accountability. Legal and organizational frameworks (e.g., the EU AI Act) increasingly require **meaningful human oversight**, not merely a nominal human presence. To satisfy such requirements, the AI’s reasoning must be accessible, the human’s task must be scoped to what they can meaningfully assess, and the handoff must be documented for post‑hoc attribution.
+
+Designing for distributable agency therefore means:
+
+* Exposing model rationale or confidence to the reviewer
+* Limiting the human’s scope to assessable elements
+* Recording each handoff in an audit log for traceability
+
+===== Key Points
+
+* Distributed cognition: decision emerges from interaction
+* Agency in hybrid systems is shared, not centralized
+* Meaningful human oversight requires capacity and information
+* Legal frameworks codify the need for “meaningful human oversight”
+* Documented handoffs enable post‑hoc attribution of responsibility
+
+==== Take‑away
+
+In Lab 3 you will see how documenting each handoff makes the collective decision traceable, turning distributed agency into accountable practice.
+
+.Figure 2.6 – Human‑AI Collaboration Feedback Loop
+[plantuml,ch02-l06,png,theme=sketchy-outline]
+....
+@startuml
+!theme sketchy-outline
+
+' Nodes
+rectangle "AI generates recommendation\n(with confidence)" as AI
+rectangle "Human evaluates & decides" as Human
+rectangle "Action (execute / reject)" as Action
+rectangle "Correction (if any)" as Corr
+rectangle "Audit Log" as Audit
+
+' Flow
+AI --> Human : recommendation
+Human --> Action : approve / reject
+Action --> Corr : result
+Corr --> AI : training signal\n(model update)
+AI --> Audit : log proposal
+Action --> Audit : log action
+Corr --> Audit : log correction
+
+@enduml
+....
+
+==== Discussion Prompts
+
+* When have you over‑trusted or under‑trusted an AI system?
+* What would “meaningful” human review require in a domain you know?
+* Where does “the decision” live in a human‑AI system you use?
+* Can accountability be distributed, or must there be a single responsible party?
+* When is “human‑in‑the‑loop” theater rather than meaningful agency?
+
+==== Lab Prep
+
+Lab 3 (AI System Audit Tool — Report Generation): the audit report should surface human‑AI interaction points. For each component in the inventory, document:
+
+* Is there a human in the loop?
+* At what stage does the human intervene?
+* What does the human see?
+* What actions can they take?
+
+The report will help operators and auditors understand the collaboration structure—and assess whether human agency is meaningful or performative. See Lab 3 for the report schema.
+
+===== Key Points
+
+* Lab 3: Report surfaces human‑AI interaction points
+* Per component: human in loop? stage? view? actions?
+* Assess: meaningful or performative agency
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch02,Chapter 2>>).

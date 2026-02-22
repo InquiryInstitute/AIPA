@@ -1,0 +1,53 @@
+= Chapter 3: Search and Planning
+
+This chapter covers classical search and planning—state spaces, uninformed and informed search (BFS, DFS, A*), adversarial search (minimax, alpha-beta), planning as search (STRIPS, PDDL), partial observability (belief states, POMDPs), and meta-reasoning (anytime search, resource bounds). The theme: search is representation plus traversal. We reduce problems to state spaces; we traverse to find solutions. The search engine—indexing, retrieval, ranking—becomes a tool the agent invokes. Labs 1–3 build problem formulation, algorithms, and the search engine. Integration: student-ai/tools/search/. By chapter end, the agent can search documents, plan, and traverse graphs.
+
+==== Learning Objectives
+After this chapter you will be able to:
+* Formulate problems as state spaces and apply uninformed and informed search (BFS, DFS, A*)
+* Use adversarial search (minimax, alpha-beta) and planning (STRIPS, PDDL)
+* Understand partial observability (belief states, POMDPs) and meta-reasoning
+* Build a search engine tool (indexing, retrieval, ranking)
+
+==== Course Learning Outcomes (CLOs)
+By the end of this course, you will be able to:
+* Formulate problems as state spaces and apply uninformed and informed search (BFS, DFS, A*) (PLO 2).
+* Use adversarial search (minimax, alpha-beta) and planning (STRIPS, PDDL) (PLO 2).
+* Explain partial observability (belief states, POMDPs) and meta-reasoning (PLO 1).
+* Build a search engine tool (indexing, retrieval, ranking) (PLO 2).
+
+include::lecture-01.adoc[]
+include::lecture-02a.adoc[]
+****
+include::lab-01.adoc[]
+****
+
+include::lecture-02.adoc[]
+include::lecture-03.adoc[]
+****
+include::lab-02.adoc[]
+****
+include::lab-02b.adoc[]
+****
+
+include::lecture-04.adoc[]
+include::lecture-05.adoc[]
+include::lecture-06.adoc[]
+****
+include::lab-03.adoc[]
+****
+
+include::lecture-07.adoc[]
+include::lecture-08.adoc[]
+
+==== Chapter Summary
+Search is representation plus traversal. We reduce problems to state spaces and traverse to find solutions. A*, heuristic search, adversarial search, and planning extend the agent's capacity to explore and plan. The search engine tool integrates into the agent. Search concepts reappear in memory retrieval (Ch7) and reasoning (Ch8).
+
+==== Further Reading
+Readings for this chapter are collected in the <<reading-list,Reading List>> (<<reading-ch03,Chapter 3>>).
+
+* Russell & Norvig, _AIMA_ <<RussellNorvig2020>> — Search, planning, heuristics, A*.
+* Silver et al., "Mastering the Game of Go" <<Silver2016>> — Search + neural networks.
+* Sutton & Barto, _Reinforcement Learning_ <<Sutton2018>> — MDPs, value iteration.
+
+include::exercises.adoc[]

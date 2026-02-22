@@ -1,0 +1,125 @@
+=== 12.7: The Formal Presentation
+:leveloffset: 2
+
+[.epigraph]
+"To present is to make the work public."
+— Dewey, _Democracy and Education_ <<Dewey1916>> (adapted)
+
+*You have spent months building an autonomous negotiation agent. The day of the capstone arrives, the projector flickers, and the audience—your professor, a venture‑capitalist, and a skeptical peer—waits. Will your live demo survive the pressure, or will you have to fall back on a pre‑recorded video? What does that moment tell us about the nature of presenting AI work?*  
+
+==== Example Prompts
+
+* "Present your agent." — _Formal presentation; demo_
+* "Defend your design." — _Technical findings; demonstration_
+* "What did you learn?" — _From consumer to builder; the loop closes_
+
+==== Conceptual Core
+
+The central problem of the capstone presentation is **convincing a mixed audience under strict time pressure**. Students must translate months of code, data, and trial‑and‑error into a 20‑30 minute story that a non‑expert can follow while still satisfying the technical rigor demanded by faculty and potential investors. This tension creates a performance‑like situation: the work that was private in a repository becomes public on a screen.
+
+Visibility is the stakes. A live demo shows the agent’s behavior in real time, turning invisible code into observable action. That visibility is what allows the audience to evaluate, critique, and ultimately trust the system. At the same time, the presentation is an act of **accountability**: you stand behind every claim, and any failure is a direct challenge to your design decisions.
+
+To manage this tension, a **resilient structure** is required. A recommended outline allocates minutes to each segment, builds a narrative arc, and inserts decision points for contingency. For example, a 1‑minute intro establishes identity, a 3‑minute problem statement frames the user need, a 5‑minute approach explains design choices, a 10‑minute demo showcases the agent, a 2‑minute conclusion synthesizes findings, and a 5‑minute Q&A invites scrutiny. This pacing respects attention spans while leaving room for interaction.
+
+Balancing depth and accessibility is a trade‑off. Technical depth satisfies faculty and peers, but non‑experts may disengage if jargon dominates. The solution is **layered explanation**: start with high‑level goals, then briefly dive into a single technical insight that illustrates the novelty, and finally return to the impact. Use analogies, visual aids, and concrete examples to bridge the gap.
+
+Finally, **preparation for failure** is essential. Live demos are impressive but risky; a recorded backup, screenshots, or a pre‑written script can save the presentation if the system crashes. Rehearsal, timing checks, and a clear fallback plan turn uncertainty into a manageable variable rather than a show‑stopper.
+
+===== Key Points
+
+* Problem: convince mixed audience under time pressure  
+* Visibility: live demo makes invisible code observable  
+* Accountability: you stand behind every claim  
+* Resilient structure: intro (1 min), problem (3 min), approach (5 min), demo (10 min), conclusion (2 min), Q&A (5 min)  
+* Layered explanation balances depth vs. accessibility  
+* Use analogies and visual aids for non‑experts  
+* Prepare fallback: recorded demo, screenshots, script  
+* Rehearse, time yourself, and iterate on slides  
+* Treat the presentation as a performance with a contingency plan  
+* Audience includes faculty, peers, stakeholders, and potential investors  
+
+==== Technical Example
+
+Imagine you are rehearsing in a quiet lab. First, you script the 1‑minute intro: “I am Alex, and I built *NegotiaBot*, an agent that can negotiate price discounts in e‑commerce scenarios.” You then time the problem statement, ensuring you can articulate the user need (“online shoppers lose up to 15 % of potential savings because they lack negotiation skills”) within three minutes.  
+
+Next, you walk through the approach slide by slide, highlighting one design choice—say, a reinforcement‑learning policy trained on simulated buyer data. You practice explaining why that choice matters in under five minutes, using a single plot to illustrate learning progress.  
+
+For the demo, you set up two scenarios: a successful negotiation and a failure case. You run a live test on the first laptop, but you also have a 2‑minute screen‑capture video ready. During rehearsal you deliberately disconnect the network to simulate a crash; the fallback video plays instantly, preserving the flow. After the demo you close with a two‑minute conclusion that restates the contribution and lists three concrete limitations (e.g., “limited to price‑only negotiations”). Finally, you rehearse answering three tough questions you anticipate from the venture‑capitalist, the skeptical peer, and the professor.  
+
+This rehearsal loop—script, time, test, fallback, debrief—creates a **robust performance pipeline** that can be executed confidently on the day of the capstone.
+
+===== Key Points
+
+* Script and time each segment (intro, problem, approach, demo, conclusion)  
+* Highlight one technical insight with a visual aid  
+* Prepare two demo scenarios: success and failure  
+* Record a backup video and keep screenshots ready  
+* Simulate a crash during rehearsal to test fallback  
+* Conclude with clear contribution and three honest limitations  
+* Anticipate three stakeholder‑specific questions  
+* Practice answering questions aloud to build confidence  
+
+==== Philosophical Reflection
+
+The act of presenting an AI system is itself a **performative utterance**: by making the work public, you assert ownership and invite judgment. In performance theory, the speaker does not merely describe an action; the utterance **brings the action into being** for the audience. Likewise, the demo does not just illustrate code—it **creates the agent’s observable identity** in the collective mind of the listeners.
+
+Making the invisible visible also carries ethical weight. When an autonomous agent’s behavior is hidden behind layers of code, the audience cannot assess fairness, bias, or safety. The presentation, especially the demo, becomes the primary mechanism for **transparent accountability**. By openly acknowledging limitations—such as narrow negotiation domains or data‑driven biases—you model responsible AI practice and set a precedent for future research dissemination.
+
+Finally, the presentation frames the **loop between creator and consumer**. The questions asked during Q&A feed back into the design process, potentially reshaping the next iteration of the agent. This loop illustrates that AI development is not a solitary sprint but a public, iterative dialogue. Treating the capstone as a performance reminds us that **technical success is inseparable from communicative success**.
+
+===== Key Points
+
+* Presentation as performative utterance creates public identity for the AI  
+* Demo makes hidden code observable, enabling transparency  
+* Honest acknowledgment of limitations models ethical accountability  
+* Q&A feedback closes the loop between creator and consumer  
+* Technical success depends on communicative success  
+* Public performance invites scrutiny, fostering responsible AI development  
+* Visibility shapes trust and future design decisions  
+
+.Figure 12.7: Presentation outline with timing and fallback
+[plantuml,ch12-l07,png,theme=sketchy-outline]
+....
+@startuml
+skinparam backgroundColor #FDF6E3
+skinparam handwritten true
+
+start
+:Intro (1 min);
+:Problem (3 min);
+:Approach (5 min);
+if (Demo works?) then (yes)
+  :Live Demo (10 min);
+else (no)
+  :Recorded Demo (10 min);
+endif
+:Conclusion (2 min);
+:Q&A (5 min);
+stop
+@enduml
+....
+
+==== Discussion Prompts
+
+* Live demo or recorded backup? What are the artistic and practical trade‑offs?  
+* How would you redesign your presentation if the audience were entirely non‑technical?  
+* In a scenario where the demo crashes, what is the most persuasive way to transition to the backup?  
+* Which questions do you anticipate from a skeptical investor, and how would you prepare answers?  
+* How does the length of each segment affect audience attention and retention?  
+* What ethical responsibilities arise when you showcase an AI system that still has known biases?
+
+==== Lab Prep
+
+In Lab 3 you will record a short backup video of your agent, rehearse the full 20‑minute presentation, and conduct a peer‑review Q&A session. The lab worksheet guides you through timing each segment, scripting a concise limitation statement, and drafting three stakeholder‑specific questions. By the end of the lab you will have a polished slide deck, a reliable demo fallback, and a personal “performance checklist” to use on the day of the capstone.
+
+===== Key Points
+
+* Record a 2‑minute backup video of the demo  
+* Time and rehearse each presentation segment  
+* Script a clear limitation statement (3 points)  
+* Draft three stakeholder‑specific tough questions  
+* Conduct a peer‑review Q&A and refine answers  
+* Compile a performance checklist for the live day  
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch12,Chapter 12>>).

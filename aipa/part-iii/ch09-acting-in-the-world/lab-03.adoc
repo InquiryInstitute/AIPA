@@ -1,0 +1,46 @@
+=== Lab 3: Tool-Calling Agent — ReAct Loop and Control
+:leveloffset: 2
+
+*Final deliverable: Tool-Calling Agent (tool consumer)*
+
+==== Tool Deliverable
+
+Complete agent that consumes tools. ReAct loop: think → call tool → observe → repeat. Integrates all prior tool servers (student-ai/tools/).
+
+==== Prerequisites
+
+* Complete Labs 1 and 2 (schemas, execution)
+* Review 9.4–9.8: ReAct; planning; control flow; full agent
+
+==== Objectives
+
+* Implement ReAct or similar loop (think → act → observe)
+* Integrate LLM, tools, memory
+* Add control flow (max steps, safety)
+
+==== Steps
+
+. Implement ReAct loop: prompt LLM with "Think step by step. You can use tools: ..." Parse output for Thought and Action.
+. Execute action via tool layer; get observation. Append to prompt; LLM continues.
+. Repeat until final answer or max steps (e.g., 10). Return best-so-far or final answer.
+. Integrate tools: search, memory (rag_retrieve), reasoning, llm, audit (from prior chapters). Ensure tool client discovers and invokes them.
+. Add control: max steps, tool allowlist. Optionally: guardrails for sensitive tools (e.g., require confirmation).
+. Run a complex task: "Research X, summarize, cite sources." Trace the reasoning chain.
+. Submit: working tool-calling agent, example task completion trace, integration as submodule in student-ai/tools/.
+
+==== Deliverables
+
+* Working tool-calling agent
+* Example task completion
+* Integration as submodule in student-ai/tools/
+
+*Acceptance criteria:*
+* ReAct loop runs; agent produces thought and action steps
+* Agent invokes at least 2 tools in a single task
+* Max steps limit is enforced
+* At least 1 complex task trace documented
+* README explains how to run the agent and add tools
+
+==== Lab Prep
+
+* Review 9.4–9.8: ReAct; planning; control; full integration

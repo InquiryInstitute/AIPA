@@ -1,0 +1,44 @@
+=== Lab 3: AI Governance Simulator — Institutional Play
+:leveloffset: 2
+
+*Final deliverable: AI Governance Simulator (tool)*
+
+==== Tool Deliverable
+
+Complete tool server `governance`. Tools: `define_policy`, `check_compliance`, `simulate`, `report`. Institutional play. Register in agent tool config.
+
+==== Prerequisites
+
+* Complete Labs 1 and 2 (policies, simulation)
+* Review 11.5–11.8: epistemology; governance tool; institutional scenarios
+
+==== Objectives
+
+* Run institutional scenarios (audit, oversight, redress)
+* Support policy iteration
+* Document governance decisions for student AI
+
+==== Steps
+
+. Consolidate define_policy, check_compliance, simulate into one module. Add report(): generate governance summary (policies, scenarios, findings).
+. Implement institutional scenarios: audit (inspect system), oversight (monitor decisions), redress (handle violations).
+. Add epistemology scenario: "Agent recommends X; users adopt X; data reflects X." Document epistemic impact.
+. Integrate with agent: agent calls check_compliance before sensitive actions. Simulate agent behavior under governance.
+. Register governance tool in agent config. Document schema.
+. Submit: full simulator, example scenarios, integration as submodule in student-ai/.
+
+==== Deliverables
+
+* Full simulator
+* Example scenarios
+* Integration as submodule in student-ai/
+
+*Acceptance criteria:*
+* define_policy, check_compliance, simulate, report all work
+* At least 2 institutional scenarios run successfully
+* Agent can invoke governance for compliance checks
+* README documents full API and integration
+
+==== Lab Prep
+
+* Review 11.5–11.8: epistemology; institutional scenarios; agent integration

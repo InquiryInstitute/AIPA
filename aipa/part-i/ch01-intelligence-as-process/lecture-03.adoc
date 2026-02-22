@@ -1,0 +1,131 @@
+=== 1.3: The Cognitive Turn — Minds as Information Processors
+:leveloffset: 2
+
+Imagine you are solving a crossword puzzle. You read a clue, retrieve possible words from memory, test them against the intersecting letters, and update your mental notebook with each trial. Suddenly you pick a word that looks right—only to discover later that it clashes with a crossing. What invisible machinery is orchestrating this dance of perception, memory, and decision, and why does it sometimes lead us astray?
+
+[.epigraph]
+"The map is not the territory."
+— Korzybski, _Science and Sanity_ <<Korzybski1933>> (via Deleuze)
+
+*Every model of mind is a map; the territory—what mind actually does—remains contested.*
+
+==== Example Prompts
+
+* "Solve this puzzle step by step." — _Production systems: if‑then rules, working memory, traceable inference_
+* "Find related concepts in the knowledge graph." — _Input → represent → process → act → store_
+* "Traverse from node A to node B and return the path." — _Explicit rules (symbolic) vs. learned retrieval_
+
+==== Conceptual Core
+
+In the early 1950s a group of computer scientists and psychologists grew frustrated with behaviorism’s refusal to speak about inner mental life. They asked: *What if the brain were a kind of digital computer that could manipulate symbols?* This question birthed **cognitivism**, a research program that treats cognition as information processing. The landmark Dartmouth workshop of 1956 and Newell & Simon’s development of the **General Problem Solver** (GPS) illustrated the ambition: a machine that could search through symbolic representations to solve puzzles much like our crossword example.
+
+Newell and Simon formalised this ambition in the **Physical Symbol System Hypothesis**: a physical symbol system has the *necessary and sufficient* means for intelligent action. In plain terms, any system capable of creating, modifying, and combining symbolic structures can, in principle, exhibit general intelligence. The hypothesis gave cognitivism a crisp, testable claim and set the stage for decades of symbolic AI research.
+
+The resulting **information‑processing psychology** portrayed the mind as a loop of five stages: sense, represent, process, act, store. Attention, working memory, and reasoning were each modelled as computational sub‑processes that could be isolated, measured, and simulated. This metaphor unified perception, memory, and problem‑solving under a single architecture, and it directly inspired early cognitive architectures such as ACT‑R and Soar.
+
+Critics soon warned that the metaphor was a *map* rather than the *territory*. **Embodiment** argued that cognition is inseparable from the body’s sensorimotor capacities; the iCub robot, for example, demonstrates how grasping a cup reshapes the very representations it uses. **Situated cognition** emphasized that intelligent behavior emerges from the tight coupling of agent and environment, not from internal symbols alone. These challenges reminded us that any purely symbolic model must be supplemented by interaction with the world.
+
+The first major symbolic challenge arrived with the rise of **connectionist** models in the 1980s. Neural networks compute over distributed, sub‑symbolic representations and learn from data, sidestepping explicit rule manipulation. Yet the tension between symbolic and connectionist approaches persists: modern systems such as IBM’s Watson combine explicit rule‑based reasoning with statistical learning, while large‑scale transformers act as *soft* production systems, learning to fire “rules” from massive text corpora. This ongoing dialogue shapes today’s AI landscape.
+
+===== Key Points
+
+* Cognitivism arose from frustration with behaviorism’s silence on inner states  
+* Physical Symbol System Hypothesis (Newell & Simon): symbols are sufficient for intelligence  
+* Information‑processing loop: sense → represent → process → act → store  
+* Embodiment (e.g., iCub) shows cognition is body‑dependent  
+* Situated cognition: intelligence emerges from agent‑world coupling  
+* Connectionist models (neural networks) offer distributed, learned representations  
+* Modern hybrids (Watson, transformers) blend symbolic rules with statistical learning  
+* The map/territory metaphor warns us to treat models as guides, not full realities  
+
+==== Technical Example
+
+Production systems—collections of if‑then rules that fire when conditions match a working memory—were among the first computational models of cognition. Architectures such as **ACT‑R** and **Soar** implement this idea at scale: a rule “if the goal is to retrieve a neighbor, then traverse the edge” fires, updates the memory, and the cycle repeats. Because each rule is explicit, we can trace exactly which productions fired and why, giving the model a level of interpretability prized in cognitive science.
+
+A contemporary symbolic illustration is a tiny rule‑based chatbot that solves a logic puzzle in real time. The bot’s knowledge base contains rules like “if X is true and Y is false, then infer Z”. When a user submits a puzzle, the engine matches the premises to the rules, fires the appropriate productions, and returns a solution trace that can be displayed to the class. This live demo makes the abstract pipeline concrete and shows the transparency advantage of symbolic systems.
+
+At the same time, modern deep‑learning models act as *soft* production systems. A transformer‑based language model learns to predict the next token, implicitly learning “rules” from billions of examples. While we cannot point to a single if‑then clause, we can probe the model’s attention patterns to see how it *softly* activates relevant knowledge. Your knowledge‑graph explorer will therefore support both **explicit traversal** (symbolic, transparent) and **learned retrieval** (connectionist, flexible), mapping directly onto the cognitive loop: input (user query), representation (graph or embedding), process (traversal or neural retrieval), act (return results), store (graph persists).
+
+===== Key Points
+
+* Production systems: explicit if‑then rules over working memory  
+* ACT‑R, Soar: classic symbolic cognitive architectures  
+* Transparency: traceable rule firing provides interpretability  
+* Rule‑based chatbot demo: live illustration of symbolic reasoning  
+* Transformer models as soft production systems: learned, less interpretable  
+* Explorer design: combine explicit traversal (symbolic) with learned retrieval (connectionist)  
+* Cognitive pipeline mapping: input → representation → process → act → store  
+
+==== Philosophical Reflection
+
+If the mind is a kind of computer, then building a machine that simulates every neuron’s firing pattern would, by definition, be building a mind. Yet many philosophers ask: *Would such a simulation truly think, or would it merely mimic the outward signs of thought?* This “full‑brain‑simulation” thought experiment forces us to confront whether computation alone can capture consciousness, qualia, and the lived sense of embodiment.
+
+What does the computational metaphor leave out? **Qualia** (the felt quality of experience), **embodiment** (how the body shapes cognition), **context** (the situational constraints that give meaning), and the **social** dimension (the co‑construction of meaning through interaction). In our crossword vignette, the puzzle’s meaning emerges not just from the letters but from the cultural context of the clues and the solver’s personal history. A knowledge graph can map relationships, but it cannot *feel* the satisfaction of a solved clue nor *sense* the tactile feedback of turning a page.
+
+Nevertheless, the map remains indispensable. Just as a cartographer’s map enables travelers to navigate unfamiliar terrain, a knowledge‑graph map enables agents—human or artificial—to navigate complex domains. The map is not the territory, but without it we would wander blindly. Recognising the limits of the map while exploiting its power is the central challenge for AI designers.
+
+===== Key Points
+
+* Full‑brain‑simulation raises the question: does perfect computation equal thinking?  
+* Missing aspects: qualia, embodiment, context, social co‑construction  
+* Crossword example illustrates how meaning depends on cultural and personal context  
+* Knowledge graphs are maps: they guide navigation but do not become the territory  
+* The map/territory metaphor urges humility: use models as guides, not as complete explanations  
+
+.Figure 1.3: Information‑processing as circulation (loop with environment)
+[plantuml,ch01-l03,png,theme=sketchy-outline]
+....
+@startuml
+skinparam backgroundColor #FDF6E3
+skinparam ArrowColor #555555
+skinparam rectangle {
+  BackgroundColor #E8F5E9
+  BorderColor #2E7D32
+}
+skinparam rectangle<<Env>> {
+  BackgroundColor #FFF9C4
+  BorderColor #F9A825
+}
+rectangle "Environment" <<Env>> as ENV
+rectangle "Input\n(perception)" as IN
+rectangle "Represent\n(working memory)" as RE
+rectangle "Process\n(reasoning)" as PR
+rectangle "Act\n(action)" as AC
+rectangle "Store\n(long‑term knowledge)" as ST
+
+ENV --> IN : stimulus
+IN --> RE
+RE --> PR
+PR --> AC
+AC --> ST : update
+ST --> IN : feedback / context
+@enduml
+....
+
+==== Bridge to Lab
+
+In Lab 2 you will trace a single knowledge‑graph query through the stages of **Input**, **Representation**, **Process**, **Act**, and **Store** you have just examined. By visualising the loop on the diagram above, you will see how a seemingly simple request becomes a full cognitive cycle, and you will experience first‑hand the trade‑off between transparent symbolic traversal and flexible learned retrieval.
+
+==== Discussion Prompts
+
+* Have you ever felt that a computational model of mind was “missing something”? What?
+* Where does your knowledge‑graph explorer sit in the cognitive pipeline: input, representation, process, or store?
+* Can a system without a body be intelligent? What would count as evidence?
+* Is transparency (being able to trace reasoning) always a virtue? When might it be a cost?
+* Identify the Input‑Represent‑Process‑Act‑Store stages in solving a Sudoku puzzle and map them onto the diagram above.
+* Quick poll: raise your hand if you think embodiment is essential for true intelligence. What arguments support your view?
+
+==== Lab Prep
+
+Identify where your knowledge‑graph explorer will sit in the cognitive pipeline. The graph itself is the **store**; the user's query is **input**; traversal or retrieval is **process**; the returned subgraph or visualisation is **output** (the **act** stage). Before Lab 2 (Knowledge Graph — Query and Traversal), sketch a single query flow from input to output, marking where representation (working memory) occurs and where feedback to the store happens. The Explorer (Lab 3) will add the interface layer—the point where the system meets the user's cognitive loop.
+
+===== Key Points
+
+* Graph = store; query = input; traversal = process; results = output (act)  
+* Sketch query flow: input → representation → process → act → store feedback  
+* Lab 2 focuses on the query‑and‑traversal stage (process)  
+* Lab 3 adds the interface layer (input/act coupling with user)  
+* Visualise the loop with the revised PlantUML diagram to keep the cognitive metaphor concrete  
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch01,Chapter 1>>).

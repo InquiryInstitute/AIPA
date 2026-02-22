@@ -1,0 +1,7 @@
+=== Exercises
+
+. *Conceptual* Why do LLMs need external memory? What are the limits of the context window?
+. *Conceptual* Distinguish episodic, semantic, and procedural memory. Give an example of each in an AI agent.
+. *Computational* Implement chunking: split a document into fixed-size chunks (e.g., 256 tokens) with overlap. Compare to sentence-based chunking.
+. *Computational* Build a minimal RAG: embed query, search vector store, concatenate context + query, generate. Evaluate on 5–10 QA pairs.
+. *Design* Design a memory tool schema: index(docs), search(query, k), rag_retrieve(query, k). What would the agent receive from each call?

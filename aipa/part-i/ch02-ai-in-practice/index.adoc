@@ -1,0 +1,49 @@
+= Chapter 2: AI in Practice
+
+This chapter shifts from conceptual foundations to practice: how intelligent systems operate in production. We cover real-world deployment (stakeholders, feedback loops, context-dependence), data pipelines and knowledge flow (who produces and consumes data), model lifecycle (training, deployment, drift), and observability (logs, metrics, traces, accountability). We examine failure modes and brittleness, human-AI collaboration, and AI system audits. The audit tool—inventory, traceability, report generation—is the chapter's deliverable. It integrates into student-ai/ as a tool server for self-inspection, extending the agent's capacity to observe and govern itself. Labs 1–3 build the audit tool from inventory through trace schema to full pipeline. By chapter end, you will have an operational audit tool and a framework for assessing deployed AI systems.
+
+==== Learning Objectives
+After this chapter you will be able to:
+* Describe deployment, data pipelines, model lifecycle, and observability for AI systems
+* Identify failure modes, brittleness, and human-AI collaboration patterns
+* Build and integrate an audit tool (inventory, trace schema, pipeline)
+
+==== Course Learning Outcomes (CLOs)
+By the end of this course, you will be able to:
+* Describe deployment, data pipelines, model lifecycle, and observability for AI systems (PLO 4).
+* Identify failure modes, brittleness, and human-AI collaboration patterns (PLO 4).
+* Build and integrate an audit tool (inventory, trace schema, pipeline) (PLO 2).
+
+include::lecture-01.adoc[]
+include::lecture-use-cases.adoc[]
+****
+include::lab-01.adoc[]
+****
+
+include::lecture-02.adoc[]
+include::lecture-03.adoc[]
+include::lecture-04.adoc[]
+include::lecture-05.adoc[]
+****
+include::lab-02.adoc[]
+****
+
+include::lecture-06.adoc[]
+include::lecture-07.adoc[]
+****
+include::lab-03.adoc[]
+****
+
+include::lecture-08.adoc[]
+
+==== Chapter Summary
+This chapter grounded AI in practice: deployment, pipelines, lifecycle, and observability. We examined failure modes and human-AI collaboration. The audit tool—inventory, traces, reports—gives your agent self-inspection capacity. These practices recur in governance (Ch11) and capstone deployment (Ch12).
+
+==== Further Reading
+Readings for this chapter are collected in the <<reading-list,Reading List>> (<<reading-ch02,Chapter 2>>).
+
+* NIST, _AI Risk Management Framework_ <<NIST2023>> — Governance and risk for AI systems.
+* EU AI Act <<EU2024>> — Regulatory framework for high-risk AI.
+* Foucault, _Power/Knowledge_ <<Foucault1980>> — Governance as constitutive.
+
+include::exercises.adoc[]

@@ -1,0 +1,152 @@
+=== 8.1: Propositional Logic — Syntax and Semantics
+:leveloffset: 2
+
+[.epigraph]
+"Logic is the hygiene of thought."
+— Russell & Norvig, _AIMA_ <<RussellNorvig2020>> (propositional logic)
+
+*Propositional logic: the simplest formal language for reasoning.*
+
+==== Example Prompts
+
+* "If P and Q, then R. P. Q. Therefore?" — _Propositional logic: entailment, resolution_
+* "Prove this follows from the pass:q[\aimaterm{knowledge base}]." — _Resolution: refutation-complete_
+* "Represent these rules formally." — _Atoms, connectives; logic as norm of correctness_
+
+==== Conceptual Core
+
+When the agent reasons, we want its conclusions to follow from its premises. But what does "follow" mean, and how do we check? We need a norm—a standard that tells us when an inference is valid. Propositional logic is the simplest such norm: a formal language in which "follows" has a precise definition and a mechanical test.
+
+In plain language: one set of statements entails another when whenever the first are true, the second must be true—logical consequence. Formally:
+
+[.formal-definition]
+****
+*Formal Definition (Entailment)*
+*Entailment*: α ⊨ β iff every model that satisfies α also satisfies β. We say α entails β; β is a logical consequence of α. Proof: show α ∧ ¬β is unsatisfiable (refutation). Resolution is refutation‑complete: it will derive the empty clause if α ⊨ β. See AIMA <<RussellNorvig2020>>.
+****
+
+We build the language in two layers. **Syntax**: atomic propositions (P, Q, R), connectives (∧, ∨, ¬, →). Well‑formed formulas are built recursively. **Semantics**: truth tables assign truth values; a model is an assignment of truth to atoms. Validity: true in all models. Satisfiability: true in some model. Entailment: α ⊨ β iff every model of α satisfies β. So we have a clear notion of "follows."
+
+A concrete truth‑table illustrates the process. For the formula *(P ∧ Q) → R* the table enumerates the eight possible assignments to P, Q, and R, showing that the implication is false only when the antecedent is true and the consequent false. This table is the basis for evaluating any propositional sentence mechanically.
+
+Agents care about **model counting** because the number of satisfying models indicates the degree of uncertainty or redundancy in a knowledge base. A knowledge base with many models is under‑constrained, while a single model corresponds to a fully determined world description—both extremes have practical implications for planning and diagnosis.
+
+Resolution provides a procedural norm. Convert the knowledge base to conjunctive normal form (CNF), resolve clauses until either the empty clause appears (contradiction) or no new clauses can be generated. If the empty clause appears, α ⊨ β. Logic is the hygiene of thought—a norm of correctness. The gap between logic and natural language remains: "if" in logic is material implication; "if" in language is nuanced. We translate at our peril. **In the next lecture we will lift these ideas to first‑order logic, allowing quantification over objects.**
+
+===== Key Points
+
+* Syntax: atoms, ∧, ∨, ¬, →
+* Semantics: truth tables, models
+* Validity: true in all models
+* Satisfiability: true in some model
+* Entailment: α ⊨ β ⇔ every model of α satisfies β
+* CNF conversion: systematic rewriting to clause form
+* Resolution completeness: refutation‑complete proof system
+* Model counting: relevance for agent uncertainty
+
+==== Technical Example
+
+Represent a small pass:q[\aimaterm{knowledge base}]: *P → Q*, *Q → R*, *P*. Prove *R*.
+
+**Step 1 – Negate the goal**: add ¬R to the KB.  
+**Step 2 – Convert to CNF**:  
+
+* P → Q ≡ ¬P ∨ Q  
+* Q → R ≡ ¬Q ∨ R  
+* P     ≡ P  
+* ¬R     ≡ ¬R  
+
+The clause set is {¬P ∨ Q, ¬Q ∨ R, P, ¬R}.
+
+**Step 3 – Resolve** (pseudo‑code):
+
+[source,python]
+----
+def resolution(clauses):
+    new = set()
+    while True:
+        for (ci, cj) in combinations(clauses, 2):
+            resolvent = resolve(ci, cj)
+            if resolvent == set():      # empty clause
+                return True
+            new.add(resolvent)
+        if new.issubset(clauses):
+            return False
+        clauses = clauses.union(new)
+----
+The loop repeatedly applies the resolution rule until the empty clause is derived, confirming that *R* follows from the KB.
+
+**Step 4 – Result**: the empty clause is produced, so the KB entails *R*.
+
+Lab 1 asks you to encode a domain in propositional logic, transform it to CNF, and run a resolution or SAT solver to answer queries.
+
+===== Key Points
+
+* Negate the goal before resolution
+* Clause representation (disjunction of literals)
+* CNF conversion rules (implication → disjunction)
+* Resolution rule (pairwise resolvent)
+* Empty‑clause detection signals entailment
+* Complexity note: worst‑case exponential but practical for small KBs
+* Lab 1: hands‑on encoding and solving
+
+==== Philosophical Reflection
+
+Logic serves as a **normative** standard for agents: it tells us what it means to reason correctly, independent of how humans actually reason. By adopting a formal norm, we can build systems that *guarantee* sound inference, even if the underlying cognitive processes differ from human intuition.
+
+However, propositional logic is **limited**. It lacks quantification, cannot express relations between objects, and forces us to enumerate every possible atomic proposition. This makes it unsuitable for domains with rich structure (e.g., planning with objects and actions) and leads to combinatorial blow‑up when scaling.
+
+The tension between **idealized normative reasoning** and **descriptive human language** remains. Natural language “if” carries pragmatic implicature, counterfactual nuance, and context‑dependence that material implication does not capture. Translating between the two is a source of error, but the formalism gives us a clear baseline from which to measure and improve.
+
+Propositional logic thus acts as a **foundation**: it provides a tractable, well‑understood inference mechanism that we can later extend with quantifiers (first‑order logic) and uncertainty (probabilistic logics). Understanding its strengths and limits prepares us for those richer formalisms.
+
+===== Key Points
+
+* Normative role: defines correct inference for agents
+* Idealization vs. descriptive human reasoning
+* Expressivity limits: no quantifiers, no relations
+* Scalability concerns: combinatorial explosion
+* Bridge to richer logics (FOL, probabilistic)
+* Practical baseline for building reasoning tools
+* Awareness of translation pitfalls between language and logic
+
+.Figure 8.1: Propositional logic (syntax tree)
+[plantuml,ch08-l01,png,theme=sketchy-outline]
+....
+@startuml
+skinparam backgroundColor #FDF6E3
+skinparam node {
+  BackgroundColor #FFF8DC
+  BorderColor #555555
+}
+node "→" as impl {
+  node "∧" as and {
+    P
+    Q
+  }
+  R
+}
+@enduml
+....
+
+==== Discussion Prompts
+
+* When does propositional logic suffice?
+* What is lost when we formalize natural language?
+* Is "valid" the same as "correct"?
+* How does logical inference connect to the agent's reasoning?
+* How does the reasoning tool expose propositional logic?
+* When does the agent need symbolic vs. LLM reasoning?
+
+==== Lab Prep
+
+Lab 1: Represent knowledge in propositional logic. Encode a domain (e.g., rules, constraints). Use resolution or a SAT solver for inference. This is the foundation for the reasoning tool. See Lab 1 for objectives.
+
+===== Key Points
+
+* Lab 1: Propositional KB
+* Resolution or SAT
+* Foundation for reasoning tool
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch08,Chapter 8>>).

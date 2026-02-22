@@ -1,0 +1,12 @@
+steps ← 0
+prompt ← initialize_prompt(T)
+while steps < max_steps do
+    response ← LLM(prompt)          // generates Thought + Action
+    if response contains FinalAnswer then
+        return response.FinalAnswer
+    end if
+    observation ← execute(response.Action)
+    prompt ← prompt + format(response.Thought, response.Action, observation)
+    steps ← steps + 1
+end while
+return "max_steps reached"

@@ -1,0 +1,14 @@
+python
+def conv2d_forward(x, w, b, stride=1, padding='same'):
+    # x: (N, C_in, H, W)
+    # w: (K, C_in, Kh, Kw)
+    # b: (K,)
+    x_padded = pad(x, padding)               # zero‑pad if needed
+    out_h = (H + 2*pad - Kh) // stride + 1
+    out_w = (W + 2*pad - Kw) // stride + 1
+    out = zeros((N, K, out_h, out_w))
+    for i in range(out_h):
+        for j in range(out_w):
+            patch = x_padded[:, :, i*stride:i*stride+Kh, j*stride:j*stride+Kw]
+            out[:, :, i, j] = (patch * w).sum(axis=(1,2,3)) + b
+    return out

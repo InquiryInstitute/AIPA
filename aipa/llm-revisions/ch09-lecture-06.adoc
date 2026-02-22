@@ -1,0 +1,199 @@
+=== 9.6: Control Flow — Max Steps, Safety, Guardrails
+:leveloffset: 2
+
+[.epigraph]
+"Boundaries enable freedom."
+— Russell & Norvig, _AIMA_ <<RussellNorvig2020>> (control as enabler)
+
+==== Hook: A Runaway Assistant
+
+Imagine an LLM‑driven assistant that, when asked to “plan a trip”, keeps asking the user for clarification after every generated sentence, never reaching a final itinerary.  
+Or picture the same assistant invoking a “delete‑file” tool on a production server because it was not told that such a capability is forbidden.  
+What stopped the assistant from looping forever or causing damage?  The answer lies in the control‑flow mechanisms we explore in this lecture.
+
+==== Example Prompts
+
+* "Stop after 10 steps." — _Max steps; prevent runaway_  
+* "Don't call external APIs for this." — _Guardrails: what the agent can and cannot do_  
+* "Check safety before acting." — _Compliance check; block or warn_
+
+==== Conceptual Core
+
+**Max‑step limits** are the most basic safeguard.  An autonomous agent typically proceeds in a reasoning loop: receive input, generate a sub‑task, possibly call a tool, and produce an intermediate answer.  Without a hard ceiling, a malformed prompt or a poorly designed tool can cause the loop to iterate indefinitely.  By counting each iteration and aborting once a predefined threshold (e.g., `MAX_STEPS = 10`) is reached, we guarantee termination and give the user a predictable response time.
+
+**Why infinite loops happen** is often a mismatch between the agent’s confidence and the external world.  The model may repeatedly request clarification because it cannot resolve ambiguity, or it may retry a failing tool call hoping for a different outcome.  The step counter acts as a “time‑out” for the reasoning process, forcing the agent to either produce a best‑effort answer or explicitly acknowledge that it ran out of budget.
+
+**Safety mechanisms** go beyond simple counting.  An *allow‑list* enumerates the tools the agent is permitted to invoke (e.g., `search`, `summarize`) while a *block‑list* forbids dangerous operations (e.g., `delete_file`, `execute_shell`).  Rate limits add a quantitative dimension, capping the number of calls to external APIs per minute to avoid denial‑of‑service attacks or runaway billing.
+
+**Guardrails** are validation layers that inspect both the inputs to a tool and the outputs returned to the user.  Before a tool executes, a guard‑rail function checks that arguments satisfy a schema, that no prohibited patterns appear, and that any required confirmations have been obtained.  After execution, the agent’s response is scanned for disallowed content (e.g., personally identifiable information) and either sanitized or rejected.
+
+**Interplay of control and autonomy** is not a zero‑sum game.  By explicitly defining limits, we give the agent a safe operating envelope within which it can exercise creativity.  The constraints make its behaviour predictable, which in turn builds user trust and enables higher‑level governance (see Chapter 11).  Designers must therefore view boundaries as enablers of responsible autonomy rather than as arbitrary shackles.
+
+===== Key Points
+
+* Max steps prevent infinite loops and guarantee termination.  
+* Step counters act as a reasoning “time‑out”.  
+* Allow‑list defines permissible tools; block‑list forbids dangerous ones.  
+* Rate limits cap API usage and cost.  
+* Guardrails validate tool arguments and filter agent outputs.  
+* Graceful degradation returns a partial result with an explanatory note when limits are hit.  
+* Human‑in‑the‑loop override flags allow operators to intervene.  
+* Logging of limit violations supports auditability and continuous improvement.
+
+==== Technical Example
+
+Below is a concise pseudo‑code illustration that combines all three control mechanisms.  The snippet is deliberately language‑agnostic; in Lab 3 you will translate it into the framework of your choice.
+
+[source,python]
+----
+MAX_STEPS = 10
+ALLOWLIST = {"search", "summarize", "translate"}
+RATE_LIMIT = {"search": 5, "summarize": 3}   # calls per minute
+
+step_counter = 0
+rate_counters = defaultdict(int)
+
+def guardrail_passes(tool, args):
+    # Example: disallow empty queries and enforce length limits
+    if not args.get("query"):
+        return False, "Missing query"
+    if len(args["query"]) > 200:
+        return False, "Query too long"
+    return True, ""
+
+def execute_tool(tool, args):
+    # Placeholder for actual tool invocation
+    return f"Result of {tool}"
+
+def agent_loop(user_request):
+    global step_counter
+    while step_counter < MAX_STEPS:
+        step_counter += 1
+        tool, args = plan_next_action(user_request)   # returns tool name & args
+
+        # --- Allow‑list check ---
+        if tool not in ALLOWLIST:
+            log_violation(step_counter, tool, "not allowed")
+            continue   # skip this iteration
+
+        # --- Rate‑limit check ---
+        if rate_counters[tool] >= RATE_LIMIT.get(tool, float('inf')):
+            log_violation(step_counter, tool, "rate limit exceeded")
+            continue
+
+        # --- Guard‑rail validation ---
+        ok, msg = guardrail_passes(tool, args)
+        if not ok:
+            warn_user(msg)
+            continue
+
+        # --- Safe execution ---
+        result = execute_tool(tool, args)
+        if not result:
+            warn_user("Tool failed")
+            continue
+
+        # Process result, possibly produce final answer
+        if is_final_answer(result):
+            return result
+
+    # If we exit the loop, we have hit the step limit
+    return f"Partial result after {MAX_STEPS} steps: {summarize_progress()}"
+----
+In Lab 3 you will:
+
+* Insert the step counter into the existing reasoning loop.  
+* Implement an allow‑list data structure and reject disallowed tools.  
+* Add a simple guard‑rail function that checks argument schemas.  
+* Observe how the agent degrades gracefully when the step budget is exhausted.
+
+===== Key Points
+
+* Step counter enforces `MAX_STEPS`.  
+* Allow‑list restricts tool usage.  
+* Guard‑rail function validates inputs before execution.  
+* Rate‑limit counters prevent API abuse.  
+* Human‑override flag can abort execution on demand.  
+* Logging captures every violation for later audit.
+
+==== Philosophical Reflection
+
+Control mechanisms raise a classic dilemma in the philosophy of agency: does constraining an autonomous system diminish its moral status, or does it make the system a more trustworthy partner?  From an *instrumental* perspective, limits are merely part of the agent’s utility function—without them the agent cannot achieve its goals efficiently because it wastes resources or harms stakeholders.  From a *moral* standpoint, designers bear responsibility for the boundaries they set; the very act of drawing a line is a normative judgment about what the system ought to be allowed to do.
+
+Consider a scenario where an agent is given a “max‑step” of 5 for a medical‑diagnosis task.  If the agent reaches the limit without a definitive answer, it must either present an incomplete hypothesis or defer to a human clinician.  The decision to expose uncertainty reflects a design choice about user safety versus system autonomy.  Who, then, decides the appropriate step budget, the composition of the allow‑list, or the strictness of guard‑rails?  Is it the system architect, the regulatory body, or the end‑user?  These questions echo broader debates about *responsibility* in AI: the locus of accountability shifts from the algorithm to the humans who configure its constraints.
+
+Finally, transparency about limits is essential for building trust.  When users see a clear message such as “step limit reached – here is what I could compute so far,” they understand that the system behaved as intended rather than failing mysteriously.  This openness also enables *normative oversight*: stakeholders can critique and revise the guard‑rails, ensuring that the system evolves in step with societal values.
+
+===== Key Points
+
+* Limits shape the agent’s moral and instrumental agency.  
+* Designers make normative choices when setting step budgets and guard‑rails.  
+* Transparency about constraints fosters user trust.  
+* Responsibility for safety rests on the humans who define the limits.  
+* Ongoing oversight allows guard‑rails to adapt to evolving ethical standards.
+
+.Figure 9.6: Control flow with max‑step, allow‑list, and guard‑rail checks
+[plantuml,ch09-l06,png,theme=sketchy-outline]
+....
+@startuml
+start
+:Initialize stepCounter = 0;
+repeat
+  :Receive user request;
+  if (stepCounter >= MAX_STEPS?) then (yes)
+    :Return partial result\n"step limit reached";
+    stop
+  else (no)
+    :stepCounter++;
+    :Determine next tool & args;
+    if (tool in ALLOWLIST?) then (yes)
+      if (Guardrail passes?) then (yes)
+        :Execute tool;
+        if (Result is final?) then (yes)
+          :Return final answer;
+          stop
+        else (no)
+          :Update internal state;
+        endif
+      else (no)
+        :Reject execution,\nwarn user;
+      endif
+    else (no)
+      :Reject tool call,\nlog violation;
+    endif
+  endif
+repeat while (more sub‑tasks?)
+stop
+@enduml
+....
+
+==== Synthesis
+
+By weaving together a hard step budget, a curated allow‑list, and layered guard‑rail validation, we give autonomous agents a robust safety envelope that preserves their creative problem‑solving while preventing runaway behaviour and harmful actions.  These three mechanisms are complementary: the step limit guarantees termination, the allow‑list narrows the action space, and guard‑rails enforce semantic correctness at the point of execution.  In the next lecture we will see how such envelopes are orchestrated by a higher‑level governance layer that can dynamically adjust policies across deployments.
+
+==== Discussion Prompts
+
+* What is an appropriate `MAX_STEPS` value for different task domains (e.g., planning vs. fact‑retrieval)?  
+* How should rate limits be calibrated to balance responsiveness and cost?  
+* Who should decide which tools belong on the allow‑list, and how often should that list be reviewed?  
+* In what situations should an agent refuse a user request outright rather than attempting a degraded answer?  
+* How do guard‑rails interact with the broader governance framework introduced in Chapter 11?  
+* What role does a human‑in‑the‑loop override play in maintaining safety without stifling autonomy?
+
+==== Lab Prep
+
+Lab 3: Extend the agent implementation with the full control‑flow stack.  
+* Add a step counter that enforces `MAX_STEPS`.  
+* Implement an allow‑list and reject any disallowed tool calls.  
+* Write a guard‑rail function that validates tool arguments and filters outputs.  
+* (Optional) Add rate‑limit enforcement and a human‑override flag.  
+* Document each limit, explain the design rationale, and demonstrate graceful degradation when a limit is hit.
+
+===== Key Points
+
+* Lab 3 focuses on **Control Flow**: max steps, allow‑list, guard‑rails.  
+* Implement **rate‑limit** and **human‑override** for extra credit.  
+* Produce a short report describing the limits, their purpose, and observed behaviour when they trigger.
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch09,Chapter 9>>).

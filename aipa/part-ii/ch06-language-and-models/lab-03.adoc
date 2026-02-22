@@ -1,0 +1,45 @@
+=== Lab 3: Prompt/LLM Pipeline — Orchestration and Caching
+:leveloffset: 2
+
+*Final deliverable: Prompt/LLM Pipeline (tool)*
+
+==== Tool Deliverable
+
+Complete tool server `llm`. Tools: `embed`, `generate`, `prompt`, `cache`. Orchestration + caching. Register in agent tool config (student-ai/llm/).
+
+==== Prerequisites
+
+* Complete Labs 1 and 2 (embeddings, generation)
+* Review 6.5–6.8: caching; cost; tool schema; llm as agent tool
+
+==== Objectives
+
+* Orchestrate prompt → LLM → postprocess
+* Cache responses for cost/latency
+* Integrate with agent reasoning loop
+
+==== Steps
+
+. Consolidate embed and generate into one module. Expose embed(text), generate(prompt, params), prompt(template_id, vars).
+. Add cache: key = hash(prompt + model + key_params). Check cache before API call; store response on return. Optional: TTL.
+. Implement orchestration: prompt template → fill vars → generate → optional postprocess (parse JSON, extract answer).
+. Measure cost and latency: run workflow without cache vs with cache. Document savings.
+. Register llm tool in agent config. Document schema: embed, generate, prompt, cache (if exposed).
+. Submit: pipeline implementation, caching layer, integration as submodule in student-ai/llm/.
+
+==== Deliverables
+
+* Pipeline implementation
+* Caching layer
+* Integration as submodule in student-ai/llm/
+
+*Acceptance criteria:*
+* embed() and generate() work via unified interface
+* Cache returns cached response when key matches (no API call)
+* Cost/latency comparison documented (with/without cache)
+* Tool schema documented for agent
+* README explains pipeline and integration
+
+==== Lab Prep
+
+* Review 6.5–6.8: caching; cost; tool schema

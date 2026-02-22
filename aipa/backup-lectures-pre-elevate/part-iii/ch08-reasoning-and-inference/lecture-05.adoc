@@ -1,0 +1,155 @@
+=== 8.5: LLMs and Structured Reasoning
+:leveloffset: 2
+
+[quote]
+____
+*A student asks an LLM to prove that the sum of the interior angles of a triangle is 180°. The model writes a plausible step‑by‑step argument, but a single mistaken algebraic manipulation makes the proof invalid. How can we know when the LLM’s reasoning is trustworthy?*  
+____
+
+[.epigraph]
+"Chain-of-thought: reasoning as generated text."
+— Wei et al., *Chain-of-Thought Prompting* <<Wei2022>>
+
+==== Example Prompts
+
+* "Solve this step by step." — _Chain‑of‑thought: LLM produces reasoning trace_
+* "Verify this proof." — _Symbolic check of LLM output; CoT + verification_
+* "Reason about this problem." — _LLM CoT vs. symbolic inference; hybrid_
+
+==== Conceptual Core
+
+LLMs can produce step‑by‑step reasoning—but is it inference? Chain‑of‑thought (Wei et al., <<Wei2022>>) improves performance on math and reasoning by asking the model to “think step by step.” The output looks like reasoning; it may be right or wrong. To obtain guarantees we combine generation with verification using a symbolic engine or a known answer. This lecture covers CoT, verification, and the limits—when is generated reasoning trustworthy?
+
+* **CoT prompting** – ask the model to “think step by step.”  
+* **Tree of thoughts** – explore multiple reasoning paths in parallel.  
+* **Self‑consistency** – generate *N* samples, take the majority answer.  
+* **LLM + symbolic verification** – generate a trace, then check each step with a solver or theorem prover.  
+* **Prompt engineering** – phrasing influences the quality and completeness of the CoT trace.  
+* **Hallucination risk** – plausible but incorrect steps can appear confidently.  
+* **Decision point** – verification determines whether the trace is accepted or a fallback is triggered.
+
+After establishing these concepts we will see how they play out in a concrete technical setting.
+
+===== Key Points
+
+* CoT: step‑by‑step prompting.  
+* Tree of thoughts & self‑consistency for robustness.  
+* LLM + symbolic verification pipeline.  
+* Prompt engineering shapes CoT quality.  
+* Hallucination: confident but false reasoning.  
+* Verification decision: accept vs. re‑prompt/fallback.  
+* Simulated reasoning vs. genuine inference.
+
+==== Technical Example
+
+We compare a baseline LLM response with a CoT‑enhanced response on a set of arithmetic and logical puzzles. Empirically, CoT improves accuracy, but the raw trace must still be validated.
+
+1. **Parsing CoT into an abstract syntax tree (AST).**  
+2. **Error‑type classification:** identify arithmetic mistakes, missing premises, or logical fallacies.  
+3. **Symbolic check:** feed each claimed step to a calculator, SAT solver, or theorem prover.  
+4. **Self‑consistency voting:** generate *N* CoT traces, parse each, and select the majority‑voted answer.  
+5. **Latency vs. accuracy trade‑off:** more samples and deeper verification raise confidence but increase response time.  
+6. **Fallback handling:** if verification fails, the agent can re‑prompt the LLM with a clarified query or switch to a pure symbolic solver.
+
+Lab 3 will have you implement this pipeline: the reasoning tool will call `chain_of_thought` for generation and `symbolic_check` for verification, handling failures automatically.
+
+===== Key Points
+
+* Baseline vs. CoT performance comparison.  
+* Parse CoT output into an AST for systematic checking.  
+* Classify error types to guide remediation.  
+* Self‑consistency: generate *N* samples → majority vote.  
+* Latency‑accuracy trade‑off in multi‑sample verification.  
+* Fallback strategies when symbolic check fails.  
+* Lab 3: integrate LLM generation with symbolic verification.
+
+==== Philosophical Reflection
+
+The LLM’s textual trace is *simulated* reasoning—it mimics the form of a proof without guaranteeing logical soundness. This raises several deeper questions:
+
+* **Epistemic status of generated proofs:** Are they evidence, or merely heuristic suggestions?  
+* **Trust through verification:** Only after a symbolic check can we treat the output as a reliable proof.  
+* **Governance implications:** Auditors need to know whether an agent relied on CoT‑only or CoT + verification.  
+* **Human‑like heuristics:** Humans also use “thinking aloud” and later check their work; the hybrid pipeline mirrors this practice.  
+* **AI accountability:** When a failure occurs, the provenance (generation vs. verification) determines responsibility.  
+* **Future design choices:** Agents must decide *when* to invoke costly symbolic checks versus trusting the LLM’s intuition.
+
+These considerations will shape how we design trustworthy AI systems that blend language flexibility with logical rigor.
+
+===== Key Points
+
+* Simulated reasoning vs. genuine inference.  
+* Verification as the gate to epistemic trust.  
+* Auditable provenance for AI governance.  
+* Parallels with human “think‑aloud” heuristics.  
+* Accountability linked to verification outcomes.  
+* Design decisions about when to verify.
+
+==== Take‑away
+
+In practice, the CoT + verification loop gives us the best of both worlds: the expressive power of language models and the certainty of symbolic engines. The next lecture will explore *decision policies*—how agents choose between pure LLM reasoning, symbolic fallback, or hybrid verification—to build robust, trustworthy AI systems.
+
+==== Discussion Prompts
+
+* When is CoT “real” reasoning?  
+* How do we verify LLM reasoning?  
+* What is the role of symbolic verification?  
+* How do logic, probability, and LLM combine?  
+* How does the reasoning tool use the LLM for CoT?  
+* When should the agent use symbolic vs. LLM reasoning?
+
+==== Lab Prep
+
+Lab 3: Combine logical/probabilistic inference with LLM reasoning. The reasoning tool provides:
+
+* `assert/query` for logic,  
+* `infer_probability` for Bayes,  
+* `chain_of_thought` for LLM generation,  
+* `symbolic_check` for verification (including fallback handling when verification fails).
+
+Refer to the updated Figure 8.5 for the full pipeline, including the verification decision point and optional self‑consistency voting.
+
+===== Key Points
+
+* Lab 3 integrates logic, probability, and LLM CoT.  
+* `chain_of_thought` generates reasoning traces.  
+* `symbolic_check` validates each step; on failure, re‑prompt or fallback.  
+* Optional self‑consistency voting improves robustness.  
+* Documentation must record whether CoT‑only or CoT + verification was used.
+
+.Figure 8.5: CoT + symbolic verification pipeline
+[plantuml,ch08-l05,png,theme=sketchy-outline]
+....
+@startuml
+title CoT + Symbolic Verification Pipeline
+
+' Optional self‑consistency side‑box
+box "Self‑Consistency (optional)" #LightYellow
+  :Generate N CoT samples;
+  :Majority vote;
+end box
+
+partition Agent {
+  start
+  :Prompt user / task;
+  if (Use self‑consistency?) then (yes)
+    -->[Self‑Consistency] box
+  else (no)
+    -->[Direct] 
+  endif
+
+  :Chain‑of‑Thought generation;
+  :Symbolic Check\n(solver / theorem prover);
+  if (Pass?) then (yes)
+    -->[Result] :Result;
+  else (no)
+    -->[Failure] :Re‑prompt / fallback to symbolic engine;
+    -->[Result] :Result;
+  endif
+  stop
+}
+@enduml
+....
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch08,Chapter 8>>).

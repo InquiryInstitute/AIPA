@@ -1,0 +1,29 @@
+python
+import time, hashlib
+from collections import OrderedDict
+
+class LLMCache:
+    def __init__(self, ttl_seconds=86400, maxsize=10_000):
+        self.ttl = ttl_seconds
+        self.store = OrderedDict()
+        self.maxsize = maxsize
+
+    def _make_key(self, prompt, model, **params):
+        key_material = f"{model}|{prompt}|{sorted(params.items())}"
+        return hashlib.sha256(key_material.encode()).hexdigest()
+
+    def get(self, key):
+        entry = self.store.get(key)
+        if entry and (time.time() - entry['ts'] < self.ttl):
+            # move to end to reflect recent use (LRU)
+            self.store.move_to_end(key)
+            return entry['response']
+        elif entry:
+            # stale entry – remove
+            del self.store[key]
+        return None
+
+    def set(self, key, response):
+        if len(self.store) >= self.maxsize:
+            self.store.popitem(last=False)   # evict LRU
+        self.store[key] = {'response': response, 'ts': time.time()}

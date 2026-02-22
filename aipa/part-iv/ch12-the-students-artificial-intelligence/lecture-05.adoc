@@ -1,0 +1,91 @@
+=== 12.5: Evaluation and Benchmarking
+:leveloffset: 2
+
+[.epigraph]
+"Evidence speaks—when we design how to collect it."
+— NIST, _AI Risk Management Framework_ <<NIST2023>>; Mehrabi et al. <<Mehrabi2019>> (evaluation)
+
+==== Example Prompts
+
+* "How well does the agent perform?" — _Evaluation; benchmark_
+* "Compare to baselines." — _Rigorous evaluation; metrics_
+* "Document performance." — _Evaluation for the thesis_
+
+==== Conceptual Core
+
+How do we know the capstone works? Not by intuition—by evidence. Evaluation design asks: what do we measure, against what baselines, and under what conditions? NIST and Mehrabi et al. (<<NIST2023>>, <<Mehrabi2019>>) stress that evidence speaks when we design how to collect it. This lecture covers metrics, benchmark tasks, user studies, and honest reporting so the thesis is supported by rigorous evaluation.
+
+Evaluation design: what do we measure? Metrics: accuracy, latency, user satisfaction, task completion rate—chosen for the domain. Baselines: what do we compare to? A simpler system, a human, random? Comparisons: A vs. B. Does the agent outperform the baseline? Under what conditions? Benchmark tasks: define representative tasks for the capstone domain. Tasks that users actually face. Run the agent on them; collect results.
+
+User study: qualitative feedback. Do users find it useful? What works? What frustrates? 2–3 users, structured or semi-structured interviews. Synthesize: themes, quotes, implications. Document: strengths, limitations, failure modes. Honest reporting. Do not hide failures—they inform improvement. Evaluation as argument: the evaluation supports your thesis. You claim the agent works; the evaluation is the proof. Evidence for the thesis: design collection carefully, report honestly.
+
+===== Key Points
+
+* Metrics: what to measure (accuracy, latency, satisfaction, etc.)
+* Baselines: compare to what?
+* Benchmark tasks: representative for domain
+* User study: qualitative feedback (2–3 users)
+* Document: strengths, limitations, failure modes
+* Honest reporting
+* Evaluation = argument for thesis
+* Evidence = proof
+
+==== Technical Example
+
+Run the evaluation harness on the capstone agent. Use benchmark tasks from your domain—5–10 tasks that represent real use. For each: run the agent, record output, score (by rubric or automated metric). Collect user feedback: 2–3 users complete tasks, then interview. What worked? What failed? What would they change? Analyze: aggregate metrics, thematic analysis of feedback. Document results in the thesis. Lab 3: Run full evaluation. Document results. The thesis cites this evidence. See Lab 3 for requirements.
+
+===== Key Points
+
+* Run evaluation harness
+* Benchmark tasks (5–10)
+* User feedback (2–3 users)
+* Analyze, document
+* Lab 3: Full evaluation, document
+* Thesis cites evidence
+
+==== Philosophical Reflection
+
+Evaluation as argument: you are making a case. "The agent works for problem X" is a claim. The evaluation is the argument. Design it carefully. What evidence would convince a skeptical reader? What would falsify your claim? The evaluation is not decoration—it is the proof. Report honestly. Include limitations. "The agent fails when..." is valuable. It shows you understand the system's boundaries. Evidence speaks—when we design how to collect it. Bad evaluation produces noise; good evaluation produces knowledge.
+
+===== Key Points
+
+* Evaluation = case-making
+* Evidence = proof
+* Report honestly, including limitations
+* Design collection carefully
+
+.Figure 12.5: Evaluation framework for capstone
+[plantuml,ch12-l05,png,theme=sketchy-outline]
+....
+@startuml
+start
+:Benchmark Tasks;
+:Run;
+:Report;
+:User Study;
+stop
+@enduml
+....
+
+==== Discussion Prompts
+
+* What metrics matter for your domain?
+* How do we balance quantitative and qualitative evidence?
+* What if evaluation shows the agent fails? How do we report that?
+* What makes a "representative" benchmark task?
+* How do we avoid gaming the evaluation?
+* What would falsify your thesis? How would you design the evaluation to catch it?
+
+==== Lab Prep
+
+Lab 3: Run the full evaluation. Benchmark tasks, user study. Document results: strengths, limitations, failure modes. The thesis will cite this. Structure the evaluation section: metrics, tasks, results, analysis, limitations. See Lab 3 for requirements.
+
+===== Key Points
+
+* Lab 3: Full evaluation
+* Benchmark, user study
+* Document for thesis
+
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch12,Chapter 12>>).

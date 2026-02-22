@@ -1,0 +1,216 @@
+=== 6.1: Caching LLM Calls – Why It Matters
+
+[.epigraph]
+____
+*“Your demo just crashed because the API hit its daily quota. The audience is staring, the investors are waiting, and you have five seconds to keep the conversation going.”*  
+How do you guarantee sub‑second responses while keeping the cost of a large‑language‑model (LLM) service under control?
+____
+
+==== Conceptual Core
+
+The first question that any production‑grade LLM system must answer is **_where does latency come from?_**  
+A single request to a hosted model typically traverses a network hop, an authentication handshake, and the model’s own inference pipeline. Even with a high‑performance GPU, the round‑trip can easily exceed 500 ms, and the per‑token cost quickly adds up when the same prompt is issued repeatedly. In a classroom demo, a research prototype, or a customer‑facing chatbot, those milliseconds become seconds of user frustration and dollars of unnecessary spend.
+
+*Key point:* **Caching** is the oldest, most reliable technique for breaking the latency‑cost loop. By storing the *output* of an LLM for a given *input* we can serve future identical requests from memory, eliminating the network round‑trip entirely.
+
+But caching LLMs is not a trivial “store‑and‑retrieve” problem. Three design goals shape any robust implementation:
+
+1. **Deterministic key generation** – The cache must map *exactly* the same prompt (including model name and any generation parameters) to a single key.  
+2. **Freshness control** – Model outputs evolve as the underlying model is updated or as the knowledge base changes; a time‑to‑live (TTL) policy prevents serving stale answers indefinitely.  
+3. **Bounded resource usage** – Memory is finite; an eviction policy (most commonly Least‑Recently‑Used, LRU) guarantees that the cache never exceeds a pre‑defined size.
+
+These goals raise a second set of questions that we will answer step‑by‑step:
+
+* How do we turn a complex prompt‑parameter tuple into a compact, collision‑resistant identifier?  
+* What data structure gives us O(1) lookup while also tracking usage order for LRU eviction?  
+* How do we enforce TTL without a separate background thread?
+
+The answer lies in a small, self‑contained Python class that leverages the standard library: `hashlib` for deterministic keys, `OrderedDict` for LRU ordering, and timestamps for TTL checks. The class is deliberately simple so that the core ideas remain visible, yet it is production‑ready: it respects a maximum size, evicts the least‑recently used entry, and automatically discards entries that have outlived their TTL.
+
+Below is a high‑level flow diagram that captures the decision path for every incoming request.
+
+[plantuml, cache-flow, png]
+----
+@startuml
+!define DecisionDiamond <<choice>>
+skinparam ArrowColor #333
+skinparam BackgroundColor #F9F9F9
+
+start
+:Receive prompt, model, params;
+:Generate cache key;
+if (Key in store?) then (yes)
+  if (Entry fresh?) then (yes)
+    -->[Hit] :Return cached response;
+    stop
+  else (no)
+    -->[Stale] :Remove entry;
+  endif
+endif
+:Call LLM API;
+:Store result with timestamp;
+:Return response;
+stop
+@enduml
+----
+*Figure 1: Cache lookup flow – a hit returns instantly, a miss triggers an LLM call, and stale entries are purged.*
+
+**Design rationale recap**
+
+* **Hash‑based keys** guarantee that even long prompts become fixed‑size identifiers, enabling fast dictionary lookups.  
+* **OrderedDict** preserves insertion order; moving a key to the end on each hit updates its “recently used” status, which the LRU eviction logic then exploits.  
+* **TTL** is enforced lazily: we check the timestamp only when a key is accessed, avoiding a dedicated cleanup thread.
+
+The next section translates these ideas into concrete code, annotating each method with the design goal it satisfies.
+
+==== Technical Example
+
+Below is a complete, runnable implementation of the `LLMCache`. It includes inline comments that tie each line back to the conceptual goals introduced above.
+
+[source,python]
+----
+import time
+import hashlib
+from collections import OrderedDict
+
+class LLMCache:
+    """
+    A lightweight in‑memory cache for LLM responses.
+    • ttl_seconds – how long a cached entry stays fresh.
+    • maxsize     – maximum number of entries; LRU eviction when exceeded.
+    """
+    def __init__(self, ttl_seconds: int = 86_400, maxsize: int = 10_000):
+        self.ttl = ttl_seconds                     # Freshness control
+        self.maxsize = maxsize                     # Resource bound
+        self.store = OrderedDict()                 # LRU‑aware container
+
+    def _make_key(self, prompt: str, model: str, **params) -> str:
+        """
+        Deterministic, collision‑resistant key.
+        • Concatenates model, prompt, and sorted parameter items.
+        • SHA‑256 yields a fixed‑length, uniform identifier.
+        """
+        key_material = f"{model}|{prompt}|{sorted(params.items())}"
+        return hashlib.sha256(key_material.encode()).hexdigest()
+
+    def get(self, prompt: str, model: str, **params):
+        """
+        Lookup path (see Figure 1).
+        Returns cached response if present *and* fresh; otherwise None.
+        """
+        key = self._make_key(prompt, model, **params)
+        entry = self.store.get(key)
+
+        # Hit & fresh?
+        if entry and (time.time() - entry['ts'] < self.ttl):
+            # Update usage order for LRU
+            self.store.move_to_end(key)
+            return entry['response']
+
+        # Stale entry – remove it so it never blocks a fresh result
+        if entry:
+            del self.store[key]
+        return None
+
+    def set(self, prompt: str, model: str, response: str, **params):
+        """
+        Store a fresh response.
+        • Evicts LRU entry if capacity would be exceeded.
+        • Inserts new entry at the tail (most‑recent position).
+        """
+        key = self._make_key(prompt, model, **params)
+
+        # Enforce maxsize via LRU eviction
+        if len(self.store) >= self.maxsize:
+            # popitem(last=False) removes the oldest (least‑recently used) entry
+            evicted_key, evicted_entry = self.store.popitem(last=False)
+
+        self.store[key] = {'response': response, 'ts': time.time()}
+----
+*Figure 2: Full `LLMCache` implementation.*
+
+**Key points illustrated by the example**
+
+* *Hashing ensures deterministic keys* – regardless of prompt length, the cache lookup remains O(1).  
+* *TTL prevents stale answers* – the timestamp check discards entries older than the configured lifetime.  
+* *OrderedDict implements LRU* – `move_to_end` updates usage, and `popitem(last=False)` evicts the least‑recently used entry when the cache fills.  
+* *Separation of concerns* – `get` handles retrieval and freshness, while `set` deals with capacity and insertion.  
+* *Extensibility* – the class can be wrapped with thread‑safety primitives or swapped for a Redis backend without changing the public API.
+
+To see the cache in action, run the following short script (included in the lab materials). It simulates an LLM call with a `time.sleep` delay, demonstrates a cache hit on the second request, and forces an eviction by exceeding `maxsize`.
+
+[source,python]
+----
+import time
+
+def mock_llm(prompt):
+    """Simulate latency of a real LLM call."""
+    time.sleep(0.7)               # 700 ms artificial delay
+    return f"Response to: {prompt}"
+
+cache = LLMCache(ttl_seconds=30, maxsize=3)
+
+prompt = "Explain Newton's first law."
+# First request – miss, calls mock LLM
+resp = cache.get(prompt, model="gpt‑4")
+if resp is None:
+    resp = mock_llm(prompt)
+    cache.set(prompt, model="gpt‑4", response=resp)
+print("First:", resp)
+
+# Second request – hit, returns instantly
+resp = cache.get(prompt, model="gpt‑4")
+print("Second (cached):", resp)
+
+# Fill cache to trigger eviction
+for i in range(4):
+    p = f"Prompt {i}"
+    cache.set(p, model="gpt‑4", response=mock_llm(p))
+print("Cache keys after overflow:", list(cache.store.keys()))
+----
+Running this script will show a ~700 ms pause on the first call, an instantaneous second call, and finally the eviction of the oldest entry once the size limit is breached.
+
+==== Philosophical Reflection
+
+Caching is often framed as a purely engineering optimization, yet it raises deeper questions about the *nature of knowledge* in AI‑augmented systems. When we serve a cached answer, we are effectively **reifying a snapshot of a model’s belief** at a particular moment in time. If the underlying model is updated—perhaps because new data has been incorporated or a safety patch applied—our cache may continue to propagate an outdated worldview.
+
+*What does it mean to trust a cached response?*  
+On one hand, the cache guarantees performance and cost predictability, enabling broader access to powerful models. On the other, it introduces a **temporal divergence** between the model’s current state and the information presented to users. This tension mirrors classic debates in epistemology: the trade‑off between *stability* (reliable, repeatable answers) and *freshness* (up‑to‑date, possibly more accurate answers).
+
+Consider a medical chatbot that answers “What is the recommended dosage of Drug X?” If the cached answer predates a recent FDA update, the system could inadvertently disseminate harmful advice. The ethical responsibility therefore lies not only in implementing TTLs but also in **designing governance policies** that dictate how often caches must be invalidated after critical model revisions.
+
+Finally, caching reflects a broader philosophical stance: *knowledge as a resource that can be stored, reused, and amortized.* In a world where AI services are commodified, the economics of caching become inseparable from the ethics of access. By making expensive model calls cheaper through reuse, we democratize AI, but we must also safeguard against the ossification of outdated or biased outputs.
+
+*Take‑away reflections*
+
+1. **Temporal fidelity** – TTL is a technical knob, but its setting encodes a value judgment about how much staleness is acceptable.  
+2. **Responsibility diffusion** – Caches shift part of the responsibility for correctness from the model provider to the system integrator.  
+3. **Bias amplification** – Repeatedly serving the same cached answer can reinforce systematic biases present in the original model snapshot.  
+4. **Transparency** – Users should be informed when a response is served from cache versus a fresh inference.  
+5. **Governance** – Organizational policies must define cache invalidation triggers (e.g., model version bump, regulatory change).
+
+==== Discussion Prompts
+
+1. *Latency vs. Freshness*: In what domains (e.g., finance, healthcare, entertainment) is a short TTL more critical, and why?
+2. *Cache Key Design*: How would you extend `_make_key` to incorporate user‑specific context (e.g., location, preferences) without exploding the cache size?
+3. *Distributed Caching*: What challenges arise when moving from an in‑memory `OrderedDict` to a shared Redis or Memcached layer?
+4. *Ethical Implications*: Should a system ever disclose that a response is cached? How might that affect user trust?
+5. *Failure Modes*: Imagine the cache becomes a single point of failure (e.g., memory exhaustion). What fallback strategies could you employ?
+6. *Future Directions*: How could probabilistic data structures (e.g., Bloom filters) complement LRU caching for “cache‑miss prediction”?
+
+==== Lab Preparation (15‑20 min)
+
+In the upcoming lab you will **extend the `LLMCache`** to support asynchronous LLM calls and to store entries in a Redis instance. The lab worksheet provides:
+
+* A starter notebook that includes the `LLMCache` class and a mock async LLM function (`async def mock_llm_async(prompt): …`).  
+* Instructions to replace the internal `OrderedDict` with a Redis hash, preserving TTL semantics via Redis’s native expiration feature.  
+* A set of test cases that measure hit‑rate, average latency, and memory footprint before and after the migration.
+
+*Lab objectives*
+
+1. **Implement async `get`/`set`** methods that await the underlying LLM call only on a cache miss.  
+2. **Configure Redis eviction** policies (e.g., `volatile-lru`) to mirror the in‑memory LRU behavior.  
+3. **Benchmark** the impact of network latency to Redis versus pure in‑process caching.  
+4. **Reflect** on how moving the cache out of process changes the system’s fault tolerance and scalability.
+
+By the end of the session you will have a production‑grade, distributed cache ready to plug into any LLM‑driven application, and you will have explored the broader implications of caching on system design, ethics, and future AI architectures.

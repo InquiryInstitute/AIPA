@@ -1,0 +1,91 @@
+=== 12.6: The Written Thesis
+:leveloffset: 2
+
+[.epigraph]
+"Writing is thinking."
+— Wittgenstein, _Philosophical Investigations_ <<Wittgenstein1953>> (adapted)
+
+*The thesis documents the journey and the result.*
+
+==== Example Prompts
+
+* "Document your capstone." — _Written thesis: problem, approach, evaluation_
+* "What did you build and why?" — _Journey and result; evidence of mastery_
+* "Explain your design choices." — _Thesis documents the artifact_
+
+==== Conceptual Core
+
+Thesis structure: problem (what? for whom? why?), approach (how did you solve it?), implementation (what did you build?), evaluation (what evidence?), discussion (limitations, future work). Standard technical report form. Technical writing: clarity, reproducibility. A reader should understand and replicate. Use citations for prior work. Include figures (architecture, results). Appendix for details (code snippets, prompts, full results). The thesis as artifact of graduate competency: it demonstrates mastery. You can define a problem, design a solution, implement it, evaluate it, and communicate it. Documentation as accountability: we document to be held accountable. The thesis is scrutinized; it must withstand critique. The thesis as bridge to future work: it points forward. What would you do next? What open questions remain?
+
+Writing is thinking: the act of writing clarifies thought. Drafting forces you to resolve ambiguity. The thesis is not an afterthought—it is part of the work. Start early; iterate with feedback.
+
+===== Key Points
+
+* Structure: problem, approach, implementation, evaluation, discussion
+* Clarity, reproducibility
+* Citations, figures, appendix
+* Thesis = competency artifact
+* Documentation = accountability
+* Bridge to future work
+* Writing = thinking
+* Thesis = part of work, not afterthought
+
+==== Technical Example
+
+Outline thesis sections. Problem: 1–2 pages. What is the problem? Who has it? Why does it matter? Approach: 2–3 pages. How did you solve it? What is the design? Implementation: 2–3 pages. What did you build? Architecture, key components, customizations. Evaluation: 2–3 pages. Metrics, tasks, results, user feedback. Discussion: 1–2 pages. Limitations, future work. Draft. Share with advisor or peers. Iterate. Submit. Lab: Draft thesis. Iterate with feedback. Submit. The thesis documents the capstone for assessment. See Lab 3 for requirements.
+
+===== Key Points
+
+* Outline sections
+* Draft problem, approach, implementation, evaluation, discussion
+* Iterate with feedback
+* Submit
+
+==== Philosophical Reflection
+
+Documentation as accountability: we write to be scrutinized. The thesis is a public claim. You say: I built this, it works, here is the evidence. Readers can verify, question, extend. That accountability is central to academic work. The thesis as bridge: it connects your work to the future. Future readers—including your future self—will use it. What do they need to know? What would they want to build on? Writing is thinking: the act of writing forces clarification. Vague ideas become precise when we commit them to text. The thesis is not an afterthought—it is part of the work. It shapes what we build and what we learn.
+
+===== Key Points
+
+* Documentation = accountability
+* Thesis = public claim
+* Bridge to future
+* Writing = thinking
+* Thesis = part of work
+
+.Figure 12.6: Thesis structure template
+[plantuml,ch12-l06,png,theme=sketchy-outline]
+....
+@startuml
+start
+:Problem;
+:Approach;
+:Implementation;
+:Evaluation;
+:Discussion;
+stop
+@enduml
+....
+
+==== Discussion Prompts
+
+* How much technical detail belongs in the thesis?
+* How do we write for multiple audiences (faculty, peers, future readers)?
+* What does "reproducibility" require? What would someone need to replicate your work?
+* How do we balance clarity and completeness?
+* What is the role of the thesis in graduate education?
+* How does writing the thesis change your understanding of the work?
+
+==== Lab Prep
+
+Draft the thesis. Use structure: problem, approach, implementation, evaluation, discussion. Iterate with feedback. Submit. The thesis documents the capstone for assessment. Aim for clarity and completeness. See Lab 3 for requirements.
+
+===== Key Points
+
+* Draft thesis
+* Structure: problem, approach, implementation, evaluation, discussion
+* Iterate, submit
+
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch12,Chapter 12>>).

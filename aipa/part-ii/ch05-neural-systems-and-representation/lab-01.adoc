@@ -1,0 +1,43 @@
+=== Lab 1: Neural Nets — Architecture and Forward Pass
+:leveloffset: 2
+
+*Milestone toward: Neural Classifier (tool)*
+
+==== Tool Deliverable
+
+Builds toward tool server `neural_classifier` — tools: `create_architecture`, `forward_pass`. Agent constructs and runs networks via tool invocation.
+
+==== Prerequisites
+
+* Review 5.1–5.2: perceptron; MLP; forward pass; backprop
+
+==== Objectives
+
+* Implement feedforward network (from scratch or PyTorch/JAX)
+* Forward pass and activation functions
+* Verify gradient flow
+
+==== Steps
+
+. Implement a single linear layer: input → weights → bias → output. Support configurable input and output dimensions.
+. Add activation function (ReLU, sigmoid, or tanh). Make it configurable.
+. Stack layers into an MLP: input_dim → hidden → hidden → output_dim. Support configurable layer sizes.
+. Implement forward pass: given input batch, compute output. Handle batching (batch dimension).
+. Verify gradient flow: use autograd (PyTorch/JAX) or implement numerical gradient check. Ensure gradients are non-zero for all parameters.
+. Expose create_architecture(config) and forward_pass(model, x). Submit: network implementation, unit tests, GitHub Classroom repo (ch05-lab-01).
+
+==== Deliverables
+
+* Network implementation
+* Unit tests
+* GitHub Classroom repo (ch05-lab-01)
+
+*Acceptance criteria:*
+* Forward pass runs without errors for batched input
+* Gradients flow to all parameters (manual or numerical check)
+* At least one unit test passes (e.g., forward shape, gradient shape)
+* README documents architecture config and usage
+
+==== Lab Prep
+
+* Review 5.1–5.2: perceptron; MLP; forward pass

@@ -1,0 +1,196 @@
+=== 11.4: Experimental AI — A/B Testing and Statistical Rigor
+:leveloffset: 2
+
+[.epigraph]
+"Without comparison, we have only anecdotes."
+— NIST, _AI Risk Management Framework_ <<NIST2023>> (evaluation)
+
+==== Hook: A Real‑World Dilemma
+
+Your product team has just finished a pilot of a new conversational‑agent configuration that promises *2 % higher user‑satisfaction* and *10 % lower latency*. After a week of limited rollout, the support desk is split: some agents are already using the new version, while others remain on the old baseline. Management asks, *“Do we ship this to all users now, or should we wait for more evidence?”* The answer hinges on a disciplined, statistical comparison—not on a handful of anecdotal screenshots or a single success story. In this lecture we will learn how to turn that dilemma into a rigorous A/B experiment, interpret the results responsibly, and embed the practice into AI governance.
+
+==== Conceptual Core
+
+*Paragraph 1 – The Need for Controlled Comparison*  
+A single run or a few cherry‑picked examples can be persuasive, but they do not tell us whether an observed improvement will hold for the broader user population. Controlled comparison—splitting traffic between a *control* (the current baseline) and a *treatment* (the new configuration)—creates the counterfactual needed to answer “what would have happened if we had not changed the system?” Random assignment ensures that, on average, the two groups are comparable on all observable and unobservable factors.
+
+*Paragraph 2 – Designing an A/B Test*  
+An A/B test begins with a clear hypothesis (e.g., “Treatment reduces average response latency by at least 5 %”). The experimenter defines *primary* and *secondary* metrics (accuracy, latency, cost, user‑satisfaction scores) and decides on the traffic split (commonly 50/50). Randomization can be performed per request, per user session, or per geographic region, depending on the system’s granularity. Pre‑registration of the hypothesis, metrics, and analysis plan guards against post‑hoc rationalisation.
+
+*Paragraph 3 – Statistical Inference Basics*  
+After data collection, we compute a *test statistic* (e.g., difference of means) and evaluate its probability under the null hypothesis of no real effect. The *p‑value* quantifies how surprising the observed difference would be if the null were true; a conventional threshold (α = 0.05) flags results that are unlikely to be due to chance. More informative is the *confidence interval* (CI), which gives a range of plausible effect sizes (e.g., “the treatment improves satisfaction by 1.2 % ± 0.6 % with 95 % confidence”). *Effect size* tells us whether the improvement is practically meaningful, independent of sample size.
+
+*Paragraph 4 – Pitfalls and Corrections*  
+When many hypotheses are tested simultaneously—multiple metrics, multiple variants, or repeated looks at the data—the chance of a false positive (type I error) inflates. Corrections such as the *Bonferroni* adjustment (strict) or the *Benjamini‑Hochberg* false‑discovery‑rate (FDR) control mitigate this risk. Conversely, a test may lack power, leading to false negatives (type II errors); power analysis and adequate sample‑size planning are essential. Reporting should always include the CI, p‑value, sample size, and any correction applied.
+
+*Paragraph 5 – Best‑Practice Checklist*  
+
+1. **Pre‑register** hypothesis, metrics, and analysis plan.  
+2. **Randomize** traffic at the appropriate granularity.  
+3. **Collect** both primary and secondary metrics uniformly.  
+4. **Compute** p‑value, confidence interval, and effect size.  
+5. **Adjust** for multiple comparisons when needed.  
+6. **Report** all results, including non‑significant or negative findings.  
+7. **Document** sample‑size calculations and any early‑stopping rules.  
+8. **Interpret** statistical significance in the context of business impact.
+
+===== Key Points
+
+* Randomized control vs. treatment arms  
+* Pre‑registration of hypothesis and metrics  
+* p‑value, confidence interval, and effect size  
+* Multiple‑comparison corrections (Bonferroni, FDR)  
+* Power analysis & sample‑size planning  
+* Transparent reporting (including negatives)  
+* Business‑impact interpretation  
+
+==== Technical Example
+
+*Paragraph 1 – Setting Up the Experiment*  
+Suppose we want to compare two prompt templates for a retrieval‑augmented chatbot. We allocate 50 % of incoming user requests to *Prompt A* (control) and 50 % to *Prompt B* (treatment). Over a 48‑hour window we collect 120 000 requests per arm. For each request we record *accuracy* (binary correct/incorrect), *latency* (ms), and *token cost* (USD). The resulting data frame looks like:
+
+```
+| request_id | arm   | accuracy | latency_ms | cost_usd |
+|-----------|-------|----------|------------|----------|
+| 0001      | A     | 1        | 312        | 0.0045   |
+| 0002      | B     | 0        | 298        | 0.0042   |
+| …         | …     | …        | …          | …        |
+```
+
+*Paragraph 2 – Analyzing the Results*  
+Using Python’s `scipy.stats` we perform a two‑sample t‑test on latency and a chi‑square test on accuracy:
+
+```python
+import pandas as pd, scipy.stats as st
+
+df = pd.read_csv('ab_results.csv')
+lat_a = df[df.arm == 'A'].latency_ms
+lat_b = df[df.arm == 'B'].latency_ms
+t_stat, p_lat = st.ttest_ind(lat_a, lat_b)
+
+acc_a = df[df.arm == 'A'].accuracy
+acc_b = df[df.arm == 'B'].accuracy
+chi2, p_acc, _, _ = st.chi2_contingency([[acc_a.sum(), len(acc_a)-acc_a.sum()],
+                                         [acc_b.sum(), len(acc_b)-acc_b.sum()]])
+print(f"Latency: Δ={lat_b.mean()-lat_a.mean():.1f} ms, p={p_lat:.4f}")
+print(f"Accuracy: Δ={acc_b.mean()-acc_a.mean():.3%}, p={p_acc:.4f}")
+```
+
+Assume the output is:
+
+```
+Latency: Δ=-8.3 ms, p=0.0012
+Accuracy: Δ=+1.4 %, p=0.0420
+```
+
+We then compute 95 % CIs using bootstrapping and visualise the results with a bar chart that includes error bars. The chart shows a modest latency gain and a statistically significant, though small, accuracy lift.
+
+*Paragraph 3 – Reporting and Decision*  
+
+| Metric   | Δ (Treatment‑Control) | 95 % CI          | p‑value | Interpretation                              |
+|----------|------------------------|------------------|---------|---------------------------------------------|
+| Latency  | –8.3 ms                | (‑12.1, ‑4.5)    | 0.0012  | Meaningful speed improvement                |
+| Accuracy | +1.4 %                 | (0.2 %, 2.6 %)   | 0.0420  | Statistically significant, business impact modest |
+| Cost     | –0.0003 USD            | (‑0.0005, ‑0.0001) | 0.0035 | Small cost reduction, aligns with latency gain |
+
+The experiment passes the pre‑registered significance threshold, and the effect sizes meet the business‑impact criteria defined in the hypothesis. The lab exercise will ask you to reproduce this workflow inside the governance simulator, add early‑stopping logic, and generate an automated report.
+
+===== Key Points
+
+* Random 50/50 traffic split for two prompt variants  
+* Data collection schema (accuracy, latency, cost)  
+* Python analysis: t‑test, chi‑square, bootstrapped CIs  
+* Visualisation with error‑bar bar chart  
+* Sample‑size justification and power check  
+* Automated reporting template (Δ, CI, p‑value, interpretation)  
+* Early‑stopping rule based on interim p‑value  
+
+==== Philosophical Reflection
+
+*Paragraph 1 – Evidence as the Backbone of Governance*  
+Statistical rigor transforms anecdote into evidence. In AI governance, decisions about model deployment, policy enforcement, or resource allocation must be grounded in reproducible experiments. By insisting on randomized comparison, we reduce the influence of hidden confounders and make the causal claim “the new configuration improves X” defensible to auditors, regulators, and the public.
+
+*Paragraph 2 – Ethical Dimensions of “P‑hacking”*  
+The temptation to chase a significant p‑value—trying many metrics, re‑segmenting users, or peeking at interim results—constitutes “p‑hacking.” In high‑stakes AI systems, such practices can hide harms (e.g., bias amplification) behind a veneer of statistical significance. Ethical AI governance therefore mandates pre‑registration, transparent reporting of all tested hypotheses, and a culture that values negative or null findings as much as positive ones.
+
+*Paragraph 3 – From Rigor to Responsibility*  
+Statistical significance is a tool, not a moral verdict. A result can be statistically significant yet economically trivial, or non‑significant yet socially important. Responsible governance interprets the numbers in context: weighing effect size against deployment cost, considering equity impacts, and aligning with broader organisational values. In the next lecture we will extend this reasoning to *causal inference* techniques that allow us to evaluate policy changes even when randomization is infeasible.
+
+===== Key Points
+
+* Evidence‑based governance requires randomized experiments  
+* Pre‑registration guards against p‑hacking and selective reporting  
+* Transparency includes publishing negative or null results  
+* Distinguish statistical significance from practical importance  
+* Ethical responsibility to interpret results in social and economic context  
+* Link to upcoming causal‑inference methods for non‑randomized settings  
+
+==== Closing Bridge
+
+By mastering A/B testing, you now possess a concrete, reproducible method to turn “it looks better” into “the data support a rollout.” Lab 2 will cement this skill, letting you design, run, and automatically report experiments inside the governance simulator. In the next session we will explore how to draw causal conclusions when random assignment is impossible, extending the rigor you have just built to policy‑level decisions.
+
+==== Figure 11.4: Full A/B Test Pipeline
+[plantuml,ch11-l04,png,theme=sketchy-outline]
+....
+@startuml
+skinparam backgroundColor #F9F9F9
+skinparam ArrowColor #555555
+skinparam rectangle {
+  BackgroundColor<<Control>> #A8E6CF
+  BackgroundColor<<Treatment>> #85C1E9
+}
+start
+:Receive request;
+if (Random split?) then (Control)
+  :Assign to <<Control>>;
+else (Treatment)
+  :Assign to <<Treatment>>;
+endif
+partition <<Control>> {
+  :Collect metrics A;
+}
+partition <<Treatment>> {
+  :Collect metrics B;
+}
+:Aggregate results;
+:Statistical test (p‑value, CI);
+if (p < 0.05?) then (Significant)
+  :Decision → Deploy Treatment;
+else (Not significant)
+  :Decision → Keep Control;
+endif
+stop
+@enduml
+....
+
+==== Discussion Prompts
+
+* When is a simple A/B test insufficient for answering a governance question?  
+* How should an organization balance multiple metrics (e.g., latency vs. fairness) in a single experiment?  
+* What constitutes “rigorous” evaluation beyond statistical significance?  
+* In what ways can A/B testing be integrated into AI governance frameworks?  
+* How does the governance simulator help teams practice evidence‑based decision‑making?  
+* When might the pursuit of statistical rigor conflict with operational speed or market pressure?
+
+==== Lab Prep
+
+*Lab 2 – Embedding A/B Testing in the Governance Simulator*  
+
+1. Extend the simulator to support a **control** and **treatment** arm with a configurable traffic split.  
+2. Implement automatic collection of user‑defined metrics (accuracy, latency, cost).  
+3. Add a **significance‑testing module** that computes p‑values, confidence intervals, and effect sizes for any numeric metric.  
+4. Provide a **report‑generation script** that outputs a standardized table (Δ, CI, p‑value, interpretation) and a bar‑chart with error bars.  
+5. Include an **early‑stopping option** that halts the experiment once a pre‑specified significance threshold is reached.  
+
+By completing these steps you will be able to design, execute, and communicate A/B experiments as a core governance practice.
+
+===== Key Points
+
+* Add control/treatment arms with random split  
+* Metric collection framework (user‑defined)  
+* Automated statistical testing (p‑value, CI, effect size)  
+* Standardized reporting (table + visualisation)  
+* Early‑stopping logic for fast decision making  
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch11,Chapter 11>>).

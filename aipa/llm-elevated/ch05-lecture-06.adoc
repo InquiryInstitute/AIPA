@@ -1,0 +1,181 @@
+=== 6.1: Device Management and Model Placement in PyTorch
+
+[.epigraph]
+____
+*“Do you really need a GPU to train a neural network?”* – a question that haunts every AI engineer working on edge devices.
+____
+
+==== Hook – The Edge‑Device Dilemma (5 min)
+
+Imagine you are deploying a speech‑recognition system on a Raspberry Pi that has no dedicated GPU.  
+Your model is a tiny convolutional network, but the device only offers a modest CPU and a few megabytes of RAM.  
+*How can you still train and run the network efficiently?*  
+
+In this lecture we will unpack the abstractions that PyTorch provides for moving models and data onto the appropriate hardware, explore the trade‑offs of CPU‑only training, and see how these choices shape the very representations that neural systems can learn.
+
+---
+
+==== Conceptual Core – Device Abstraction in PyTorch (30 min)
+
+[quote, "Key Concepts"]
+____
+1. **torch.device** – a lightweight descriptor that tells PyTorch where tensors should live.  
+2. **Model placement (`model.to(device)`)** – moves every parameter and buffer to the target device in one call.  
+3. **Tensor creation on a device** – functions like `torch.randn(..., device=device)` allocate memory directly on the chosen hardware.  
+4. **Lazy evaluation** – operations are scheduled on the device of the input tensors; no implicit copying occurs.  
+5. **Memory‑bandwidth constraints** – CPUs and GPUs differ dramatically in throughput; placement influences batch size and latency.  
+6. **Device‑agnostic code** – by writing `device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')` you let the same script run anywhere.  
+7. **Error propagation** – mismatched devices raise runtime errors, a common pitfall for beginners.  
+8. **Multi‑device strategies** – `torch.nn.DataParallel` and `torch.distributed` extend the single‑device model to clusters.  
+____
+
+*Paragraph 1* – **Why a device abstraction matters**.  
+PyTorch separates *what* you compute from *where* you compute it. The `torch.device` object encodes the target (e.g., `"cpu"` or `"cuda:0"`), allowing the same tensor‑creation API to allocate memory on any backend. This decoupling is crucial for research reproducibility: a notebook written on a workstation can be shipped to an embedded board with a single line change.
+
+*Paragraph 2* – **Moving a model onto a device**.  
+When you call `model.to(device)`, PyTorch iterates over every `nn.Parameter` and `nn.Buffer`, copying the underlying storage to the destination. The operation is in‑place for the model object but returns a new reference, enabling a functional style (`model = model.to(device)`). All subsequent forward passes will automatically use the device‑resident parameters, eliminating the need for manual `.to()` calls on each input.
+
+*Paragraph 3* – **Creating tensors directly on the target**.  
+`torch.randn(batch_size, input_dim, device=device)` bypasses the default CPU allocation and writes the random numbers straight into the device’s memory. This avoids an extra host‑to‑device copy, which can dominate runtime when the data size grows. The same pattern applies to datasets loaded from disk: wrap the loader in a `torch.utils.data.DataLoader` with a custom collate function that respects the device.
+
+*Paragraph 4* – **Performance implications**.  
+CPU cores excel at control flow and low‑latency inference, while GPUs shine on massive parallel matrix multiplications. By pinning tensors to the appropriate device you let the underlying BLAS libraries (MKL on CPU, cuBLAS on GPU) exploit hardware‑specific optimizations. However, the CPU’s limited memory bandwidth often forces you to reduce batch size, which in turn affects gradient noise and convergence speed.
+
+*Paragraph 5* – **Writing device‑agnostic scripts**.  
+A robust pattern is:
+
+[source,python]
+----
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+model = MyModel().to(device)
+for epoch in range(num_epochs):
+    for xb, yb in train_loader:
+        xb, yb = xb.to(device), yb.to(device)
+        # forward, loss, backward …
+----
+This single conditional lets the same code run on a workstation, a cloud GPU, or an edge CPU without modification.
+
+*Paragraph 6* – **Common pitfalls and debugging**.  
+When a tensor lives on the CPU while the model lives on the GPU, PyTorch raises a `RuntimeError: Expected all tensors to be on the same device`. The easiest remedy is to print each tensor’s `.device` attribute before the forward pass. Tools like `torch.cuda.memory_summary()` help you monitor allocation and spot leaks early.
+
+[plantuml,device-allocation,svg]
+....
+@startuml
+title Device Allocation Flow
+(*) --> "Detect hardware"
+if "CUDA available?" then (yes)
+  -->[true] "device = cuda"
+else (no)
+  -->[false] "device = cpu"
+endif
+--> "Create model"
+--> "model.to(device)"
+--> "Create data"
+--> "torch.randn(..., device=device)"
+--> "Run forward pass"
+--> "Back‑propagation"
+--> "Optimizer step"
+@enduml
+....
+
+---
+
+==== Technical Example – A Minimal Training Loop on CPU (15 min)
+
+In the following snippet we train a single‑layer perceptron on synthetic data, explicitly forcing execution on the CPU. The example demonstrates **model placement**, **tensor creation**, **device‑consistent loss computation**, and a **common error** when forgetting to move the target tensor.
+
+[source,python]
+----
+import torch
+import torch.nn as nn
+import torch.optim as optim
+
+# 1️⃣ Choose device explicitly
+device = torch.device('cpu')          # <1>
+
+# 2️⃣ Define a tiny model and move it
+class SimpleNet(nn.Module):
+    def __init__(self, in_dim, out_dim):
+        super().__init__()
+        self.linear = nn.Linear(in_dim, out_dim)
+
+    def forward(self, x):
+        return self.linear(x)
+
+model = SimpleNet(10, 1).to(device)   # <2>
+
+# 3️⃣ Synthetic dataset (batch_size=32)
+batch_size = 32
+inputs = torch.randn(batch_size, 10, device=device)   # <3>
+targets = torch.randint(0, 2, (batch_size, 1), dtype=torch.float, device=device)  # <4>
+
+criterion = nn.BCEWithLogitsLoss()
+optimizer = optim.SGD(model.parameters(), lr=0.01)
+
+# 4️⃣ Training step
+optimizer.zero_grad()
+outputs = model(inputs)               # forward on CPU
+loss = criterion(outputs, targets)   # loss on same device
+loss.backward()                      # backward on CPU
+optimizer.step()                     # update parameters
+print(f'Loss: {loss.item():.4f}')
+----
+*Key Points*  
+1. The `device` object is created once and reused throughout.  
+2. `model.to(device)` ensures every parameter lives on the CPU; no hidden GPU tensors remain.  
+3. Synthetic inputs are allocated directly on the target device, avoiding costly copies.  
+4. Targets must be moved to the same device; otherwise PyTorch raises a device‑mismatch error.  
+5. The training loop is identical to a GPU version; only the device selector changes.  
+6. Switching to GPU is as simple as `device = torch.device('cuda')` – the rest of the code stays untouched.  
+
+*Extension*: To experiment with multi‑GPU training, replace the model line with:
+
+[source,python]
+----
+model = nn.DataParallel(SimpleNet(10,1)).to(device)
+----
+and observe how `torch.cuda.is_available()` gates the execution path.
+
+---
+
+==== Philosophical Reflection – Embodiment, Resources, and Representation (10 min)
+
+The hardware on which a neural network runs is not a neutral substrate; it actively shapes the *representations* the network can learn. When constrained to a CPU with limited parallelism, the model tends to favor **sparser, more incremental updates** because large batch sizes become prohibitive. Conversely, a GPU’s massive throughput encourages **dense, high‑dimensional feature maps** that would be wasteful on an edge processor.
+
+This tension mirrors the biological debate on *embodied cognition*: organisms evolve neural architectures that respect metabolic and spatial constraints. In artificial systems, the choice of device becomes a design variable that influences learning dynamics, generalization, and even the kinds of tasks that are feasible.  
+
+*Open question for the class*: **If you were to design a new neural architecture specifically for low‑power CPUs, what constraints would you impose on its representational capacity, and how might those constraints affect its ability to solve high‑level perception problems?**  
+
+Reflect on how the *materiality* of computation—memory bandwidth, arithmetic intensity, energy consumption—feeds back into the *semantic* content of the learned models.
+
+---
+
+==== Discussion Prompts
+
+1. What are the practical advantages and disadvantages of writing device‑agnostic code versus hard‑coding a specific device?  
+2. How does batch size interact with device memory limits, and what are the implications for gradient noise?  
+3. In what scenarios might a CPU outperform a GPU despite lower raw FLOPS (e.g., latency‑critical inference, small models)?  
+4. How do device‑placement errors manifest in real‑world projects, and what debugging strategies are most effective?  
+5. Considering embodied AI, how might hardware constraints inspire novel architectural motifs (e.g., spiking networks, binary weights)?  
+6. If you were to deploy a model on a heterogeneous platform (CPU + GPU + TPU), how would you partition the computation to maximize efficiency?
+
+---
+
+==== Lab Prep – Hands‑On Exercise (5 min)
+
+In the upcoming lab you will:
+
+* Extend the minimal training loop to **toggle** between CPU and GPU using the conditional `torch.device('cuda' if torch.cuda.is_available() else 'cpu')`.  
+* Measure **wall‑clock time** for 100 training iterations on both devices and plot the speed‑up curve.  
+* Introduce a **memory‑profiling** step with `torch.cuda.memory_allocated()` (or `tracemalloc` for CPU) to visualize allocation peaks.  
+* Modify the model to include a second hidden layer and observe how the device choice impacts **convergence speed** and **final accuracy**.
+
+*Key Lab Points*  
+- Verify tensor and model devices with `.device` before each forward pass.  
+- Use `time.perf_counter()` for precise timing.  
+- Record results in a CSV file for later analysis.  
+- Discuss any observed *device‑mismatch* errors and how you resolved them.  
+
+Prepare your development environment by installing PyTorch 2.2 or later and ensuring that the `torchvision` package is available for optional data loading experiments.
+
+---

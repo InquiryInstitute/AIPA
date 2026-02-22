@@ -1,0 +1,7 @@
+=== Exercises
+
+. *Conceptual* What is self-attention? How does it differ from recurrence (RNN)?
+. *Conceptual* Compare zero-shot, few-shot, and chain-of-thought prompting. When would you use each?
+. *Computational* Compute cosine similarity between two sentence embeddings. Use an off-the-shelf embedder (e.g., sentence-transformers).
+. *Computational* Implement a simple cache for LLM responses: key = hash(prompt), value = response. Measure cache hit rate on repeated queries.
+. *Design* Design an llm tool schema: embed(text), generate(prompt, max_tokens, temperature). What parameters would the agent control?

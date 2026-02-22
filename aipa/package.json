@@ -1,0 +1,9 @@
+{
+  "name": "aipa",
+  "version": "1.0.0",
+  "description": "AIPA scripts and content",
+  "type": "module",
+  "optionalDependencies": {
+    "@aws-sdk/client-bedrock-runtime": "^3.0.0"
+  }
+}

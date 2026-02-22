@@ -1,0 +1,95 @@
+=== 12.1: Capstone Overview — The Student's AI
+:leveloffset: 2
+
+[.epigraph]
+"You are no longer studying AI. You have built one."
+— AIPA, Epilogue
+
+*The capstone: integrate, deploy, apply.*
+
+==== Example Prompts
+
+* "Deploy the agent to a real problem." — _Capstone: not a toy—working system_
+* "What problem will your agent solve?" — _From role, employer, client—situated_
+* "Demonstrate your AI." — _12 tools integrated; from consumer to builder_
+
+==== Conceptual Core
+
+The capstone is the culmination of the course. Your goal: deploy the agent to a real business problem. Not a toy—a working system. The agent you have built across 12 chapters—with audit, search, ml, neural, llm, memory, reasoning, tool-calling, orchestration, and governance—must be integrated, customized, and put to use. The capstone is proof that you have crossed the threshold from consumer to builder.
+
+Problem definition: the problem comes from your role (job, internship), employer, venture, or client. It is situated—it exists in a specific context, with specific users and constraints. The problem is not given abstractly; it is constructed with stakeholders. If you selected a capstone use case in Chapter 2, your problem builds on that domain—you customize the agent for your chosen use case rather than defining from scratch. Milestones: (1) define the problem and validate with users, (2) implement and customize the agent, (3) evaluate rigorously, (4) document in a thesis, (5) present and defend. The student-ai/ repository holds all tools integrated; the capstone makes that integration serve a real problem.
+
+The agent as artifact of learning: the capstone is not just code—it is evidence of mastery. You have built a system that reasons, retrieves, and acts. You have integrated components from 12 courses. The capstone demonstrates that you can take the generic framework and make it specific. From consumer to builder: you have moved from using AI to building it. The loop closes—12 courses, 12 tools, one integrated system.
+
+===== Key Points
+
+* Deploy agent to real problem—not a toy
+* Problem from role, employer, venture, client—situated
+* Milestones: problem, validate, implement, evaluate, document, present
+* student-ai/: all tools integrated (audit, search, ml, neural, llm, memory, reasoning, tools, orchestrator, governance)
+* Agent as artifact of learning—evidence of mastery
+* From consumer to builder
+* 12 courses, 12 tools, one integrated system
+
+==== Technical Example
+
+Review the complete student-ai/ structure. Map each module to its course: audit (Ch2), search (Ch3), ml (Ch4), neural (Ch5), llm (Ch6), memory (Ch7), reasoning (Ch8), tool-calling agent (Ch9), orchestrator (Ch10), governance (Ch11). Each module is a submodule or component. The capstone builds on this foundation—you do not start from scratch; you assemble, configure, and extend.
+
+Lab 1: Assemble all submodules. Configure the tool client to connect to each tool server. Verify end-to-end flow: can the orchestrator complete a task using at least two tools? The capstone problem will require you to customize—add domain tools, adjust prompts, configure workflows. But first, ensure the base integration works. See Lab 1 for requirements.
+
+===== Key Points
+
+* Map modules to courses (Ch2–Ch11)
+* Lab 1: Assemble, configure, verify
+* Capstone builds on foundation
+* Customize: domain tools, prompts, workflows
+
+==== Philosophical Reflection
+
+The agent as artifact of learning: the capstone is not just a deliverable—it is a demonstration. You have built a system that integrates representation (knowledge graphs, vectors), learning (ml, neural), language (llm), memory (RAG, vector store), reasoning (logic, probability), and action (tools, orchestration). That integration is the curriculum made concrete. The capstone closes the loop: 12 courses, 12 tools, one integrated system. You own it.
+
+From consumer to builder: you have moved from using AI to building it. The shift is epistemic—you understand how the pieces fit, how to debug, how to extend. The capstone is the proof. The agent you deploy is your artifact. It reflects your choices, your problem, your design. The loop closes—the book's structure delivers a builder, not just a reader.
+
+===== Key Points
+
+* Agent = artifact of learning
+* Consumer → builder
+* Integration = curriculum made concrete
+* Loop closes: you own the agent
+
+.Figure 12.1: Capstone milestones and repo structure
+[plantuml,ch12-l01,png,theme=sketchy-outline]
+....
+@startuml
+start
+:Problem;
+:Validate;
+:Implement;
+:Evaluate;
+:Present;
+stop
+@enduml
+....
+
+==== Discussion Prompts
+
+* What makes a "real" business problem? How is it different from a toy?
+* How does the capstone differ from earlier labs? What is new?
+* What does "integration" require? What can go wrong?
+* How do you choose a problem that is both tractable and meaningful?
+* What does "from consumer to builder" mean to you?
+* How will you know when the capstone is "done"?
+
+==== Lab Prep
+
+Lab 1: Assemble all submodules. Configure the tool client. Verify end-to-end flow. Ensure audit, search, llm, memory, reasoning, tools, orchestrator, governance are integrated. The capstone builds on this foundation. See Lab 1 for requirements.
+
+===== Key Points
+
+* Lab 1: Assemble submodules
+* Verify end-to-end
+* All tools integrated
+
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch12,Chapter 12>>).

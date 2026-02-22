@@ -1,0 +1,145 @@
+=== 4.1: Splitting Data for Reliable Machine Learning
+
+[.epigraph]
+____
+*“If you test your model on the same data you used to train it, you are merely asking it to repeat what it already knows.”* – Anonymous
+____
+
+==== Hook: A Real‑World Tension
+
+Imagine you are part of a hospital’s data‑science team tasked with building a model that predicts whether a patient admitted to the emergency department will develop sepsis within the next 48 hours. The stakes are high: a false negative could mean a missed life‑saving intervention, while a false positive could lead to unnecessary antibiotics and resource waste. You have a rich dataset of 12 000 historic admissions, each with dozens of laboratory values, vital signs, and demographic features. The natural question that arises is **how can you be sure that the model you are about to deploy will work on future patients it has never seen?**  
+
+If you train a classifier on the entire dataset and then report a 98 % accuracy, you might be tempted to celebrate. Yet, that figure is likely an illusion caused by *data leakage*: the model has simply memorised patterns that are specific to the training cases. The only way to obtain an honest estimate of future performance is to **reserve a portion of the data that the model has never touched during training**. This simple act of withholding data creates a *validation* (or *hold‑out*) set that serves as a proxy for the unknown future. The remainder, the *training* set, is used to fit the model’s parameters.  
+
+In the next 90 minutes we will unpack why this split is essential, how to perform it correctly with `scikit‑learn`, and what deeper philosophical lessons it offers about scientific inference and ethical responsibility.
+
+---
+
+==== Conceptual Core
+
+The practice of dividing a dataset into distinct subsets is a cornerstone of modern machine learning. It is not merely a technical convenience; it embodies the scientific method’s core principle of **testing hypotheses on independent evidence**.
+
+1. **Training vs. Validation vs. Test** – The *training* set supplies the data the algorithm uses to learn patterns (i.e., to adjust its internal parameters). The *validation* set is consulted *during* model development to tune hyper‑parameters, select features, or compare algorithms. Finally, a *test* set—kept completely untouched until the very end—provides an unbiased estimate of the final model’s generalisation ability.  
+2. **Why an 80/20 Split?** – The 80 % / 20 % ratio is a pragmatic default that balances two competing needs: enough data for the model to learn complex relationships, and enough unseen data to produce a stable performance estimate. In highly imbalanced domains (e.g., fraud detection), the split ratio may be adjusted to ensure sufficient minority‑class examples in the validation set.  
+3. **Stratified Sampling** – When the target variable is categorical and classes are unevenly distributed, a naïve random split can produce a validation set that under‑represents the minority class, leading to wildly optimistic or pessimistic performance metrics. *Stratified* splitting preserves the original class proportions in each subset, guaranteeing that both training and validation reflect the same underlying distribution.  
+4. **Random State and Reproducibility** – Machine‑learning pipelines are stochastic by nature; random seeds (the `random_state` argument) lock the randomness, allowing you and your peers to reproduce the exact same split across runs, notebooks, and even different machines. This is vital for scientific reporting and for debugging.  
+5. **Data Leakage and Temporal Ordering** – In time‑series or longitudinal studies, random splitting can inadvertently place future observations into the training set, contaminating the model with information it would never have in practice. In such cases, a *chronological* split (e.g., train on the first 80 % of time, validate on the last 20 %) is required.  
+6. **Evaluation Metrics Depend on the Split** – Accuracy, precision, recall, ROC‑AUC, and other metrics are only meaningful when computed on data that the model has not seen. Reporting them on the training set inflates performance and misguides stakeholders.  
+7. **Iterative Model Development** – The validation set acts as a *sandbox* where you experiment with feature engineering, regularisation, and model families. Each experiment should be evaluated on the same validation split to ensure fair comparison.  
+8. **Ethical Implications** – Deploying a model without proper validation can cause harm, especially in high‑stakes domains like healthcare, finance, or criminal justice. The split is therefore not just a technical step but an ethical safeguard.
+
+[plantuml, split-workflow, svg]
+----
+@startuml
+title Train / Validation Split Workflow
+node "Full Dataset (X, y)" as data
+node "Stratified Split\n(train=80%, val=20%)" as split
+node "Training Set (X_train, y_train)" as train
+node "Validation Set (X_val, y_val)" as val
+data --> split : stratify=y\nrandom_state=42
+split --> train
+split --> val
+@enduml
+----
+
+---
+
+==== Technical Example
+
+To cement the abstract ideas above, we will walk through a concrete example using the classic *Iris* dataset, which contains three flower species with modest class imbalance. The goal is to split the data while preserving class proportions and to verify that the split behaved as expected.
+
+```python
+from sklearn.datasets import load_iris
+from sklearn.model_selection import train_test_split
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# Load data
+iris = load_iris(as_frame=True)
+X = iris.data
+y = iris.target
+
+# Perform a stratified 80/20 split
+X_train, X_val, y_train, y_val = train_test_split(
+    X, y,
+    test_size=0.20,
+    stratify=y,               # keep class ratios
+    random_state=42          # reproducibility
+)
+
+# Helper to display class counts
+def show_counts(label, y_series):
+    counts = y_series.value_counts().sort_index()
+    print(f"{label} class distribution:")
+    for cls, cnt in counts.items():
+        print(f"  class {cls}: {cnt}")
+
+show_counts("Training", y_train)
+show_counts("Validation", y_val)
+
+# Visualise the distribution side‑by‑side
+fig, ax = plt.subplots(1, 2, figsize=(8, 3), sharey=True)
+y_train.value_counts().sort_index().plot(kind='bar', ax=ax[0], title='Train')
+y_val.value_counts().sort_index().plot(kind='bar', ax=ax[1], title='Validation')
+ax[0].set_xlabel('Class')
+ax[1].set_xlabel('Class')
+plt.tight_layout()
+plt.show()
+```
+
+**Key points illustrated by the code**
+
+* The `stratify=y` argument guarantees that each of the three Iris species appears in the same proportion in both subsets.  
+* `random_state=42` locks the random shuffling, so anyone rerunning the notebook obtains identical splits.  
+* The printed class counts and the bar‑chart confirm that the 80/20 split preserved the original distribution (≈ 50 % *setosa*, 25 % *versicolor*, 25 % *virginica*).  
+* By visualising the split, students can immediately see that the validation set is a faithful miniature of the full dataset, reinforcing the conceptual claim that a well‑designed hold‑out set serves as a reliable proxy for unseen data.  
+
+---
+
+==== Philosophical Reflection
+
+The act of withholding data for validation mirrors the broader scientific practice of **hypothesis testing**. In the laboratory, a researcher formulates a hypothesis, designs an experiment, and then evaluates the outcome on data that were not used to craft the hypothesis. Machine learning, when done responsibly, follows the same cadence: the model is the hypothesis, the training set is the experiment, and the validation set is the *independent* observation that either confirms or refutes the hypothesis.  
+
+*Why does this matter beyond statistics?* In domains where decisions affect human lives, an over‑optimistic model can lead to systematic bias, eroding public trust. The split is a *guardrail* that forces us to confront uncertainty before deployment. It also embodies the ethical principle of **non‑maleficence**: we must avoid causing harm through premature or untested predictions. By insisting on a rigorous validation stage, we acknowledge that our models are provisional, subject to revision as new data arrive—a humility that is essential for responsible AI.
+
+**Reflective take‑aways**
+
+1. Validation is the *experiment* that tests the model’s claim to generalise.  
+2. Stratification respects the reality of imbalanced phenomena, preventing the illusion of performance that arises from sampling bias.  
+3. Reproducibility (via `random_state`) is a cornerstone of scientific integrity; without it, claims cannot be independently verified.  
+4. Temporal or causal ordering must be honoured to avoid leaking future information into the past.  
+5. Ethical AI demands that we treat validation as a non‑negotiable checkpoint, not an optional convenience.  
+6. The split encourages a mindset of *continuous learning*: after deployment, new data can be folded back into the training pipeline, and the validation process repeats.  
+
+---
+
+==== Discussion Prompts
+
+1. *When might a simple random split be insufficient, and how would you redesign the splitting strategy?*  
+2. *Consider a dataset where the minority class constitutes only 1 % of the observations. How does stratified sampling help, and what additional techniques might you combine with it?*  
+3. *In a streaming‑data scenario, how would you implement a validation scheme that respects temporal causality?*  
+4. *Discuss the trade‑offs between allocating more data to training versus validation. How does the choice affect model selection and final performance estimates?*  
+5. *Reflect on a real‑world case where a lack of proper validation led to adverse outcomes. What could have been done differently?*  
+6. *How does the concept of a validation set relate to cross‑validation, and when might one be preferred over the other?*  
+
+---
+
+==== Lab Preparation
+
+In the upcoming lab you will apply the principles covered in this lecture to a **credit‑card fraud detection** dataset that exhibits extreme class imbalance (≈ 0.17 % fraud cases). You will:
+
+* Load the raw CSV file and perform an exploratory analysis of the target distribution.  
+* Implement a stratified 70/30 train‑validation split using `train_test_split`, ensuring reproducibility with a fixed `random_state`.  
+* Visualise the class balance before and after the split with bar charts, confirming that the minority class is adequately represented in the validation set.  
+* Train a baseline logistic‑regression model on the training data, then evaluate precision, recall, and the ROC‑AUC on the validation set.  
+* Document any discrepancies between training and validation performance, and write a short reflection on what those discrepancies reveal about over‑fitting or data leakage.
+
+**Key lab objectives**
+
+* Master the mechanics of `train_test_split` with stratification and random seeds.  
+* Translate numerical class‑distribution checks into visual evidence.  
+* Interpret validation metrics in the context of highly imbalanced data.  
+* Articulate the ethical implications of deploying a model that has not been properly validated.  
+* Prepare a concise report that ties the empirical results back to the philosophical considerations discussed earlier.  
+
+By the end of the lab you will have a reproducible pipeline that respects both statistical rigor and ethical responsibility—ready to be extended to a final test set and, eventually, to a production environment.

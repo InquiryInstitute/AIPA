@@ -1,0 +1,95 @@
+=== 11.5: GPU-Backed Evaluation — Latency, Cost, Quantization
+:leveloffset: 2
+
+[.epigraph]
+"Measure what matters—and measure it right."
+— Mehrabi et al., "Bias and Fairness in ML" <<Mehrabi2019>> (adapted)
+
+==== Example Prompts
+
+* "How fast is this model?" — _Latency: TTFT, completion; cost per token_
+* "Reduce model size and cost." — _Quantization: precision tradeoff_
+* "Benchmark under governance constraints." — _What we measure shapes what we build_
+
+==== Conceptual Core
+
+Every inference costs time and money—how do we measure and cap it? Deploying an agent without clear latency and cost targets is a recipe for surprise: the model that was fine in development may be too slow or too expensive at scale. GPU-backed evaluation gives us the numbers we need to choose models, set governance limits, and justify tradeoffs. This lecture covers what to measure (latency, cost), how to reduce cost (quantization), and why evaluation is a governance practice, not just an engineering one.
+
+*Inference latency* is the time from request to response. For streaming, we care about time to first token (TTFT)—how long until the user sees something—and often time to completion. User experience depends on both: a fast TTFT feels responsive; a fast completion keeps workflows short. Latency varies with model size, hardware, load, and prompt length. We measure under realistic conditions: same prompt (or a fixed set), multiple runs, report mean and percentiles (e.g. p95). Reproducibility matters: same config, same environment, so we can compare models and track regressions.
+
+*Cost per token* (or per 1K tokens) lets us compare models and estimate run rate. Cheaper models may suffice for many tasks; expensive ones may be reserved for critical or complex calls. Governance often sets caps: "Do not exceed $X per user per day" or "Use model A for tier-1, model B for tier-2." Evaluation supplies the numbers: measure cost per 1K tokens for each model and each quantization level, then plug into governance policies.
+
+*Quantization* reduces precision—e.g. FP32 to INT8—so models use less memory and compute. That typically reduces latency and cost; it may also reduce quality (perplexity, task accuracy). We benchmark: run the same prompts on full-precision and quantized models, compare latency, cost, and a quality metric. For some tasks, the drop in quality is acceptable; for others, it is not. The governance question is: who decides the acceptable tradeoff, and how do we document it?
+
+*Evaluation as governance*: what we measure shapes what we build. If we only measure accuracy, we may ignore latency and cost. If we only measure latency, we may ignore fairness or safety. Mehrabi et al. (<<Mehrabi2019>>) remind us to "measure what matters—and measure it right." Benchmarking under governance constraints means our evaluation includes the metrics that matter for policy: latency, cost, quality, and optionally bias or safety. We optimize for what we measure; so we choose metrics carefully.
+
+===== Key Points
+
+* Latency: TTFT (streaming), time to completion; measure under realistic conditions
+* Report mean and percentiles (e.g. p95); reproducibility (same config, environment)
+* Cost per token / per 1K tokens; compare models; support governance caps
+* Quantization: reduce precision (e.g. FP32 → INT8); less memory, compute; may reduce quality
+* Benchmark quantized vs. full: latency, cost, quality; document tradeoffs
+* Evaluation as governance: what we measure shapes what we build
+* Choose metrics that matter for policy: latency, cost, quality, bias, safety
+
+==== Technical Example
+
+Measure latency for different models and configurations. Use a fixed set of prompts (or a small benchmark set), run each prompt multiple times (e.g. 10), and record TTFT and time to completion. Aggregate: mean, p50, p95. Compare quantized vs. full precision: same prompts, same hardware, report latency, cost per 1K tokens, and a quality metric (e.g. perplexity on a held-out set, or task accuracy). The comparison tells you when quantization is acceptable and when it is not.
+
+Lab 2–3: Add GPU-backed evaluation to the governance simulator. The simulator should be able to run benchmarks under governance constraints—e.g. "Max latency 2s," "Max cost per 1K tokens $X"—and report pass/fail or metrics. This ties evaluation to policy: the same numbers that guide model choice also feed compliance checks and reporting.
+
+===== Key Points
+
+* Fixed prompts, multiple runs; report mean, p50, p95 for latency
+* Compare quantized vs. full: latency, cost, quality; document when acceptable
+* Lab 2–3: GPU evaluation in simulator; benchmarks under governance constraints
+* Evaluation metrics feed compliance checks and reporting
+
+==== Philosophical Reflection
+
+Evaluation is a form of governance. The metrics we choose drive development: teams optimize for what is measured. If we measure only throughput, we may sacrifice fairness or safety. If we measure only accuracy, we may ignore latency and cost. So we choose metrics carefully—latency, cost, quality, and, where relevant, bias and safety—and we "measure what matters, and measure it right" (<<Mehrabi2019>>). Governance of AI systems includes governing how we evaluate them: what benchmarks, what thresholds, and who gets to set them. The GPU-backed evaluation in the governance simulator is not just engineering; it is the infrastructure for evidence-based policy.
+
+===== Key Points
+
+* Evaluation as governance: metrics drive development; optimize for what we measure
+* Choose metrics that support policy: latency, cost, quality, bias, safety
+* Governance of evaluation: benchmarks, thresholds, who sets them
+* Evidence-based policy depends on measurement infrastructure
+
+.Figure 11.5: Evaluation metrics (latency, cost)
+[plantuml,ch11-l05,png,theme=sketchy-outline]
+....
+@startuml
+start
+:Model;
+:Latency;
+:Cost/token;
+:Quantization;
+:Benchmark;
+stop
+@enduml
+....
+
+==== Discussion Prompts
+
+* What metrics matter for your use case?
+* When is quantization acceptable?
+* How do we balance latency and quality?
+* How does the governance simulator use evaluation metrics?
+* How does GPU evaluation integrate with governance?
+* When does evaluation become a bottleneck for deployment?
+
+==== Lab Prep
+
+Lab 2–3: Add GPU-backed evaluation to the governance simulator. Measure latency, cost. Optionally: quantization comparison. See Lab 2–3 for requirements.
+
+===== Key Points
+
+* Lab 2–3: GPU evaluation
+* Latency, cost
+* Optional quantization
+
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch11,Chapter 11>>).

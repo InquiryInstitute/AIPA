@@ -1,0 +1,134 @@
+=== 6.5: Knowledge Engineering and AI-Mediated Communication
+:leveloffset: 2
+
+Imagine you must deliver a five‑page executive brief by 9 am. You type a single prompt into an LLM, and minutes later a draft appears—complete with citations, a JSON summary, and a polished conclusion. In that split‑second, who, if anyone, can claim authorship of the text? As the deadline ticks down, every decision you make about the prompt, the format, and the verification steps will determine whether the brief is a trustworthy deliverable or a risky gamble.
+
+[.epigraph]
+"Writing is thinking made visible."
+— Wittgenstein, _Philosophical Investigations_ <<Wittgenstein1953>> (adapted)
+
+==== Example Prompts
+
+* `"Write a report and cite your sources."` — _Citation‑aware; reduce hallucination_
+* `"Output as JSON."` — _Structured output; parse and validate_
+* `"Summarize and synthesize these documents."` — _Knowledge engineering; format, constraints_
+
+==== Conceptual Core
+
+When the clock is ticking, **knowledge engineering** becomes the art of shaping a prompt so that the LLM’s output is not only fast but also precise, verifiable, and ready for downstream workflows.  By declaring the desired format (Markdown, JSON, LaTeX) and explicitly requesting citations, we turn a vague language‑model call into a disciplined data‑generation step that can be audited later.
+
+Suppose your manager insists that every claim in the brief be traceable to a recent market report.  **Citation‑aware prompting** answers that demand: the prompt embeds the retrieved passages, asks the model to attribute each claim, and requires a bibliography in a chosen style.  The result is a draft whose footnotes point back to concrete source IDs, dramatically cutting the risk of hallucination.
+
+The brief may need both **summarization**—condensing a single earnings release—and **synthesis**—weaving together three analyst notes into a new insight about emerging trends.  These two tasks require different scaffolds: a summarization prompt preserves the original structure, while a synthesis prompt asks the model to generate novel connections and to flag which source contributed each idea.
+
+While you are busy tightening the prose, a hidden danger lurks: **bias detection**.  After generation, the output is screened for representation gaps, stereotypical language, and uneven source weighting.  Prompt engineers can embed fairness constraints (e.g., “include at least two perspectives from under‑represented analysts”) or request a “balanced perspective” clause that forces the model to surface divergent viewpoints before finalizing the draft.
+
+Finally, the whole workflow exemplifies **delegated cognition**: the human supplies intent, constraints, and critical judgment; the LLM produces the draft.  At every stage—retrieval, prompting, validation, audit—the question “who is the author?” resurfaces, reminding us to treat the model as a collaborative instrument rather than an autonomous writer.
+
+===== Key Points
+
+* Knowledge engineering: precise, format‑driven prompts that enable auditability  
+* Citation‑aware prompting: embed sources, request inline citations, choose style  
+* Summarization vs. synthesis: distinct goals, prompts, and validation criteria  
+* Bias detection & fairness constraints as integral checkpoints  
+* Genre‑specific prompt templates (executive brief, technical spec, academic paper)  
+* Delegated cognition: human intent + model generation = shared authorship  
+
+==== Technical Example
+
+**Example 1 – Executive policy brief**  
+1. *Source retrieval* – A retrieval module queries a corporate knowledge base and returns the top‑k passages from recent market analyses.  These passages are concatenated into a “context block.”  
+2. *Prompt construction* – A JSON‑structured template asks the model to populate sections (`Executive Summary`, `Findings`, `Recommendations`), embed numeric citations, and return the whole document as a JSON object with fields `content`, `citations`, and `metadata`.  
+3. *Validation script* – A Python validator parses the JSON, checks that every citation identifier maps to a retrieved passage, and runs a `jsonschema` check.  Mismatches are flagged and fed back to the LLM for iterative refinement.
+
+**Example 2 – Technical API specification**  
+1. *Source retrieval* – The system pulls the latest OpenAPI definitions and internal design notes.  
+2. *Prompt construction* – A YAML‑based template requests the model to generate a new endpoint description, include code snippets in Python, and output the result as a structured YAML document.  The prompt also asks for a “compatibility matrix” that cites the version of each dependent library.  
+3. *Validation script* – A linter validates the generated YAML against the OpenAPI schema, verifies that every code snippet compiles, and checks that the cited library versions exist in the internal package index.  Errors trigger a “refine prompt → regenerate” loop.
+
+Both examples follow the same **retrieve → prompt → generate → validate → refine** loop, but the genre‑specific templates and validation criteria differ, illustrating how knowledge engineering adapts to the rhetorical conventions of each document type.
+
+===== Key Points
+
+* Retrieve sources before prompting (context block)  
+* JSON or YAML prompt templates for structured output  
+* Automated validation (schema, citation match, code linting)  
+* Iterative refinement loop with feedback to the LLM  
+* Integration points: Google Docs API for briefs, CI pipeline for API specs  
+
+==== Philosophical Reflection
+
+The practice of AI‑mediated writing is not new; ghostwriters have long authored speeches, novels, and academic papers on behalf of patrons.  What changes now is the scale and opacity of the “ghost”: a statistical model trained on billions of tokens, inheriting the biases and epistemic authority of its training data.  This distributed authorship blurs the line between human intent and machine invention.
+
+**Reflection checkpoint:** after the validation step, pause and ask, *“What provenance chain does each claim carry, and who is responsible for any error that slips through?”*  The answer reveals a three‑part chain—source passage, prompt formulation, stochastic transformation—that must be recorded as audit metadata.  Governance (see Chapter 11) and audit (see Chapter 2) therefore require **traceability of prompts** and **responsibility allocation**: the prompt author, the model version, and the verification script are all accountable actors.
+
+By embedding these traceability mechanisms into the knowledge‑engineering pipeline, we transform a “black‑box” output into an accountable artifact.  The human remains the ultimate steward of truth, but the LLM becomes a transparent instrument whose contributions can be inspected, challenged, and credited.  In the executive‑brief scenario, this means you can point to exactly which market report justified each recommendation, and you can demonstrate that the model was instructed to honor a balanced‑perspective constraint before the brief was submitted.
+
+===== Key Points
+
+* Historical context: ghostwriting vs. AI‑mediated authorship  
+* Distributed epistemic authority across data, model, and prompt  
+* Provenance chain and audit metadata for every claim  
+* Responsibility allocation: human curator vs. machine generator  
+* Governance implications for institutional trust and compliance  
+
+==== Closing Synthesis
+
+Together, the conceptual, technical, and philosophical strands illustrate a single insight: **effective AI‑mediated writing hinges on disciplined knowledge engineering**.  By the time you deliver that five‑page brief at 9 am, you will have a reproducible pipeline that retrieves verified sources, crafts genre‑aware prompts, validates structured output, and records every decision in an audit trail.  In Lab 3 you will implement exactly this workflow—retrieving sources, prompting with JSON/YAML templates, validating citations and schemas, and publishing to Google Docs or a static‑site markdown pipeline.  The next lecture will build on this foundation by introducing quantitative evaluation metrics (precision, recall, factuality) that let you measure how well your pipeline protects truth and authorship.
+
+.Figure 6.5: Iterative AI‑mediated writing pipeline with bias‑check and audit loops
+[plantuml,ch06-l05,png,theme=sketchy-outline]
+....
+@startuml
+skinparam backgroundColor #FDF6E3
+skinparam shadowing false
+skinparam ArrowColor #2C7FB8
+skinparam ActivityBackgroundColor #A6D854
+skinparam DecisionBackgroundColor #E5C07B
+
+start
+:Retrieve sources;
+:Prompt (JSON/YAML template);
+:LLM generates draft;
+if (Citation needed?) then (yes)
+  :Generate citations;
+endif
+if (Bias check?) then (fail)
+  :Add fairness constraints;
+  --> :Prompt (refine);
+endif
+:Validate output (schema + citation match);
+if (Validation ok?) then (yes)
+  :Add audit metadata;
+else (no)
+  :Refine prompt / regenerate;
+  --> :Prompt (refine);
+endif
+:Human review;
+:Publish (Google Docs / Markdown);
+stop
+@enduml
+....
+
+==== Discussion Prompts
+
+* When are citations sufficient to reduce hallucination, and when must we add a post‑generation verification step?  
+* In a workflow that includes retrieval, prompting, validation, and human review, who should be listed as the author of the final document?  
+* How does the notion of “provenance” change when we move from an executive brief to a technical API specification?  
+* What role does genre‑specific prompting play in shaping both the factual accuracy and the rhetorical style of AI‑generated text?  
+* How can bias‑detection prompts be calibrated differently for a market analysis versus a diversity‑focused policy brief?  
+* In what ways does structured output (JSON, YAML) constrain creativity, and how can we balance that constraint with the need for downstream automation?  
+
+==== Lab Prep
+
+Lab 3 will have you implement the end‑to‑end pipeline illustrated in Figure 6.5.  You will (1) query a mock knowledge base for source passages, (2) craft a JSON or YAML prompt template that encodes genre‑specific constraints (citations, fairness clauses, code snippets), (3) invoke an LLM via the provided API, (4) run an automated validator that checks schema compliance and citation‑to‑source mapping, and (5) attach audit metadata before publishing the result to Google Docs or a markdown site.  The lab is designed to reinforce the disciplined knowledge‑engineering mindset and to give you concrete artifacts (prompt templates, validation scripts, audit logs) that you can reuse in future projects.
+
+===== Key Points
+
+* Lab 3: retrieve → prompt → generate → validate → refine → publish pipeline  
+* Structured output (JSON/YAML) enables automated validation and downstream automation  
+* Automated audit metadata records prompt author, model version, and citation links  
+* Alignment with governance and traceability standards introduced in Chapter 11  
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch06,Chapter 6>>).

@@ -1,0 +1,10 @@
+bash
+$ git clone https://github.com/example/student-ai.git
+$ cd student-ai
+$ tree -L 2
+.
+├── orchestration      # orchestrator service (entry point)
+├── llm                # embeddings, generation, caching
+├── memory             # document store, graph DB, retrieval logic
+├── reasoning          # logical inference, query planning
+└── tools              # search, audit, domain‑specific adapters

@@ -1,0 +1,45 @@
+=== Lab 3: Final AI Agent — Integration and Submission
+:leveloffset: 2
+
+*Final deliverable: Final AI Agent Repo (tool-integrated)*
+
+==== Tool Deliverable
+
+Complete student-ai with all tools integrated. Agent orchestrator invokes tool servers for search, memory, reasoning, LLM, governance. Demo and submit.
+
+==== Prerequisites
+
+* Complete Labs 1 and 2 (assembly, interface)
+* Review 12.5–12.8: evaluation; thesis; presentation; submission
+
+==== Objectives
+
+* Complete integration of all components
+* Run demo tasks (reasoning, retrieval, tool use)
+* Submit for evaluation
+
+==== Steps
+
+. Run full evaluation: benchmark tasks from your domain. Collect user feedback (2–3 users). Document strengths, limitations, failure modes.
+. Draft thesis: problem, approach, implementation, evaluation, discussion. Iterate with feedback.
+. Prepare presentation: rehearse demo (live or recorded). Structure: intro, problem, approach, demo, conclusion, Q&A.
+. Run demo: complete 2–3 representative tasks. Record or document for submission.
+. Submit: complete student-ai repository, thesis (or summary), demo video or writeup, final submission to GitHub Classroom.
+. Deploy for real use if applicable. Iterate based on feedback.
+
+==== Deliverables
+
+* Complete student-ai repository
+* Demo video or writeup
+* Final submission (GitHub Classroom)
+
+*Acceptance criteria:*
+* All tools integrated and functional
+* Evaluation results documented
+* Thesis or summary covers problem, approach, implementation, evaluation
+* Demo demonstrates agent completing representative tasks
+* Submission includes all required artifacts
+
+==== Lab Prep
+
+* Review 12.5–12.8: evaluation; thesis; presentation; submission

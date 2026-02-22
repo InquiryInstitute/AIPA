@@ -1,0 +1,119 @@
+=== 12.5: Evaluation and Benchmarking
+:leveloffset: 2
+
+[.epigraph]
+"Evidence speaks—when we design how to collect it."
+— NIST, _AI Risk Management Framework_ <<NIST2023>>; Mehrabi et al. <<Mehrabi2019>> (evaluation)
+
+==== Example Prompts
+
+* "How well does the agent perform?" — _Evaluation; benchmark_
+* "Compare to baselines." — _Rigorous evaluation; metrics_
+* "Document performance." — _Evaluation for the thesis_
+
+==== Conceptual Core
+
+How do we know the capstone works? Not by intuition—by evidence. Evaluation design asks: what do we measure, against what baselines, and under what conditions? NIST and Mehrabi et al. (<<NIST2023>>, <<Mehrabi2019>>) stress that evidence speaks when we design how to collect it. This lecture covers metrics, benchmark tasks, user studies, and honest reporting so the thesis is supported by rigorous evaluation.
+
+Evaluation design: what do we measure? Metrics such as accuracy, latency, user satisfaction, and task‑completion rate are chosen for the domain. Baselines answer the question “what do we compare to?” – a simpler system, a human, or a random policy. Comparisons then ask whether the agent outperforms the baseline under defined conditions.
+
+Benchmark tasks must be representative of the real problems users face in the capstone domain. By defining a suite of tasks, we can run the agent on them, collect results, and ensure that performance numbers reflect practical utility.
+
+User studies provide qualitative feedback. Structured or semi‑structured interviews with 2–3 users<<Nielsen1994>> reveal what works, what frustrates, and why. Themes, quotes, and implications are synthesized into a narrative that complements quantitative metrics.
+
+Honest reporting ties everything together. Do not hide failures—document strengths, limitations, and failure modes. The evaluation becomes an argument that supports your thesis: the agent works because the evidence you collected proves it.
+
+===== Key Points
+
+* Metrics: what to measure (accuracy, latency, satisfaction, etc.)
+* Baselines: compare to what?
+* Benchmark tasks: representative for domain
+* User study: qualitative feedback (2–3 users) <<Nielsen1994>>
+* Document: strengths, limitations, failure modes
+* Honest reporting
+* Evaluation = argument for thesis
+* Evidence = proof
+
+==== Technical Example
+
+Run the evaluation harness on the capstone agent. Use benchmark tasks from your domain—5–10 tasks that represent real use. For each task, execute the agent, record the output, and score it either with an automated metric (e.g., BLEU, F1) or a human‑crafted rubric, depending on the nature of the output.
+
+Collect user feedback: 2–3 users complete the benchmark tasks and then participate in a short interview. Capture both quantitative ratings (e.g., SUS score) and qualitative comments. Analyze the data by aggregating metrics and performing thematic analysis of the feedback.
+
+If results are unsatisfactory, refine the agent and re‑run the evaluation. Document the full pipeline—benchmark tasks, selected baselines, metrics, user‑study protocol, analysis, and final report—in the thesis. Lab 3: Run full evaluation. Document results. The thesis cites this evidence. See Lab 3 for requirements.
+
+===== Key Points
+
+* Run evaluation harness
+* Benchmark tasks (5–10)
+* Choose automated scoring vs. human rubric
+* User feedback (2–3 users) <<Nielsen1994>>
+* Analyze, document
+* Lab 3: Full evaluation, document
+* Thesis cites evidence
+
+==== Philosophical Reflection
+
+Evaluation is an argument: you claim “the agent works for problem X,” and the evaluation supplies the logical proof. Designing the evaluation is akin to constructing a persuasive case for a skeptical reader—what evidence would convince them, and what would falsify your claim?
+
+Reproducibility is a cornerstone of credible evidence. By publishing the benchmark suite, baseline definitions, and analysis scripts, you enable others to verify and extend your findings.
+
+Transparency of the evaluation pipeline—clearly stating metrics, baselines, and data splits—prevents hidden biases and gaming of results. Honest reporting of limitations, including failure modes, demonstrates a mature understanding of the system’s boundaries.
+
+Finally, the evaluation loop is iterative: unexpected failures prompt redesign, new experiments, and refined reporting. This cyclical process turns evaluation from a one‑off checkpoint into a continuous source of knowledge.
+
+===== Key Points
+
+* Evaluation = case‑making
+* Evidence = proof
+* Reproducibility as evidence
+* Transparency of pipeline
+* Report honestly, including limitations
+* Design collection carefully
+* Iterative evaluation loop
+
+.Figure 12.5: Evaluation framework for capstone
+[plantuml,ch12-l05,png,theme=sketchy-outline]
+....
+@startuml
+start
+:Define Benchmark Tasks;
+:Select Baselines & Metrics;
+if (Run on Agent?) then (yes)
+  :Execute Agent on Tasks;
+  :Collect Metrics;
+  :User Study (Qualitative Feedback);
+else (no)
+  stop
+endif
+if (Results > Baselines?) then (yes)
+  :Document Strengths;
+else (no)
+  :Document Limitations & Failure Modes;
+endif
+:Write Evaluation Report;
+stop
+@enduml
+....
+
+==== Discussion Prompts
+
+* What metrics matter for your domain?
+* How do we balance quantitative and qualitative evidence?
+* What if evaluation shows the agent fails? How do we report that?
+* What makes a "representative" benchmark task?
+* How do we avoid gaming the evaluation?
+* What would falsify your thesis? How would you design the evaluation to catch it?
+
+==== Lab Prep
+
+Lab 3: Run the full evaluation. Benchmark tasks, user study. Document results: strengths, limitations, failure modes. The thesis will cite this. Structure the evaluation section: metrics, tasks, results, analysis, limitations. See Lab 3 for requirements.
+
+===== Key Points
+
+* Lab 3: Full evaluation
+* Benchmark, user study
+* Document for thesis
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch12,Chapter 12>>).

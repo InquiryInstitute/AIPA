@@ -1,0 +1,44 @@
+=== Lab 1: Governance — Policy Representation
+:leveloffset: 2
+
+*Milestone toward: AI Governance Simulator (tool)*
+
+==== Tool Deliverable
+
+Builds toward tool server `governance` — tools: `define_policy`, `check_compliance`, `list_constraints`. Agent evaluates policies via tool invocation.
+
+==== Prerequisites
+
+* Review 11.1–11.2: policies; constraints; cost control
+
+==== Objectives
+
+* Represent governance policies (rules, constraints)
+* Define compliance checks
+* Model policy tradeoffs
+
+==== Steps
+
+. Define policy representation schema: policy_id, type (allow/block), condition, scope, action. Use structured format (JSON, YAML).
+. Implement define_policy(spec): add policy to store. Validate spec.
+. Implement check_compliance(action, context): given an action (e.g., "call_llm", "access_data"), check against policies. Return allow/block + reason.
+. Implement list_constraints(): return active policies. Support filtering by type or scope.
+. Add cost-tracking policy: log tokens, API calls; set budget; alert at 80%.
+. Add rate-limiter policy: e.g., 10 req/min per user.
+. Submit: policy representation schema, compliance checker, GitHub Classroom repo (ch11-lab-01).
+
+==== Deliverables
+
+* Policy representation schema
+* Compliance checker
+* GitHub Classroom repo (ch11-lab-01)
+
+*Acceptance criteria:*
+* Schema supports at least 2 policy types (allow, block)
+* check_compliance returns correct result for 3+ test cases
+* Cost tracking and rate limiting are implementable (or documented)
+* README documents schema and usage
+
+==== Lab Prep
+
+* Review 11.1–11.2: policy schema; compliance; cost control

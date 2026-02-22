@@ -1,0 +1,14 @@
+python
+from neural_classifier import create_architecture, train, predict, export
+
+config = {
+    "arch": "transformer_small",
+    "lr": 3e-4,
+    "epochs": 10,
+    "batch_size": 32,
+    "loss": "cross_entropy"
+}
+model = create_architecture(config)
+train(model, train_dataset, val_dataset, config)
+preds = predict(model, test_dataset)
+export(model, "models/email_classifier.onnx")

@@ -1,0 +1,13 @@
+json
+{
+  "name": "search",
+  "description": "Run a web search and return the top results.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "query": {"type": "string"},
+      "k": {"type": "integer", "default": 5}
+    },
+    "required": ["query"]
+  }
+}

@@ -1,0 +1,130 @@
+=== 12.2: Problem Definition and User Validation
+:leveloffset: 2
+
+[.epigraph]
+"If they can get you asking the wrong questions, they don't have to worry about answers."
+— Pynchon, _Gravity's Rainbow_ <<Pynchon1973>>
+
+"The problem is not given—it is constructed with stakeholders."
+— Dewey, _Democracy and Education_ <<Dewey1916>> (adapted)
+
+A student team builds a sentiment‑analysis bot for a marketing campaign, only to discover that the marketing department never actually needs automated sentiment scores. The project stalls, resources are wasted, and the team is left wondering what went wrong.  
+**How can we be sure we’re solving the right problem before we start building?**
+
+*Define the problem; validate with users.*
+
+==== Example Prompts
+
+* "What problem are you solving?" — _Problem definition; stakeholder validation_
+* "Who are the users?" — _Validate with users; situated context_
+* "Is this tractable and meaningful?" — _Problem selection; scope_
+
+==== Conceptual Core
+
+**Scope.** The first dimension asks: what is in and what is out? Define the functional boundaries of the AI agent—what it will do, what it will not do, and the constraints (data, compute, ethical limits). A clear scope prevents the project from ballooning into an unmanageable ambition.
+
+**Users.** Identify who will actually interact with the system. Are they a specific team, a customer segment, an internal workflow, or a broader public? Mapping users to concrete personas or roles grounds the problem in lived practice and reveals hidden requirements.
+
+**Value Proposition.** Articulate why the problem matters. What pain does it address? What outcome do we expect? A compelling value proposition ties the technical effort to measurable impact—cost savings, time reduction, decision quality, or user satisfaction.
+
+**Negotiation & Validation Loop.** Problem definition is a negotiated construct. Stakeholders bring divergent views; you must synthesize them, set decision criteria, and document trade‑offs. Validation is not a checkbox but an iterative loop: if stakeholder feedback reveals mis‑alignment, you revisit scope, users, or value before proceeding.
+
+**Negotiation Checklist.**  
+1. List all stakeholder groups.  
+2. Record each group’s primary objectives.  
+3. Define decision‑making criteria (e.g., feasibility, impact, equity).  
+4. Flag potential scope‑creep triggers.  
+5. Agree on a revision protocol for validation feedback.
+
+===== Key Points
+
+* Scope (in/out), Users (who?), Value Proposition (why?)  
+* Problem constructed with stakeholders—not discovered  
+* Negotiation checklist to guide stakeholder synthesis  
+* User research: interviews, surveys, observation  
+* Validation loop: iterate until problem‑solution fit is confirmed  
+* Scope creep: stay bounded, use the checklist to guard against it  
+* Problems as social constructs—negotiated, documented  
+* Politics: whose problem? Whose solution? Validation as accountability  
+
+==== Technical Example
+
+Document the problem definition. One page: scope (bullet points for in/out), users (personas or roles), value proposition (one paragraph). Conduct 2–3 user interviews. Structure: open questions about pain points, current workarounds, desired outcomes. Synthesize: what did they say? What do they need? What surprised you? Lab 1: Finalize the problem. Get user validation. Validation is evidence—not assumption. The thesis will cite this; the implementation will be judged against it. See Lab 1 for requirements.
+
+===== Key Points
+
+* One‑page problem definition (scope, users, value)  
+* 2–3 user interviews with open‑ended questions  
+* Synthesize findings into a concise problem statement  
+* Lab 1: Finalize and validate the problem  
+* Validation = evidence, not assumption  
+
+==== Philosophical Reflection
+
+Problems as social constructs: the problem is not “out there” waiting to be found. It is agreed upon through dialogue. Stakeholders have different views; the problem definition is a negotiation that produces a shared, actionable claim. When we say “the problem is X,” we are making a claim that others can accept or reject. Validation checks that claim, turning it into data that also performs a social function—commitments, expectations, and power relations are enacted.
+
+The politics of “solution”: whose problem gets solved? When we build for “users,” we often mean a particular subset—internal power users, edge cases, or external customers. Choices about scope, data, and metrics privilege certain outcomes over others. Pynchon’s warning about asking the wrong questions highlights that the framing of the problem determines what answers are possible; the iterative validation loop makes those framings explicit and contestable.
+
+Iterative validation as a democratic practice distributes agency among stakeholders, ensuring that the AI system evolves in response to real‑world needs rather than the project team’s assumptions. By documenting who was consulted, what they said, and how decisions were made, we create a transparent accountability trail.
+
+===== Key Points
+
+* Problems are negotiated social constructs  
+* Validation = checking the claim and making it performative  
+* Whose problem? Political dimension of scope and users  
+* Documentation provides accountability and transparency  
+* Iterative validation as a democratic practice that distributes agency  
+
+.Figure 12.2: Problem definition framework
+[plantuml,ch12-l02,png,theme=sketchy-outline]
+....
+@startuml
+skinparam ArrowColor #555555
+start
+:Define Scope;
+if (Scope acceptable?) then (yes)
+  :Identify Users;
+  if (User set complete?) then (yes)
+    :Articulate Value Proposition;
+    :Conduct User Research;
+    :Validate with Stakeholders;
+    if (Validation passes?) then (yes)
+      stop
+    else (no)
+      :Revise Scope/Value;
+      -->[loop back] start
+    endif
+  else (no)
+    :Expand User Set;
+    -->[loop back] :Identify Users;
+  endif
+else (no)
+  :Refine Scope;
+  -->[loop back] :Define Scope;
+endif
+@enduml
+....
+
+A rigorously defined and validated problem is the single most reliable predictor of a successful AI capstone; everything that follows builds on that foundation.
+
+==== Discussion Prompts
+
+* How do we know a problem is "real"?  
+* What if users say one thing and do another?  
+* How do we handle scope creep? When is it appropriate?  
+* Who counts as a "stakeholder" for validation?  
+* What are the risks of building without validation?  
+* How do we balance stakeholder views when they conflict?
+
+==== Lab Prep
+
+Lab 1: Finalize problem definition. Get user validation. Document scope, users, value proposition. Conduct 2–3 interviews. Synthesize findings. The validated problem is the foundation for the rest of the capstone. See Lab 1 for requirements.
+
+===== Key Points
+
+* Lab 1: Finalize problem  
+* User validation  
+* Document, synthesize  
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch12,Chapter 12>>).

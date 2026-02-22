@@ -1,0 +1,149 @@
+=== 9.8: Lab Integration — Tool-Calling Agent
+:leveloffset: 2
+
+[.epigraph]
+"The agent acts. The tools extend. The user delegates."
+— Yao et al., "ReAct" <<Yao2022>> (adapted)
+
+[.learning-outcomes]
+* after this lecture you will be able to assemble a self‑contained tool‑calling agent that closes the perceive → reason → act loop  
+* you will understand how tool schemas, registration, and the ReAct cycle interact to produce autonomous behaviour  
+* you will be able to reason about safety controls (max‑step limits, audit logs) and plan for failure recovery  
+
+==== Hook: A Real‑World Scenario
+
+Imagine a researcher asks the system: *“Find the latest papers on quantum‑error‑correction, summarise the key ideas, and generate a reproducible experiment plan.”*  
+The request touches many capabilities: a web search, a memory‑augmented retrieval, logical reasoning about the papers, natural‑language generation, and finally an audit of the generated plan.  
+How can a single agent coordinate all these tools without the student writing glue code for each step? The answer lies in the **tool‑calling agent**, the first fully‑closed cognitive loop in our curriculum.
+
+==== Example Prompts
+
+* "Help me with my task." — _complete agent: perceive, reason, act with all tools_  
+* "What can you do?" — _tool‑calling agent in student‑ai/: search, memory, reasoning, llm_  
+* "Integrate and deploy." — _capstone: the agent we built—complete loop_  
+
+==== Conceptual Core
+
+*Recap of building blocks* – In Chapters 7‑9 we introduced six core tools: **search**, **memory**, **reasoning**, **llm**, **audit**, **ml_trainer**, and **neural_classifier**. Each tool follows a common **schema** (name, description, input‑type, output‑type) and is discovered through a **registration** file placed in `student‑ai/tools/`.
+
+*ReAct cycle* – The agent follows the classic **think → act → observe** loop. After receiving a user prompt it *thinks* (generates a plan), *acts* by invoking the most appropriate tool, and then *observes* the tool’s result to update its internal state.
+
+*Planning & replanning* – Complex tasks are decomposed into sub‑goals. If a tool call fails or yields unexpected output, the agent **replans** by revisiting earlier reasoning steps, possibly selecting an alternative tool.
+
+*Control mechanisms* – To guarantee safety we enforce a **max‑step limit** and a **safety guard** that aborts execution on suspicious outputs (e.g., overly long responses, prohibited content). The **audit** tool records every tool call, its inputs, and its outputs for later inspection.
+
+*Folder layout & orchestrator preview* – All tool implementations live under `student‑ai/tools/`. Registration files are automatically loaded at runtime. Chapter 10 will introduce the **orchestrator**, a higher‑level controller that can coordinate multiple such agents or delegate tasks among them.
+
+===== Key Points
+
+* tools schema, registration, and discovery  
+* ReAct loop: think → act → observe  
+* task decomposition and replanning strategies  
+* safety guard: max‑step limit and abort criteria  
+* audit logging of every tool call  
+* folder structure: `student‑ai/tools/`  
+* bridge to Ch10: orchestrator will manage multiple agents  
+
+==== Technical Example
+
+*End‑to‑end demo* – The student runs a script that sends the prompt *“Research topic X, summarize with citations, run an audit on your process.”* The agent first **searches** for relevant papers, stores the results in **memory**, uses the **reasoner** to extract key ideas, calls the **llm** to draft a summary, and finally invokes the **audit** tool to verify citation correctness and log the workflow.
+
+*Audit sub‑step* – The audit tool writes a JSON entry for each call: `{ "tool": "search", "input": "...", "output": "...", "timestamp": "..." }`. This log is later used to generate a provenance report, satisfying transparency requirements.
+
+*Failure recovery* – If the search service times out, the agent falls back to a cached knowledge base stored in memory. It then proceeds with the remaining steps, annotating the final answer with a “fallback used” flag. This demonstrates robust replanning.
+
+*Performance metrics* – Students instrument the demo to capture **latency**, **token cost**, and **error rate** for each tool call, enabling quantitative evaluation of the integrated system.
+
+===== Key Points
+
+* end‑to‑end demo: search → memory → reason → llm → audit  
+* audit log format and provenance report  
+* fallback to cached knowledge on search failure  
+* performance metrics: latency, token cost, error rate  
+* testing harness: unit tests for each tool call  
+* safety controls: max‑step limit, abort on suspicious output  
+* submission script that reproduces the demo  
+
+==== Philosophical Reflection
+
+*Agency vs. tool autonomy* – The agent “acts” only by delegating to external tools. This raises the question: does agency reside in the decision‑making component, in the tools themselves, or in the emergent behaviour of the whole system? Understanding this distinction informs how we design accountability mechanisms.
+
+*Ethical dimensions* – Tool‑calling introduces provenance and bias concerns. The **audit** tool becomes a guardrail, ensuring that generated content can be traced back to its sources and that any downstream decisions respect ethical standards. Students must consider who bears responsibility when a tool produces harmful output.
+
+*Transparency and human‑in‑the‑loop* – By exposing the audit log, the system invites human oversight. This aligns with the broader goal of **human‑in‑the‑loop AI**, where users can intervene, correct, or halt the agent’s actions based on observed behaviour.
+
+===== Key Points
+
+* agency resides in decision‑making, not merely tool execution  
+* responsibility allocation between agent and tools  
+* audit logs provide transparency and provenance  
+* bias mitigation through tool selection and audit checks  
+* human‑in‑the‑loop design encourages oversight and correction  
+
+.Figure 9.8: Tool‑calling agent and Ch10 orchestrator
+[plantuml,ch09-l08,png,theme=sketchy-outline]
+....
+@startuml
+skinparam backgroundColor #FDF6E3
+actor User
+rectangle "Tool‑Calling Agent" as Agent {
+  start
+  :Receive Prompt;
+  while (not DONE?) is (steps < MAX) 
+    :Select tool (ReAct);
+    alt Search
+      :search(query);
+    else Memory
+      :retrieve(context);
+    else Reasoner
+      :reason(task);
+    else LLM
+      :generate(text);
+    else Audit
+      :audit(action);
+    else ML‑Trainer
+      :train(model);
+    else Neural‑Classifier
+      :classify(input);
+    end
+    :Observe result;
+    :Update Memory;
+  endwhile
+  :Return answer;
+  stop
+}
+User --> Agent : prompt
+Agent --> User : answer
+cloud "Ch10 Orchestrator" as Orchestrator {
+  Agent --> Orchestrator : register / status
+}
+@enduml
+....
+
+==== Discussion Prompts
+
+* looking at the ReAct loop, where does the agent decide to call the audit tool?  
+* how does the integration of search, memory, and reasoning change the user experience compared to using each tool separately?  
+* what is the relationship between the tool‑calling agent and the future orchestrator introduced in Ch10?  
+* how does the agent’s action stack complete the capstone project’s requirements?  
+* what would the student‑ai/ system lose without the tool‑calling agent’s safety guard and audit logs?  
+
+==== Lab Prep
+
+Complete Labs 1–3 for Chapter 9 and submit a **fully‑registered tool‑calling agent**:
+
+* place the agent implementation and its registration file in `student‑ai/tools/`  
+* provide unit tests for each tool call (search, memory, reasoning, llm, audit)  
+* include a demo script that reproduces the end‑to‑end “research‑summarise‑audit” scenario  
+* write a short report (≈ 300 words) describing the safety controls you implemented (max‑step limit, fallback strategy, audit logging)  
+
+===== Key Points
+
+* finish Labs 1–3 and submit the agent code  
+* register the agent in `student‑ai/tools/`  
+* demo script: research → summarise → audit  
+* safety controls: max‑step, fallback, audit log  
+* report on design decisions and accountability measures  
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch09,Chapter 9>>).

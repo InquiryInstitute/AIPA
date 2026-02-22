@@ -1,0 +1,60 @@
+json
+{
+  "status": "success" | "error",
+  "payload": {...},
+  "metadata": {"elapsed_ms": 123, "tool_version": "1.2"}
+}
+```  
+
+The `status` field determines the downstream path; `payload` holds the useful observation, while `metadata` supports monitoring and governance.
+
+**Failure modes & retry logic** – Errors are classified as *transient* (network glitches, timeouts) or *permanent* (invalid arguments, quota exhaustion). Transient errors trigger a bounded retry loop with exponential back‑off; permanent errors invoke a fallback tool or escalation.
+
+**Timeouts & resource limits** – To prevent runaway executions, each call is wrapped in a circuit‑breaker that aborts after a configurable deadline and records the failure in the observation log.
+
+**Observation as constraint & feedback loop** – The returned observation limits the agent’s hypothesis space. Successful observations expand possibilities; error observations shrink them and force the agent to reconsider its plan. The agent continuously adapts its strategy based on the quality and shape of the feedback.
+
+===== Key Points
+
+* Uniform result schema (`status`, `payload`, `metadata`)
+* Idempotence & side‑effects awareness
+* Security sandbox & timeout enforcement
+* Success vs. error branching
+* Transient vs. permanent error classification
+* Retry with exponential back‑off
+* Fallback tool selection
+* Escalation to human operator
+* Observation as a constraint on reasoning
+* Feedback loop drives adaptive strategy
+* Circuit‑breaker pattern for resource safety
+* Logging & observability for governance
+
+==== Technical Example
+
+Below is a minimal pseudo‑Python implementation of the execution layer. It demonstrates how a tool is invoked, how the uniform schema is built, and how errors are wrapped.
+
+```python
+class ToolError(RuntimeError):
+    def __init__(self, code: str, message: str):
+        super().__init__(f"{code}: {message}")
+        self.code = code
+        self.message = message
+
+class ToolExecutor:
+    def __init__(self, registry, timeout_ms=2000):
+        self.registry = registry
+        self.timeout_ms = timeout_ms
+
+    def execute(self, tool_name: str, **kwargs) -> dict:
+        tool = self.registry.get(tool_name)
+        try:
+            result = tool.run(**kwargs, timeout=self.timeout_ms)
+            return {
+                "status": "success",
+                "payload": result,
+                "metadata": {"elapsed_ms": result.elapsed, "tool_version": tool.version}
+            }
+        except TimeoutError:
+            raise ToolError("TIMEOUT", f"{tool_name} exceeded {self.timeout_ms} ms")
+        except Exception as exc:
+            raise ToolError("FAILURE", str(exc))

@@ -1,0 +1,148 @@
+=== 1.8: The Student's AI — Capstone Vision
+:leveloffset: 2
+
+[.epigraph]
+"A line of flight: an absolute deterritorialization."
+— Deleuze & Guattari, _A Thousand Plateaus_ <<Deleuze1992>>
+
+*The student's AI is not a copy of an existing system—it is a line of flight, a becoming.*
+
+==== Example Prompts
+
+These prompts illustrate the kinds of requests your capstone agent must handle.
+
+* "Help me with my task." — _the agent we build: orchestrator invokes tools, synthesizes, responds_
+* "Search our docs, remember context, and reason about the answer." — _integrated: search + memory + reasoning_
+* "What can you do?" — _student‑ai/: knowledge graph, audit, search, llm, memory, reasoning, tools, orchestration_
+
+==== Conceptual Core
+
+This book is built around a capstone vision: by the end of twelve chapters, you will have constructed an AI agent. Not a toy—a working system that integrates an LLM, memory, reasoning, tools, and orchestration. The `student‑ai/` repository is the container. Each chapter contributes one tool or module. Chapter 1 contributes the knowledge graph—the first piece of the memory layer. Chapter 2 adds the audit tool. Chapter 3 adds search. The structure accumulates. By Chapter 12, you have a complete agent: an orchestrator that invokes tool servers for search, memory, reasoning, and generation, with governance and deployment in place.
+
+The `student‑ai/` directory mirrors the book. Subdirectories: `llm/`, `memory/`, `reasoning/`, `tools/`, `orchestration/`. The knowledge graph you build in Labs 1–3 becomes the foundation for memory—a place to store and retrieve structured knowledge. The audit tool (Ch2) ensures traceability. The search engine (Ch3) enables retrieval. Later chapters add reasoning, language models, and the orchestrator that ties them together. The book does not just teach concepts; it builds the system that embodies them. **Recursive pedagogy** (see Philosophical Reflection): you learn AI by building AI.
+
+Deleuze's "line of flight" suggests escape from fixed categories—a becoming rather than a being. Your AI is not a replica of ChatGPT or Claude; it is yours. You choose the schema, the tools, the orchestration. The system you build will reflect your decisions about stored vs. flowing, symbolic vs. connectionist, epistemic responsibility, and infrastructural design. The reader is no longer studying AI—they are building one.
+
+===== Key Points
+
+* capstone vision: build an AI agent across 12 chapters
+* `student‑ai/` structure: `llm/`, `memory/`, `reasoning/`, `tools/`, `orchestration/`
+* each chapter contributes one tool or module
+* ch1 → knowledge graph (memory foundation); ch2 → audit; ch3 → search; etc.
+* the book mirrors the system being built
+* recursive pedagogy: learn AI by building AI
+* your AI—yours; reflects your decisions
+
+==== Technical Example
+
+Walk through the target `student‑ai/` repository structure. At the root: `orchestration/` (the agent that coordinates everything), `llm/` (embedding, generation, caching), `memory/` (document and graph storage, retrieval), `reasoning/` (logical inference, query), `tools/` (search, audit, and domain‑specific tools). The knowledge graph from Chapter 1 feeds into `memory/`—it is where structured knowledge lives. The audit tool from Chapter 2 becomes a tool server. The search engine from Chapter 3 joins `tools/search/`. Each lab produces a deliverable that integrates as a submodule or component.
+
+The flow: a user query reaches the orchestrator; the orchestrator decides which peer service(s) to call (search? memory? reasoning? llm?) and invokes them; each tool server does its work and returns results; the orchestrator synthesizes and responds. Agency emerges from interaction, not hierarchy. No single component is "the brain"; the system is distributed. The diagram below shows the modules as peers—orchestration, llm, memory, reasoning, tools—connected by bidirectional invocation. Your first contribution, the knowledge graph, sits in that network. Lab 1 (Knowledge Graph — Data Model and Ingestion) is where you start.
+
+.Figure 1.8: student‑ai/ architecture — agency from interaction, not hierarchy
+[plantuml,ch01-l08,png,theme=sketchy-outline]
+....
+@startuml
+skinparam backgroundColor #FDF6E3
+skinparam handwritten true
+
+actor User
+rectangle "Orchestrator\n(orchestration/)" as orch
+package "Peer Services" {
+  rectangle "LLM\n(llm/)" as llm
+  rectangle "Memory\n(memory/)" as mem
+  rectangle "Reasoning\n(reasoning/)" as rea
+  rectangle "Tools\n(tools/)" as tools
+}
+
+User -> orch : query
+orch --> llm : invoke
+orch --> mem : invoke
+orch --> rea : invoke
+orch --> tools : invoke
+
+llm --> orch : result
+mem --> orch : result
+rea --> orch : result
+tools --> orch : result
+
+orch -> User : synthesized response
+@enduml
+....
+*caption: The user query enters the orchestrator, which invokes peer services (LLM, Memory, Reasoning, Tools). Results flow back to the orchestrator, which synthesizes a response.*
+
+===== Key Points
+
+* `student‑ai/` repository structure: `orchestration/`, `llm/`, `memory/`, `reasoning/`, `tools/`
+* knowledge graph → `memory/`; audit → `tools/`; search → `tools/search/`
+* flow: user → orchestrator → peer services → synthesis → response
+* orchestrator decides which peer service(s) to call based on request type
+* agency from interaction, not hierarchy
+* lab 1: data model and ingestion—first deliverable
+
+==== Philosophical Reflection
+
+Recursive pedagogy means the object of study and the means of study are the same. You do not learn about AI from the outside; you build an AI system and, in building, learn how the pieces fit. The knowledge you gain is practical—schema design, query optimization, interface choices—and conceptual—stored vs. flowing, epistemic responsibility, infrastructural power. The two reinforce each other. When you debug a traversal bug, you understand process. When you design for auditability, you understand institutional participation.
+
+The reader is no longer studying AI—they are building one. That shift is deliberate. Passive consumption of AI (using ChatGPT, reading about transformers) does not yield the same understanding as active construction. The `student‑ai/` system is the vehicle. By the end, you will have an agent that you can extend, critique, and deploy. The "line of flight" is yours: deterritorialization from the default—the big model, the opaque API—toward something you understand and control.
+
+===== Key Points
+
+* recursive pedagogy: object and means of study are the same
+* practical and conceptual knowledge reinforce each other
+* passive consumption vs. active construction—different understanding
+* your agent: extend, critique, deploy
+* line of flight: deterritorialization from the default
+
+.Figure 1.8: student‑ai/ architecture — agency from interaction, not hierarchy
+[plantuml,ch01-l08,png,theme=sketchy-outline]
+....
+@startuml
+skinparam backgroundColor #FDF6E3
+skinparam handwritten true
+
+actor User
+rectangle "Orchestrator\n(orchestration/)" as orch
+package "Peer Services" {
+  rectangle "LLM\n(llm/)" as llm
+  rectangle "Memory\n(memory/)" as mem
+  rectangle "Reasoning\n(reasoning/)" as rea
+  rectangle "Tools\n(tools/)" as tools
+}
+
+User -> orch : query
+orch --> llm : invoke
+orch --> mem : invoke
+orch --> rea : invoke
+orch --> tools : invoke
+
+llm --> orch : result
+mem --> orch : result
+rea --> orch : result
+tools --> orch : result
+
+orch -> User : synthesized response
+@enduml
+....
+*caption: The user query enters the orchestrator, which invokes peer services (LLM, Memory, Reasoning, Tools). Results flow back to the orchestrator, which synthesizes a response.*
+
+==== Discussion Prompts
+
+* what would "your" AI do differently from existing systems?
+* why might building an AI teach more than using one?
+* where do you want your `student‑ai/` to "fly"—what would success look like?
+* how does the capstone vision change how you read the rest of the book?
+
+==== Lab Prep
+
+Lab 1 (Knowledge Graph — Data Model and Ingestion) is the first deliverable. Define the schema: what entities and relations will your graph represent? Load sample data. The schema choices you make now will constrain what the Explorer (Lab 3) can surface and what the memory layer (Ch7) can store. Think ahead to integration: your graph will eventually feed into `student‑ai/memory/`. Design for that destination. See Lab 1 (Knowledge Graph — Data Model and Ingestion) for objectives and deliverables.
+
+===== Key Points
+
+* lab 1: data model and ingestion—define schema, load data
+* schema choices constrain Explorer and memory layer
+* design for integration: graph → `student‑ai/memory/`
+* first step of the capstone
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch01,Chapter 1>>).

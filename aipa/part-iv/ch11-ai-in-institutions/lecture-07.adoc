@@ -1,0 +1,89 @@
+=== 11.7: The governance Tool
+:leveloffset: 2
+
+[.epigraph]
+"Governance as a tool—the agent can check itself."
+— EU AI Act <<EU2024>>; NIST AI RMF <<NIST2023>> (adapted)
+
+==== Example Prompts
+
+* "Check if this action complies." — _Agent invokes governance.check_compliance before acting_
+* "Define a new policy." — _governance.define_policy; self-audit_
+* "Can the agent govern itself?" — _Limits of self-audit; reflexive governance_
+
+==== Conceptual Core
+
+Governance becomes a tool the agent—or the operator—invokes. Instead of only auditing after the fact (Ch2), we give the system a *governance* tool server: define policies, check compliance before acting, simulate scenarios, and report. The agent can call governance to check itself; the operator can use the same tools to set and enforce policy. This lecture specifies the tool schema, its place in the stack, and the promise and limits of reflexive governance.
+
+The *governance tool* exposes four core operations. *define_policy(policy)* adds or updates rules—e.g. "Do not exceed cost X per user," "Block actions that match pattern P." *check_compliance(action)* returns allow or block (and optionally a reason): is this action allowed under current policy? The agent invokes this before sensitive actions—e.g. before calling a paid API or modifying user data. *simulate(scenario)* runs a scenario (e.g. "100 users, mixed workload") and returns outcomes—latency, cost, violations—so we can test policies before deployment. *report()* returns an audit summary: what was checked, what was blocked, what was simulated. Together, these operations make governance *actionable* inside the agent loop.
+
+The agent invokes governance for *self-audit*. Before a sensitive action, it calls check_compliance; if the result is block, it does not proceed (or escalates). That extends the agent's capacity for responsibility: it can refuse to act when policy forbids it. Integration with the audit tool (Ch2) is direct: audit *describes* what happened; governance *prescribes* what is allowed and checks before action. The governance tool belongs in student-ai/ alongside memory, reasoning, and other tool servers. Reflexive governance—the agent that governs itself—has a clear limit: the agent can only check what it is programmed to check. It cannot audit its own auditing; external audit and human oversight remain necessary. But self-audit is a real capability: the agent can say no.
+
+===== Key Points
+
+* governance tool: define_policy, check_compliance, simulate, report
+* define_policy: add/update rules; check_compliance: allow/block before action
+* simulate: run scenarios, get outcomes; report: audit summary
+* Agent invokes for self-audit; check before sensitive actions
+* Integrates with audit (Ch2): audit describes, governance prescribes
+* Reflexive governance: agent can refuse when policy forbids
+* Limits: agent checks only what it is programmed to check; external audit still needed
+
+==== Technical Example
+
+Define the governance tool schema in your agent framework. *define_policy(policy)* takes a policy object (e.g. rules, limits, patterns) and stores it. *check_compliance(action)* evaluates the action against the current policy and returns allow or block (and optionally a reason). *simulate(scenario)* runs the scenario—e.g. a set of hypothetical actions or a load profile—and returns outcomes (e.g. violations, cost, latency). *report()* returns a summary of recent checks and simulations. The agent calls check_compliance before sensitive actions (e.g. before calling a paid API or writing user data); if the result is block, the agent does not proceed or escalates to the user.
+
+Lab 3: Complete the governance simulator. Implement the tool server, register it with the agent, and integrate so the agent invokes governance for compliance checks. The agent that can check itself is a core deliverable—but document the limits: what the agent can and cannot check, and where external audit is still required.
+
+===== Key Points
+
+* Schema: define_policy, check_compliance, simulate, report
+* Agent calls check_compliance before sensitive actions; block → do not proceed or escalate
+* Lab 3: Complete simulator, register, integrate; document limits
+
+==== Philosophical Reflection
+
+Reflexive governance—the agent that governs itself—is a real design choice. By giving the agent a governance tool, we extend its capacity for responsibility: it can check policy and refuse to act. That is not full accountability; the agent can only check what it knows to check, and it cannot audit its own auditing. Blind spots and gaming remain possible. So self-audit complements rather than replaces external audit and human oversight. But self-audit matters: it shifts some governance *into* the loop, so the system can say no before harm occurs. The EU AI Act (<<EU2024>>) and NIST AI RMF (<<NIST2023>>) treat governance as something systems should support; the governance tool is one way to make that support concrete.
+
+===== Key Points
+
+* Reflexive governance: agent can check and refuse; extends responsibility
+* Limits: only checks what it is programmed to check; cannot audit its own auditing
+* Self-audit complements external audit and human oversight; does not replace them
+* Governance in the loop: system can say no before harm; EU/NIST alignment
+
+.Figure 11.7: governance in agent stack
+[plantuml,ch11-l07,png,theme=sketchy-outline]
+....
+@startuml
+start
+:Agent;
+:governance;
+:define_policy;
+:check_compliance;
+:simulate;
+stop
+@enduml
+....
+
+==== Discussion Prompts
+
+* Can an agent truly govern itself?
+* What are the limits of self-audit?
+* When should governance block vs. warn?
+* How does the governance tool integrate with the orchestrator (Ch10)?
+* How does the governance tool extend the audit tool (Ch2)?
+* When is self-audit sufficient vs. external audit?
+
+==== Lab Prep
+
+Lab 3: Complete the governance simulator. Register as tool server. Integrate with the agent. The agent invokes governance for compliance checks. See Lab 3 for requirements.
+
+===== Key Points
+
+* Lab 3: Complete, register, integrate
+* Agent invokes governance
+
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch11,Chapter 11>>).

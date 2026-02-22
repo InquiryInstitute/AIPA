@@ -1,0 +1,9 @@
+yaml
+orchestrator:
+  tools:
+    - name: audit
+      endpoint: http://localhost:8001/api
+    - name: search
+      endpoint: http://localhost:8002/api
+  auth:
+    token: ${ORCH_TOKEN}

@@ -1,0 +1,127 @@
+=== 12.5: Evaluation and Benchmarking
+:leveloffset: 2
+
+[.epigraph]
+"Evidence speaks—when we design how to collect it."
+— NIST, _AI Risk Management Framework_ <<NIST2023>>; Mehrabi et al. <<Mehrabi2019>> (evaluation)
+
+==== Example Prompts
+
+* "How well does the agent perform?" — _Evaluation; benchmark_
+* "Compare to baselines." — _Rigorous evaluation; metrics_
+* "Document performance." — _Evaluation for the thesis_
+
+==== Conceptual Core
+
+Imagine a medical‑diagnosis chatbot that scores **99 % accuracy** on a public benchmark, yet in a pilot ward it misclassifies a life‑threatening case. The headline‑grabbing number looks impressive, but clinicians and regulators will not accept it without *evidence that the system works under realistic conditions*. This tension—between a dazzling benchmark and real‑world risk—drives every evaluation design.
+
+The first step is to decide **what to measure**. Metrics must reflect the domain’s priorities: for a diagnostic system we might track *clinical accuracy*, *false‑negative rate*, *latency* (time to answer), and *user trust* (survey scores). Selecting a metric is itself a hypothesis about what matters; the metric becomes the lens through which success is judged.
+
+Next we must choose **baselines**. A baseline can be a naïve rule‑based system, a prior state‑of‑the‑art model, or even a human expert. By comparing the capstone agent to these reference points we answer the question “does the new system *actually* improve on what already exists?” without a baseline, any number is meaningless.
+
+A robust **benchmark suite** then operationalises the metrics. Benchmarks should be *representative* of the tasks users will face, diverse enough to expose hidden failure modes, and resistant to over‑fitting. For a chatbot this might include triage conversations, medication‑lookup queries, and edge‑case symptom descriptions drawn from real patient logs.
+
+Quantitative results alone are insufficient; we complement them with a **user‑study**. Structured interviews or think‑aloud protocols with a small, purposeful sample (2–4 participants representing target users) reveal usability issues, trust gaps, and contextual factors that raw numbers hide. The study should be designed to elicit both *what works* and *what frustrates*.
+
+Finally, **honest reporting** ties the whole argument together. The evaluation section of the thesis must present the full picture: metric tables, baseline comparisons, qualitative themes, and—crucially—identified failure modes and limitations. Transparency lets reviewers assess the strength of the evidence and, if needed, replicate or extend the study.
+
+===== Key Points
+
+* Define domain‑specific metrics (accuracy, latency, trust, etc.)  
+* Select meaningful baselines (human, prior model, random)  
+* Build representative benchmark tasks that mirror real use  
+* Design a user‑study that captures qualitative feedback  
+* Analyse results quantitatively *and* qualitatively  
+* Document failure modes and limitations openly  
+* Treat the evaluation as a logical argument supporting the thesis  
+* Ensure reproducibility by sharing data, scripts, and protocols  
+
+==== Technical Example
+
+Below is a concrete workflow you will implement in Lab 3. First, create a **benchmark manifest** (JSON or CSV) listing 8 realistic dialogue scenarios drawn from anonymised patient transcripts. For each scenario run the capstone chatbot, capture the system’s response, and compute *clinical accuracy* (via a rubric) and *response latency*. Store the results in a table like:
+
+```
+| Scenario | Accuracy | Latency (ms) |
+|----------|----------|--------------|
+| Triage‑01| 0.92     | 145          |
+| Med‑Lookup‑03| 0.88 | 210          |
+... (remaining rows)
+```
+
+Next, recruit three nursing students to act as end‑users. After they complete the same scenarios, conduct brief semi‑structured interviews and code the transcripts for recurring themes (e.g., “unclear phrasing”, “slow response”). Summarise the qualitative findings in a bullet list and juxtapose them with the quantitative scores to highlight gaps.
+
+Finally, compile a **single Evaluation Report** that includes: (1) metric tables, (2) baseline comparisons (e.g., rule‑based triage system scores 0.78 accuracy), (3) user‑study themes, and (4) a “Limitations & Failure Modes” section. This report will become the evidence chapter of your thesis.
+
+===== Key Points
+
+* Create a benchmark manifest with 8–10 realistic scenarios  
+* Run the agent, record output, compute accuracy & latency  
+* Recruit 2–4 target users for a short qualitative study  
+* Code interview data for themes and map to quantitative gaps  
+* Produce a unified Evaluation Report (metrics, baselines, user insights, limitations)  
+
+==== Philosophical Reflection
+
+Evaluation is not a decorative appendix; it is the *proof* of your claim that “the agent solves problem X”. In the philosophy of science, a claim is only as strong as the *argument* that backs it. Here the argument consists of carefully chosen metrics, transparent baselines, representative benchmarks, and candid user feedback. A skeptical reviewer will ask, “What would falsify this claim?”—your evaluation must be designed to expose precisely those failure cases.
+
+Beyond falsification, evaluation carries ethical weight. Over‑claiming based on a single benchmark can mislead stakeholders, waste resources, and even endanger lives. By reporting limitations and failure modes, you respect the principle of *epistemic humility* and provide a roadmap for future improvement. Moreover, sharing data and scripts invites reproducibility, turning your evaluation from a private claim into a communal piece of knowledge.
+
+===== Key Points
+
+* Evaluation = logical argument for the thesis claim  
+* Design to expose falsifying evidence, not just confirmatory data  
+* Report limitations and failure modes as valuable knowledge  
+* Align evaluation with ethical responsibility to stakeholders  
+* Ensure reproducibility through open data and scripts  
+* Reflect on epistemic humility: evidence is never final  
+
+.Figure 12.5: Evaluation framework for capstone
+[plantuml,ch12-l05,png,theme=sketchy-outline]
+....
+@startuml
+skinparam backgroundColor #F9F9F9
+skinparam handwritten true
+
+start
+:Define **Benchmark Tasks**\n(5‑10 realistic scenarios);
+:Select **Baselines**\n(Human, prior model, random);
+partition Quantitative {
+    :Run agent on tasks;
+    :Collect **Metrics**\n(accuracy, latency, success rate);
+}
+partition Qualitative {
+    :Conduct **User Study**\n(2‑4 participants, interviews);
+    :Extract **Themes**\n(satisfaction, pain points);
+}
+:Aggregate Results;
+if (Results meet success criteria?) then (yes)
+  :Write **Evaluation Report**\n(metrics, baselines, user insights, limitations);
+else (no)
+  :Identify **Failure Modes**\n(and iterate);
+endif
+stop
+@enduml
+....
+
+==== Discussion Prompts
+
+* Which metrics capture the most critical aspects of your domain, and why might others be misleading?  
+* How can you balance quantitative benchmark scores with qualitative user feedback without letting one dominate the narrative?  
+* If your evaluation uncovers a serious failure, what is the most responsible way to present it in your thesis?  
+* What criteria make a benchmark task truly “representative” of real‑world use?  
+* How do you guard against “gaming” the evaluation—optimising for the benchmark at the expense of generalisation?  
+* Which kinds of evidence would most convincingly falsify your central thesis claim?
+
+==== Lab Prep
+
+In Lab 3 you will turn the abstract framework into a concrete evaluation of your own capstone project.
+
+* **Prepare benchmark tasks** – curate 5–10 realistic scenarios and encode them in a manifest file.  
+* **Select baselines** – implement or obtain a simple rule‑based version and, if possible, a human‑performed baseline.  
+* **Run the evaluation harness** – execute the agent on each scenario, record outputs, and compute the agreed‑upon metrics.  
+* **Conduct a short user study** – recruit 2–4 target users, run the tasks, and collect interview data.  
+* **Analyse and document** – produce a combined report containing metric tables, baseline comparisons, thematic analysis, and a clear “Limitations & Failure Modes” section.  
+* **Prepare for the thesis** – format the report according to the evaluation chapter template and upload scripts/data to the shared repository for reproducibility.
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch12,Chapter 12>>).

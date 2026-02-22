@@ -1,0 +1,51 @@
+=== Lab 2b: State-Space Search in Lisp (Optional)
+:leveloffset: 2
+
+*Optional track: implement search in Lisp. Same concepts as Lab 2; different language.*
+
+==== Purpose
+
+This lab is optional. It gives you hands-on experience with Lisp (Scheme, Racket, or Common Lisp) as the language of classical symbolic search. You will represent states as S-expressions and implement BFS or DFS. The main search tool (Lab 2) remains in Python for integration with the agent; Lab 2b is for depth and comparison.
+
+==== Prerequisites
+
+* Review 3.1: state space; 3.2a: Lisp and S-expressions; 3.2: BFS, DFS
+* A Lisp implementation: e.g. Racket (https://racket-lang.org), SBCL (Common Lisp), or Chez Scheme
+
+==== Objectives
+
+* Represent a small state space using S-expressions (lists)
+* Implement a successor function that returns a list of successor states
+* Implement BFS or DFS in Lisp
+* Run search on at least one problem (e.g. simple graph path or 8-puzzle)
+* Document how state and successors are represented; optionally compare with Python Lab 2
+
+==== Steps
+
+. Choose one problem domain: e.g. (a) graph path-finding (states = nodes, successors = neighbors), or (b) 8-puzzle (state = list of 9 elements, successors = states after legal moves).
+. Implement state representation as S-expressions. Define equality (e.g. equal? or a custom comparator) so you can detect goal and avoid revisiting.
+. Implement the successor function: given a state, return a list of successor states.
+. Implement BFS or DFS. BFS: maintain a queue (list) of states to expand; take from front, add successors to back; track visited. DFS: recurse on each successor with updated visited set, or use an explicit stack.
+. Run on at least one instance. Example: graph with 5–10 nodes, find path from A to B; or 8-puzzle from a given initial configuration to goal.
+. Document in a short README or comment block: how you represented state, how successors work, and how to run the program. Optionally: compare line count or structure with your Python Lab 2 implementation.
+
+==== Deliverables
+
+* Source code (Scheme/Racket/Common Lisp) that runs and solves at least one search problem
+* README or in-code documentation: state representation, successor, how to run
+* (Optional) Short comparison with Python Lab 2: representation, lines of code, tradeoffs
+
+*Acceptance criteria:*
+* State and successors are represented as S-expressions (lists or nested lists)
+* BFS or DFS is implemented and terminates on the chosen problem
+* Code runs without errors and produces a path (or reports no path) for the given instance
+* Documentation explains state representation and how to run
+
+==== Integration Note
+
+This lab does not replace Lab 2. The search *tool* the agent invokes (indexing, retrieval, ranking, and optional BFS/DFS/A* for structured problems) is built in Python in Labs 1–3 and integrated into student-ai/tools/search/. Lab 2b is a parallel experience in Lisp for understanding the symbolic search tradition; no integration with the agent stack is required.
+
+==== Lab Prep
+
+* Review lecture 3.2a (Lisp and the symbolic search tradition)
+* Install Racket, SBCL, or another Lisp; run a trivial (car (cons 1 2)) to confirm environment

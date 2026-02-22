@@ -1,0 +1,7 @@
+=== Exercises
+
+. *Conceptual* Why can a perceptron learn AND and OR but not XOR? What does "linear separability" mean?
+. *Conceptual* Explain vanishing gradients. Why does it affect deep networks more than shallow ones?
+. *Computational* Implement a perceptron and train it on AND and OR. Show that it fails on XOR.
+. *Computational* Implement a two-layer MLP and train it on XOR. Demonstrate that it converges.
+. *Design* Design a neural_classifier config: architecture (layers, units), activation, loss, optimizer. What would the agent specify?

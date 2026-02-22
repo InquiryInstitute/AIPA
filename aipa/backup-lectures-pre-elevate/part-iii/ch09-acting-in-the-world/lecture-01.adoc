@@ -1,0 +1,156 @@
+=== 9.1: Agents — Perception, Reasoning, Action
+:leveloffset: 2
+
+[.epigraph]
+"An agent is an entity that perceives and acts."
+— Russell & Norvig, _AIMA_ <<RussellNorvig2020>>
+
+*Hook.* Imagine you ask a virtual assistant, “Book me a flight to Tokyo next Friday.” In a few seconds the assistant has parsed your spoken request, consulted calendars, queried airline APIs, and returned a confirmed reservation. What invisible machinery turned that single utterance into a concrete action in the world? The answer lies in the **agent‑environment loop**: *perceive → reason → act*.
+
+==== Example Prompts
+
+* "Do this task." — _Agent: perceive (input), reason (plan), act (invoke tools)_
+* "What should I do next?" — _Goals, environment, rationality—maximize expected utility_
+* "React to this situation." — _Reflex vs. model‑based; perceive → reason → act_
+
+==== Conceptual Core
+
+[.formal-definition]
+****
+*Formal Definition (Agent)*
+An *agent* is an entity that perceives its environment through percepts and acts upon it. Formally, an agent maps sequences of percepts to actions. The *environment* produces *percepts*; the agent selects *actions*. A *rational agent* maximizes *expected utility*. See AIMA <<RussellNorvig2020>>.
+****
+
+An agent continuously receives **percepts**—raw data from sensors or APIs—and translates them into **actions** that affect the world. This basic perception‑action coupling is the heart of any interactive system, from a thermostat to a conversational chatbot.
+
+The **environment** can be classified along several dimensions. It may be *fully observable* (the agent sees the entire state) or *partially observable* (only a slice is visible). It can be *deterministic* (actions have predictable outcomes) or *stochastic* (outcomes are probabilistic). Finally, tasks are either *episodic* (each decision is independent) or *sequential* (current actions influence future percepts).
+
+**Rationality** provides a normative guide: an agent should choose actions that maximize its *expected utility* given its current knowledge. Utility encodes the agent’s goals; the expectation accounts for uncertainty in the environment. This principle underlies everything from reinforcement‑learning agents to simple rule‑based bots.
+
+A **reflex agent** implements a direct mapping from percept to action, without internal state. While fast, reflex agents cannot handle hidden information or plan ahead. In contrast, a **model‑based (or deliberative) agent** maintains an internal *state* or *world model* that it updates from percepts, reasons over possible futures, and selects actions accordingly. This extra layer enables planning, prediction, and adaptation.
+
+===== Key Points
+
+* Agent: perceives, decides, acts
+* Environment: observable vs. partially observable; deterministic vs. stochastic; episodic vs. sequential
+* Rationality: maximize expected utility
+* Reflex agents: direct percept→action mapping
+* Model‑based agents: maintain state/model, plan, then act
+* Perception–reasoning–action loop is a feedback system
+
+==== Technical Example
+
+**Reflex agent (percept → action)**  
+
+[source,python]
+----
+def reflex_agent(percept):
+    # Simple rule: if the user says "hello", respond with a greeting
+    if "hello" in percept.lower():
+        return "greet_user()"
+    return "do_nothing()"
+----
+*Explanation.* The agent examines the incoming percept, applies a single rule, and returns an action. No memory of past interactions is kept.
+
+**Model‑based agent (state update + planner)**  
+
+[source,python]
+----
+class ModelBasedAgent:
+    def __init__(self):
+        self.state = {}                     # internal world model
+
+    def update_state(self, percept):
+        # Incorporate new information into the model
+        self.state.update(parse_percept(percept))
+
+    def plan(self):
+        # Simple planner that selects the next action based on the model
+        if self.state.get("flight_requested"):
+            return "search_flights()"
+        return "idle()"
+
+    def act(self, percept):
+        self.update_state(percept)
+        return self.plan()
+----
+*Explanation.* The agent first updates its internal model from the percept, then invokes a planner that chooses an action based on the accumulated knowledge. This structure supports multi‑step tasks such as booking a flight.
+
+===== Key Points
+
+* Reflex agents require no internal state
+* Model‑based agents need a world model and a planner
+* Tool schemas (see Lab 1) define the concrete actions the planner can invoke
+* Model‑based agents can handle sequential, partially observable tasks
+
+==== Philosophical Reflection
+
+**Who is the true agent?** In many deployments the “agent” is coupled tightly with external tools—APIs, databases, or robotic effectors. When an AI system calls a weather‑service API, does the agency reside in the AI, the API, or the composite system? This question invites us to view agency as *distributed*: the core reasoning component plus the toolbox it commands together constitute the acting entity.
+
+**What do goals encode?** Goals are not merely technical specifications; they embody normative choices about what we consider valuable. Selecting a utility function is a design decision that reflects stakeholder values, cultural norms, and ethical priorities. In safety‑critical domains, mis‑aligned goals can lead to harmful behavior, highlighting the importance of transparent goal design and value alignment.
+
+**Goal selection as design responsibility.** Because goals steer rational behavior, the responsibility for choosing them lies with the system’s creators and users. This responsibility includes anticipating unintended consequences, auditing utility functions, and providing mechanisms for goal revision as contexts evolve.
+
+===== Key Points
+
+* Agency can be distributed across the reasoning core and its tools
+* Goals encode normative values and design choices
+* Goal design reflects stakeholder values and ethical considerations
+* Model‑based agents require a world model (technical)
+* Reflex agents are sufficient for simple, fully observable tasks (technical)
+
+.Figure 9.1: Agent‑environment loop
+[plantuml,ch09-l01,png,theme=sketchy-outline]
+....
+@startuml
+skinparam ArrowColor Black
+skinparam BackgroundColor #F9F9F9
+
+package "Environment" {
+  [World] as W
+}
+package "Agent" {
+  [Percept Processor] as P
+  [State / Model] as S
+  [Planner / Reasoner] as R
+  [Actuator] as A
+}
+
+W --> P : percept
+P --> S : update state
+S --> R : current model
+R --> A : selected action
+A --> W : action (affects world)
+
+' Reflex shortcut
+P --> A : direct mapping (reflex)
+
+@enduml
+....
+
+==== Discussion Prompts
+
+* Where is "the agent" in an agent+tools system?
+* How do we choose goals for an agent?
+* Is rationality (expected utility) the right normative standard?
+* What distinguishes an agent from a program?
+* How does the agent loop connect to the orchestrator (Ch10)?
+* When is a reflex agent sufficient vs. model‑based?
+
+==== Lab Prep
+
+Lab 1: Define tool schemas. For each tool: name, description, parameters (JSON Schema). In the diagram, each tool corresponds to an **Actuator** primitive that the agent can invoke. The schemas therefore constitute the agent’s *action space*. See Lab 1 for objectives.
+
+===== Key Points
+
+* Lab 1: Tool schemas
+* Name, description, parameters (JSON Schema)
+* Each schema maps to an Actuator action
+* Action space is defined by the set of available tools
+
+==== Closing Remark
+
+Understanding the agent‑environment loop equips us to treat the orchestrator introduced in Chapter 10 as a higher‑level agent that selects and composes tools on our behalf. By mastering perception, reasoning, and action at the single‑agent level, we build the foundation for building complex, multi‑agent tool‑chains that solve real‑world problems.
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch09,Chapter 9>>).

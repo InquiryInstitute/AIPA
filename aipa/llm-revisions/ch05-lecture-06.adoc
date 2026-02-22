@@ -1,0 +1,4 @@
+python
+device = torch.device('cpu')
+model = MyModel().to(device)
+data  = torch.randn(batch_size, input_dim, device=device)

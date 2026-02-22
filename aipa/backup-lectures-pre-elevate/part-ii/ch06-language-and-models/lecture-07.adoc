@@ -1,0 +1,85 @@
+=== 6.7: The llm Tool — Embed, Generate, Cache
+:leveloffset: 2
+
+[.epigraph]
+"The LLM is the agent's language organ."
+— Vaswani et al., "Attention Is All You Need" <<Vaswani2017>> (adapted)
+
+==== Example Prompts
+
+* "Embed this for similarity search." — _embed(text) → vector; feeds memory retrieval_
+* "Generate a response to this prompt." — _generate(prompt) → text; agent delegates language_
+* "Use template X with variables Y." — _prompt(template_id, vars); cache for reuse_
+
+==== Conceptual Core
+
+The agent does not "are" an LLM—it invokes an llm tool. Embed (for retrieval), generate (for language), prompt (templates), cache (reuse): that is the agent's interface to language. The LLM is the agent's language organ (<<Vaswani2017>>): the agent delegates understanding and generation to it, then reasons about when to call, what to ask, and how to use the answer. This lecture defines the tool schema and its place in the stack—next to memory (Ch7) and the orchestrator (Ch10).
+
+llm tools: embed (text → vector for retrieval), generate (prompt → text), prompt (wrapper with templates), cache (store and reuse). Orchestration: agent sends prompt → llm tool routes to API or local model → postprocess → return. Integration with memory (Ch7): embed produces vectors for similarity search; retrieved docs augment the prompt. OpenRouter or local: route to different providers; local models for privacy or cost. The LLM as epistemic delegate: the agent delegates language understanding and generation. When does the agent "think" vs. "query"? The agent composes prompts and interprets outputs; the LLM computes. The boundary is fluid. Lab 3 completes the llm pipeline and integrates it with memory for RAG—so the capstone agent has a single, cache-aware, cost-conscious interface to language.
+
+===== Key Points
+
+* Tools: embed, generate, prompt, cache
+* Orchestration: prompt → LLM → postprocess
+* Memory: embed for retrieval
+* OpenRouter, local routing
+* Agent "thinks" vs. "queries"
+
+==== Technical Example
+
+Define llm tool schema. embed(text) → vector. generate(prompt, params) → text. prompt(template_id, vars) → filled prompt. cache: check before call; store on return. Agent invokes: embed for similarity; generate for task. Lab 3: Complete llm pipeline, register as tool server. Integrate with memory for RAG.
+
+===== Key Points
+
+* Schema: embed, generate, prompt, cache
+* Agent: embed for similarity, generate for task
+* Lab 3: Complete pipeline, integrate memory
+
+==== Philosophical Reflection
+
+The LLM as epistemic delegate: the agent cannot "understand" language in the way the LLM does (or doesn't). It delegates. When does the agent "think" vs. "query"? The agent reasons about when to call the LLM, what to ask, how to use the answer. The LLM computes. The combination—agent + LLM—is the cognitive system. The tool boundary is where we assign responsibility: the agent is responsible for when and how it uses the LLM; the LLM tool is responsible for embed, generate, cache, and cost visibility—so governance (Ch11) can apply.
+
+===== Key Points
+
+* LLM = epistemic delegate
+* Agent reasons about calls
+* Agent + LLM = cognitive system
+* Tool boundary = responsibility; governance (Ch11) applies
+
+.Figure 6.7: llm in agent stack
+[plantuml,ch06-l07,png,theme=sketchy-outline]
+....
+@startuml
+start
+:Agent;
+:llm;
+:embed;
+:generate;
+:prompt;
+:cache;
+stop
+@enduml
+....
+
+==== Discussion Prompts
+
+* Where is "thinking" in the agent–LLM system?
+* When should the agent use embed vs. generate?
+* Is the LLM a "tool" or a "component"?
+* How does the llm tool schema support the agent?
+* How does the llm tool integrate with the orchestrator (Ch10)?
+* When does the agent need to call embed vs. generate for a given task?
+
+==== Lab Prep
+
+Lab 3: Complete the llm pipeline. Register as tool server. Integrate with memory: embed for retrieval; generate with retrieved context for RAG. Test: agent invokes embed and generate. See Lab 3 for requirements.
+
+===== Key Points
+
+* Lab 3: Complete pipeline
+* Integrate memory for RAG
+* Test embed, generate
+
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch06,Chapter 6>>).

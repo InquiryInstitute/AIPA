@@ -1,0 +1,9 @@
+json
+{
+  "timestamp": "2026-02-20T14:32:01Z",
+  "model": "resnet50_v1",
+  "input_id": "img_12345",
+  "prediction": "golden_retriever",
+  "confidence": 0.92,
+  "failure_mode": "adversarial|perturbation"
+}

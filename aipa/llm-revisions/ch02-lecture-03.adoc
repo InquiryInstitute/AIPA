@@ -1,0 +1,101 @@
+=== 2.4: Model Lifecycle — Training, Deployment, Drift
+:leveloffset: 2
+
+A new credit‑scoring model that had performed flawlessly for months suddenly mis‑classified **30 %** of applications after the bank launched a novel loan product, triggering a cascade of rejected loans and customer complaints. *Model decay can strike without warning—understanding why and how to respond is essential.*
+
+[.epigraph]
+"Stability is not the absence of change but the capacity to change."
+— Deleuze & Guattari, *A Thousand Plateaus* <<Deleuze1992>> (adapted)
+
+*Models decay. The question is not whether but how fast, and what we do about it.*
+
+==== Example Prompts
+
+* "Classify this new type of request." — _Concept drift: input-output relationship changed—when to retrain?_
+* "Why did accuracy drop this week?" — _Data drift: inputs shifted; versioning traces which model produced which decision_
+* "Deploy the new model." — _CI/CD: validation gates, monitoring, rollback—stability as capacity to change_
+
+==== Conceptual Core
+
+Models have a lifecycle: development, training, validation, deployment, monitoring, retraining. They are not static artifacts. The world changes; the distribution of inputs shifts; performance degrades. Concept drift occurs when the relationship between inputs and outputs changes—what used to predict Y from X no longer holds. Data drift occurs when the distribution of inputs changes—X looks different than it did at training time. Both erode model quality. The model is a snapshot of a moving world. Deleuze's line—stability is the capacity to change—applies: a well‑governed system detects drift and adapts.
+
+Retraining triggers define when to refresh the model: scheduled (e.g., weekly), metric‑based (accuracy drops below threshold), or event‑based (new data arrives). Versioning tracks which model produced which decision—essential for audit trails. The model as evolving artifact requires infrastructure: CI/CD for models (training pipelines, validation gates, deployment), monitoring (inputs, outputs, latency, error rates), and rollback capability. The tension between stability and adaptation is perennial. Too much retraining: instability, cost. Too little: drift, decay.
+
+*To act on drift we need systematic detection and automated retraining, which we illustrate next.*
+
+==== Technical Example
+
+Detect drift by comparing baseline (training or validation) distribution to current (inference) distribution. Simple checks: feature means, variances, missingness. More sophisticated: population stability index, Kolmogorov‑Smirnov tests, or embedding‑space distance. When drift is detected, retraining may be triggered. The retraining workflow: pull new data, preprocess, train, validate (on holdout and, if possible, on current distribution), deploy if metrics pass, monitor. CI/CD for models extends software practices: model as artifact, training as build, validation as test, deployment as release.
+
+Design traceability so each decision logs model version. When the system errs, we can ask: which model? Which training data? The audit tool (Lab 2) will implement a trace schema that includes model version. That schema enables accountability: we can trace a bad decision back to a specific model and, from there, to the conditions that produced it. See Lab 2 (Traceability and Observability) for objectives.
+
+===== Key Points
+
+* Drift detection: baseline vs. current distribution
+* Retraining workflow: data → preprocess → train → validate → deploy
+* CI/CD for models: model as artifact
+* Trace schema: log model version with each decision
+* Lab 2: Traceability—implement trace schema
+
+==== Philosophical Reflection
+
+Models are snapshots of a moving world. They capture a moment—the training data, the optimization objective, the architecture—and project it forward. The world does not hold still. Users adapt to the system; the system's recommendations change behavior; the distribution shifts. The model, fixed, becomes a map of a territory that has moved. The tension between stability and adaptation is not merely technical. Organizations want predictability; they also need responsiveness. Over‑adaptation risks chasing noise; under‑adaptation risks obsolescence. Governance of model lifecycle is the art of balancing these.
+
+The model as evolving artifact reframes "deployment." Deployment is not a one‑time event; it is an ongoing process. Monitoring, retraining, versioning—these are not add‑ons but constitutive of the system. Your audit tool will surface the lifecycle: what model version is running? When was it trained? What triggered the last retrain? Visibility into the lifecycle is visibility into the system's relationship with a changing world.
+
+The lifecycle itself becomes a governance artifact: policies can be encoded as “when‑to‑retrain” rules that reflect organizational risk tolerance. This feedback loop makes deployment a living contract between the model and its stakeholders, ensuring that stability is always coupled with the capacity to change.
+
+===== Key Points
+
+* Models: snapshots of a moving world
+* Tension: stability vs. adaptation
+* Deployment as ongoing process, not one‑time event
+* Audit: surface lifecycle—version, training date, retrain trigger
+* Governance policies can be encoded as “when‑to‑retrain” rules
+* The lifecycle feedback loop makes deployment a living contract
+
+.Figure 2.3: Model lifecycle (training → deploy → monitor → retrain)
+[plantuml,ch02-l03,png,theme=sketchy-outline]
+....
+@startuml
+start
+:Develop;
+:Train;
+:Validate;
+:Deploy;
+note right: CI/CD validation gate
+:Monitor;
+if (Drift detected?) then (yes)
+  :Retrain;
+  note right: version++\nCI/CD gate
+else (no)
+  note right: continue running
+endif
+stop
+@enduml
+....
+*The lifecycle is a feedback loop: monitoring informs when the system must change.*
+
+==== Discussion Prompts
+
+* Have you experienced "model decay" in a system you use? How did you notice?
+* How would you choose retraining triggers: scheduled, metric‑based, or event‑based?
+* What does "stability as capacity to change" mean for AI governance?
+* Why is versioning essential for accountability?
+* How does "deployment as ongoing process" change how we think about "launch"?
+
+==== Lab Prep
+
+Lab 2 (Traceability and Observability): design how to log model version with each decision. The trace schema should include: request ID, timestamp, model version (or hash), input summary, output summary, latency. This enables audit trails—when something goes wrong, we trace back to the exact model. Consider what else to log: data version? Config version? See Lab 2 for the full trace schema design.
+
+===== Key Points
+
+* Log model version with each decision
+* Trace: request ID, timestamp, model version, input/output summary
+* Enables audit: trace bad decision to exact model
+* Consider: data version, config version
+
+In the next lecture we will explore how to design robust monitoring dashboards that surface drift signals in real time.
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch02,Chapter 2>>).

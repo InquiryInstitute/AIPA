@@ -1,0 +1,227 @@
+=== 10.4: API Integration — REST, Authentication
+:leveloffset: 2
+
+[.epigraph]
+"APIs are the seams of the digital world."
+— Fielding, _Architectural Styles and the Design of Network‑based Software Architectures_ <<Fielding2000>> (adapted)
+
+*The agent connects to external services—APIs extend its reach.*
+
+Imagine an autonomous personal assistant that must schedule a meeting on a user’s Google Calendar, fetch the current weather, and store the result in a corporate database—all without human intervention. The assistant has no direct access to these services; it must reach out through well‑defined API seams, negotiate credentials, respect usage limits, and recover from inevitable failures. The tension between the assistant’s ambition (delivering a seamless experience) and the constraints imposed by third‑party services (authentication, rate limits, version drift) is the engine that drives today’s API‑centric intelligence.
+
+==== Example Prompts
+
+* "Call the external API for this." — _REST, authentication; API integration_
+* "Handle API failures gracefully." — _Rate limits, errors; dependency risk_
+* "Connect to the calendar service." — _OAuth; arbitrary APIs; governance_
+
+==== Conceptual Core
+
+**REST as the lingua franca of service seams**  
+Representational State Transfer (REST) supplies a uniform interface that agents can rely on regardless of the provider. Resources are identified by stable URLs (e.g., `https://www.googleapis.com/calendar/v3/calendars/{calendarId}/events`) and the four primary HTTP verbs—GET, POST, PUT, DELETE—communicate intent without ambiguity. By insisting on stateless interactions and self‑describing messages, REST lets an agent treat a weather endpoint, a corporate database, or a micro‑service as variations on the same pattern. The assistant’s first hurdle is therefore to translate its high‑level goal (“create a calendar event”) into a concrete HTTP request that respects the contract of the target service.
+
+**Authentication as delegated authority**  
+The assistant cannot simply hand over a password; it must act on behalf of a user while preserving privacy and revocability. OAuth 2.0 supplies exactly that delegation: the user authorizes the assistant once, the authorization server issues a short‑lived access token scoped to the required resources (e.g., `https://www.googleapis.com/auth/calendar.events`), and the assistant presents the token in an `Authorization: Bearer <token>` header for every subsequent call. Compared with static API keys, OAuth reduces the blast radius of a leak, enables granular revocation, and aligns with modern compliance regimes. Yet the flow introduces additional steps—token acquisition, refresh, and scope negotiation—that the agent must orchestrate before any business logic can proceed.
+
+**Operational concerns: rate limits, retries, and observability**  
+Even with a correctly formed request and a valid token, the assistant may be throttled. Providers publish rate‑limit policies such as “10 requests per second per user” and signal violations with HTTP 429 responses, often accompanied by a `Retry‑After` header. A robust agent therefore implements exponential back‑off (`delay = base * 2ⁿ`) while respecting the advertised retry window. Transient server errors (5xx) merit the same treatment, but permanent failures (4xx other than 429) should be surfaced immediately. To avoid “black‑box” failure, the agent logs a request identifier, latency, and outcome to a centralized observability pipeline, enabling post‑mortem analysis and automated alerting.
+
+**Ecosystem diversity and contract brittleness**  
+The API economy spans productivity suites (Google Workspace, Microsoft Graph), data platforms (OpenWeather, Snowflake), and bespoke micro‑services. All share the REST/JSON contract but differ wildly in authentication mechanisms, pagination strategies, and versioning policies. When an endpoint evolves—say, the calendar API deprecates the `sendUpdates` parameter—the assistant’s hard‑coded request may break, causing cascading failures in downstream workflows. Mitigation strategies therefore include explicit version pinning (`v3` vs. `v4`), contract testing against mock servers, and a fallback path that either uses cached data or gracefully degrades the user experience.
+
+**Governance as the ethical backbone**  
+Because every seam is a point of exposure, the assistant must enforce governance policies that balance utility with risk. Token scopes should be minimal (“least privilege”), version pins must be reviewed before deployment, and observability data should be retained only as long as necessary to respect privacy regulations. By treating APIs not merely as conveniences but as trust boundaries, the agent can maintain credibility even when external services falter.
+
+===== Key Points
+
+* REST provides a uniform, stateless contract based on URLs and HTTP verbs.  
+* Translate high‑level goals into concrete endpoint paths and payloads.  
+* OAuth 2.0 delegates authority via short‑lived, scoped access tokens.  
+* Token acquisition, refresh, and revocation are integral to the workflow.  
+* Rate limits are signaled by HTTP 429; exponential back‑off respects provider policies.  
+* Transient 5xx errors merit retry; permanent 4xx errors should be surfaced.  
+* Log request IDs, latency, and error codes to an observability pipeline.  
+* Pin API versions, run contract tests, and design graceful degradation paths.  
+* Apply least‑privilege scopes and retain observability data responsibly.  
+* View each API as a seam that both empowers and exposes the agent.
+
+==== Technical Example
+
+Below we walk through three incremental refinements of a weather‑fetching client that the assistant would use when planning an outdoor meeting. The first block shows a naïve request; the second introduces a reusable `ApiClient` with exponential back‑off; the third demonstrates how the client is exposed as a tool‑server endpoint inside the orchestrator.
+
+[source,python]
+----
+# 1️⃣  Naïve request – no retries, no token handling
+import requests
+
+def get_weather(city, api_key):
+    url = f"https://api.openweathermap.org/data/2.5/weather"
+    params = {"q": city, "appid": api_key}
+    resp = requests.get(url, params=params)
+    resp.raise_for_status()
+    return resp.json()
+----
+*The assistant would call `get_weather("Berlin", "<key>")` and crash on any 429 or 5xx.*
+
+[source,python]
+----
+# 2️⃣  Reusable client with back‑off, token header, and structured errors
+import time, logging
+from typing import Any, Dict
+
+logger = logging.getLogger(__name__)
+
+class ApiClient:
+    def __init__(self, base_url: str, token: str, max_retries: int = 5, backoff_base: float = 1.0):
+        self.base_url = base_url.rstrip("/")
+        self.headers = {"Authorization": f"Bearer {token}", "Accept": "application/json"}
+        self.max_retries = max_retries
+        self.backoff_base = backoff_base
+
+    def _request(self, method: str, path: str, **kwargs) -> Dict[str, Any]:
+        url = f"{self.base_url}{path}"
+        backoff = self.backoff_base
+
+        for attempt in range(1, self.max_retries + 1):
+            resp = requests.request(method, url, headers=self.headers, **kwargs)
+            if resp.status_code == 200:
+                logger.debug("Success on attempt %d for %s", attempt, url)
+                return resp.json()
+            if resp.status_code in (429, 502, 503, 504):
+                retry_after = resp.headers.get("Retry-After")
+                delay = float(retry_after) if retry_after else backoff
+                logger.warning("Transient error %d on %s – retry %d after %.1f s",
+                               resp.status_code, url, attempt, delay)
+                time.sleep(delay)
+                backoff *= 2  # exponential growth
+                continue
+            # Permanent error – raise a domain‑specific exception
+            raise RuntimeError(f"API error {resp.status_code}: {resp.text}")
+
+        raise RuntimeError("Maximum retries exceeded for " + url)
+
+    def get_weather(self, city: str) -> Dict[str, Any]:
+        return self._request("GET", "/weather", params={"q": city})
+----
+*The client now respects rate limits, logs each attempt, and surfaces a clear exception hierarchy.*
+
+[source,python]
+----
+# 3️⃣  Integration into the orchestrator’s tool‑server (FastAPI example)
+from fastapi import FastAPI, HTTPException
+
+app = FastAPI()
+weather_client = ApiClient(
+    base_url="https://api.openweathermap.org/data/2.5",
+    token="Bearer <service‑account‑token>"
+)
+
+@app.get("/tools/get_weather")
+def tool_get_weather(city: str):
+    try:
+        return weather_client.get_weather(city)
+    except RuntimeError as e:
+        # Convert internal errors to a structured tool‑response
+        raise HTTPException(status_code=502, detail=str(e))
+----
+*Higher‑level planning modules now invoke `/tools/get_weather?city=Berlin` as a pure function, while the orchestrator handles retries, logging, and error translation.*
+
+===== Key Points
+
+* Naïve requests lack resilience; they fail on the first transient error.  
+* `ApiClient` centralizes authentication, back‑off, and error handling.  
+* Exponential back‑off doubles the delay after each failed attempt.  
+* Respect `Retry‑After` headers when present to avoid unnecessary throttling.  
+* Structured exceptions allow the planner to decide between retry, fallback, or abort.  
+* Expose the client through a tool‑server endpoint so higher‑level reasoning sees a uniform API.  
+* Log each attempt with request ID and latency for observability.  
+* Keep configuration (max retries, back‑off base) tunable per service.
+
+==== Philosophical Reflection
+
+APIs are the seams that stitch together the fragmented digital ecosystem. By weaving through these seams, an autonomous agent extends its cognition beyond its own code, tapping into specialized knowledge and capabilities that would otherwise be inaccessible. This extension, however, is not a free lunch: each seam is a point of dependency, a potential vector for failure, and a locus of trust.
+
+Consider a real‑world case where a calendar provider announced the deprecation of the `sendUpdates` query parameter. The assistant, still using the old contract, silently failed to send meeting invitations, leaving users confused and the organization exposed to missed deadlines. The root cause was not a bug in the assistant’s reasoning but an untracked change in an external contract. Governance—through version pinning, automated contract tests, and a policy of “upgrade‑only‑after‑verification”—acts as the ethical backbone that safeguards the agent’s reliability and the user’s trust.
+
+Looking ahead, the orchestrator will become the steward of these seams, turning raw API calls into reusable, observable, and policy‑enforced tool‑server endpoints. By treating each integration as a first‑class citizen—complete with token lifecycle management, rate‑limit awareness, and audit trails—the agent can evolve from a brittle glue layer into a resilient, self‑healing cognitive architecture. Your upcoming Lab 3 will give you hands‑on experience in building that stewardship.
+
+===== Key Points
+
+* APIs are connective seams that amplify agent capabilities but also introduce dependency risk.  
+* Contract changes can silently break downstream reasoning, eroding user trust.  
+* Governance (version pinning, contract testing, least‑privilege scopes) mitigates brittleness.  
+* Observability (request IDs, latency, error codes) provides the feedback loop for self‑healing.  
+* The orchestrator abstracts raw seams into reusable, policy‑enforced tool‑server endpoints.  
+* Lab 3 will cement the transition from ad‑hoc calls to governed, observable services.
+
+.Figure 10.4‑A: OAuth 2.0 token acquisition flow
+[plantuml,ch10-l04-oauth,png,theme=sketchy-outline]
+....
+@startuml
+skinparam componentStyle rectangle
+skinparam ArrowColor DarkGray
+skinparam ComponentBorderColor DarkBlue
+
+actor User
+component "Assistant\n(Agent)" as Agent
+component "Orchestrator\n(Tool Server)" as Orchestrator
+component "Auth Server\n(OAuth 2.0)" as Auth
+
+User -> Agent : Initiates consent
+Agent -> Orchestrator : request token (auth code)
+Orchestrator -> Auth : exchange code for access token
+Auth --> Orchestrator : access token + refresh token
+Orchestrator --> Agent : token (cached)
+@enduml
+....
+
+.Figure 10.4‑B: Observability and retry loop
+[plantuml,ch10-l04-obs,png,theme=sketchy-outline]
+....
+@startuml
+skinparam componentStyle rectangle
+skinparam ArrowColor DarkGray
+skinparam ComponentBorderColor DarkBlue
+
+component "Orchestrator\n(Tool Server)" as Orchestrator
+component "External API\n[Auth, Rate‑limit]" as API
+component "Logging Service\n(ELK / OpenTelemetry)" as Logger
+
+Orchestrator -> API : GET /weather (Bearer token)
+API --> Orchestrator : 429 Retry‑After: 2
+Orchestrator -> Logger : log(requestId, 429, latency)
+Orchestrator -> Orchestrator : exponential back‑off (2 s)
+Orchestrator -> API : retry GET /weather
+API --> Orchestrator : 200 OK + JSON
+Orchestrator -> Logger : log(requestId, 200, latency)
+@enduml
+....
+
+==== Discussion Prompts
+
+* What concrete risks arise when an assistant relies on a third‑party API, and how does version pinning reduce each risk?  
+* In the OAuth flow diagram, which component is responsible for token refresh, and why is that placement important for security?  
+* When should the agent prefer a local deterministic tool (e.g., an internal calendar formatter) over a remote API call, even if the remote service offers richer data?  
+* How do rate‑limit policies shape the design of an agent’s planning horizon (e.g., batching vs. immediate execution)?  
+* Propose a governance policy that balances rapid feature rollout with the need to audit every new external API integration.  
+* How would you extend the observability diagram to include distributed tracing across multiple micro‑services that the assistant calls in sequence?
+
+==== Lab Prep
+
+*Lab 3 – Resilient API Integration*  
+In this lab you will extend the orchestrator with a concrete external API (choose from Google Calendar, OpenWeather, or a simple relational‑database endpoint). You will implement OAuth 2.0 (or API‑key) authentication, embed exponential back‑off with respect to `Retry‑After` headers, and surface structured exceptions that the planner can interpret. A minimal observability layer (request ID, latency, and status) must be wired to the provided logging service. Finally, you will write a contract test that validates the expected JSON schema against a mock server and document the governance decisions (scopes, version pins, retry limits) in a short design memo.
+
+===== Key Points
+
+* Choose an external service and obtain the necessary credentials (OAuth client ID/secret or API key).  
+* Implement token acquisition and automatic refresh inside the orchestrator’s client wrapper.  
+* Apply exponential back‑off, respecting `Retry‑After` when present, and cap retries at a configurable limit.  
+* Log request identifiers, latency, and outcome to the observability service.  
+* Write a contract test (e.g., using `responses` or `pytest-httpserver`) that validates the JSON schema.  
+* Document token scopes, API version, and retry policy in a design memo for future reviewers.
+
+==== Reading
+
+* RFC 7231 – Hypertext Transfer Protocol (HTTP/1.1): Semantics and Content <<RFC7231>>
+* RFC 6749 – The OAuth 2.0 Authorization Framework <<RFC6749>>
+* For the full chapter reading list, see the <<reading-list,Reading List>> (<<reading-ch10,Chapter 10>>).

@@ -1,0 +1,120 @@
+=== 10.5: Monitoring and Debugging Agent Behavior
+:leveloffset: 2
+
+[.epigraph]
+"To observe is to intervene—and to debug is to understand."
+— Russell & Norvig, _AIMA_ <<RussellNorvig2020>> (adapted)
+
+*Imagine an autonomous customer‑service bot that mistakenly books a flight for the wrong date. The engineer receives a single cryptic log line—*`ERROR: step 3 failed`*—and has no clue why the bot chose the wrong itinerary. The only way to rescue the user and the system is to reconstruct what the agent did, step by step.*  
+
+*Agents fail in subtle ways. Observability is essential.*
+
+==== Example Prompts
+
+* "Why did the agent produce that output?" — _Logging, traces; debug opaque agent_
+* "Trace this request end-to-end." — _Request ID across services; observability_
+* "What should we log vs. not?" — _Privacy, governance; who has access_
+
+==== Conceptual Core
+
+**Logging & Tracing.**  
+Logging records every tool call, response, and internal reasoning trace. A well‑structured log entry captures the `request_id`, the current `step`, the `tool_call`, its `result`, and a timestamp. Tracing builds on logging by propagating a unique request identifier through every component of the system—agent, orchestrator, external services—so that we can reconstruct the exact execution path after the fact.
+
+**Debugging & Evaluation.**  
+Debugging asks *“why did the agent do X?”* and works backward from a failure point, inspecting prompts, tool results, and intermediate states. Evaluation complements debugging by measuring task‑level outcomes (accuracy, latency, cost) against benchmark suites. Because large‑language‑model reasoning is opaque, we rely on the audit tool introduced in Chapter 2 to surface dependencies and enforce governance policies throughout the observability pipeline.
+
+===== Key Points
+
+* Logging: calls, responses, traces
+* Tracing: request ID, path
+* Debugging: why X?
+* Evaluation: benchmarks, metrics
+* Opacity, interpretability
+
+==== Technical Example
+
+*Setup.*  
+In the orchestrator we instrument each stage with a structured logger. The logger emits JSON lines containing `request_id`, `step`, `tool_call`, `result`, and `timestamp`. The logging service streams these entries to a centralized trace collector that groups them by `request_id` and builds an execution graph.
+
+*Step‑by‑step debugging.*  
+Suppose a task to retrieve a user's travel itinerary fails. By querying the trace collector for the offending `request_id` we obtain a chronological list of log entries. The graph reveals that the retrieval tool returned an empty payload at step 3, which caused the downstream formatting tool to generate an incorrect booking. The engineer can now patch the retrieval prompt or add a fallback check. Lab 3 asks you to implement this monitoring layer and verify it with a simulated failure.
+
+===== Key Points
+
+* Structured logging
+* Trace failed task
+* Lab 3: Monitoring, audit tool
+
+==== Philosophical Reflection
+
+*What does it mean to *understand* an agent when we can only see its surface traces?*  
+The LLM’s internal token‑level reasoning remains hidden; we infer intent from observable artifacts—tool calls, prompts, and outputs. This inferential gap challenges traditional notions of explainability and forces us to treat observability itself as a form of epistemic access.
+
+*Observability as governance.*  
+When we can audit every request, we gain the ability to enforce privacy policies, redact sensitive fields, and ensure compliance with organizational standards. In this sense, monitoring is not merely a debugging convenience but a cornerstone of responsible AI deployment.
+
+===== Key Points
+
+* Hard to understand
+* Traces help infer
+* Observability = governance
+
+.Figure 10.5: Observability stack for agents
+[plantuml,ch10-l05,png,theme=sketchy-outline]
+....
+@startuml
+title Observability Stack for Agents
+skinparam backgroundColor #FDF6E3
+skinparam node {
+  BackgroundColor #FFF8DC
+  BorderColor #8B4513
+}
+actor User
+node Agent {
+  :process request;
+}
+node "Logging Service" as LOG {
+  :structured logs\n(request_id, step, …)
+}
+node "Trace Collector" as TRACE {
+  :aggregate request_id\nbuild execution graph
+}
+node "Monitoring Dashboard" as MON {
+  :latency, cost, error rates
+}
+node "Audit Tool (Ch 2)" as AUDIT {
+  :policy checks\nredaction
+}
+User --> Agent : request
+Agent --> LOG : log entry
+LOG --> TRACE : forward request_id
+TRACE --> MON : metrics
+MON --> AUDIT : audit data
+AUDIT --> LOG : redaction decision
+@enduml
+....
+
+==== Discussion Prompts
+
+* How do we debug an opaque agent?
+* What should we log vs. not log?
+* Who has access to agent traces?
+* How does monitoring connect to the audit tool (Ch2)?
+* How does the orchestrator expose trace data?
+* When does logging become a privacy or governance issue?
+* In the stack diagram, where would you place a privacy‑filter and why?
+
+*Next up we will explore automated anomaly detection on the monitoring data, turning raw logs into proactive alerts.*
+
+==== Lab Prep
+
+Lab 3: Add monitoring to the orchestrator. Structured logging. Integrate with the audit tool—the audit tool can trace requests, surface dependencies. The lab deliverable is a JSON log file viewable in the monitoring dashboard, with redacted fields according to policy. See Lab 3 for requirements.
+
+===== Key Points
+
+* Lab 3: Monitoring
+* Audit tool integration
+* Trace, dependencies
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch10,Chapter 10>>).

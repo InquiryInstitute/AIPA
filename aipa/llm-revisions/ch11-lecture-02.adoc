@@ -1,0 +1,141 @@
+=== 11.2: Cost Control and Rate Limiting
+:leveloffset: 2
+
+A research team deploys an autonomous literature‑review agent that runs 10 000 LLM calls overnight. By morning the cloud bill shows a $2 500 charge—far beyond the $200 daily budget. The system keeps answering, the team receives no warning, and the API key is throttled by the provider. *Who pays? What stopped the runaway spend?* This is the everyday reality of economic governance for AI agents.
+
+[.epigraph]
+"Every API call has a cost."
+— EU AI Act <<EU2024>>; NIST AI RMF <<NIST2023>> (economic governance)
+
+*Governance is also economic—control spend and usage.*
+
+==== Example Prompts
+
+* "Stay within budget." — _Cost tracking: tokens, API calls; budgets, alerts_
+* "Limit requests per user." — _Rate limiting; prevent runaway_
+* "Who can afford to run this?" — _Access = economics; cost governance_
+
+==== Conceptual Core
+
+**Token‑level pricing**  
+Every LLM call consumes input and output tokens; each token carries a provider‑defined price. By logging `tokens_in`, `tokens_out`, and the model’s per‑token rate, we obtain a granular cost for each request.
+
+**Aggregating spend**  
+Costs are summed per user, per task, and per day. Daily and monthly aggregates expose spending patterns and trigger alerts before budgets are exhausted.
+
+**Rate‑limit mechanics**  
+A rate limiter caps requests (e.g., 10 req/min per API key). When the limit is breached, the system returns a `429 Too Many Requests` response, preventing infinite retry loops and protecting shared compute resources.
+
+**Cost‑aware design**  
+Agents can cache repeated answers, batch multiple queries, or fall back to cheaper models for low‑stakes tasks. These patterns reduce token consumption without sacrificing functionality.
+
+**Audit logs & compliance**  
+Immutable logs of every cost‑related decision (budget checks, rate‑limit rejections) provide a forensic trail for auditors and support post‑mortem analysis of overspend incidents.
+
+**Cost‑based fairness metrics**  
+Policymakers increasingly measure AI equity by per‑capita spend or budget‑to‑outcome ratios. Embedding such KPIs into governance dashboards makes fairness a first‑class concern.
+
+===== Key Points
+
+* Token‑level cost tracking (tokens, model pricing)  
+* Spend aggregation per user / task / day  
+* Rate limiting (requests per minute) to stop runaway loops  
+* Budgets, alerts, and configurable hard/soft stops  
+* Cost‑aware design patterns: cache, batch, cheaper models  
+* Immutable audit logs for compliance  
+* Cost‑based fairness metrics as governance KPIs  
+
+==== Technical Example
+
+Below is a minimal implementation sketch for cost tracking and rate limiting in a Python‑style middleware.
+
+[source,python]
+----
+# Cost calculator
+def token_cost(model, tokens_in, tokens_out):
+    price_per_token = PRICING[model]          # e.g. {"gpt‑4": 0.03/1k}
+    return (tokens_in + tokens_out) * price_per_token
+
+# Middleware wrapper
+def handle_request(user, model, prompt):
+    cost = token_cost(model, len(prompt), estimate_output(prompt))
+    if not budget_ok(user, cost):
+        raise BudgetExceededError(user)
+    if not rate_limiter.allow(user):
+        raise RateLimitError(user)
+    # Record immutable audit entry
+    audit_log.record(user, model, cost, timestamp())
+    return call_llm(model, prompt)
+----
+Key technical additions:
+
+* **Budget check** – compares projected cost against a daily `$50` limit; triggers a 403 response when exceeded.  
+* **Rate limiter** – token‑bucket algorithm allowing 10 req/min; returns `429` on violation.  
+* **Back‑off & jitter** – when a limit is hit, the client waits a random interval (e.g., 100‑500 ms) before retrying, reducing thundering‑herd effects.  
+
+The governance simulator should expose knobs to vary token prices, usage spikes, and budget thresholds, letting students experiment with economic policy decisions.
+
+===== Key Points
+
+* Pseudo‑code for token‑cost calculator and middleware  
+* Budget check → 403, Rate limiter → 429  
+* Audit log for compliance  
+* Back‑off & jitter strategy  
+
+==== Philosophical Reflection
+
+Economic governance is a form of access control: who can afford to run agents at scale determines who participates in the AI ecosystem. When budgets are tight, only well‑funded organisations can deploy sophisticated agents, widening the digital divide. Embedding cost‑based fairness metrics—such as per‑capita spend or budget‑to‑outcome ratios—aligns technical controls with policy goals articulated in the EU AI Act and NIST AI RMF.
+
+Cost control also underpins sustainability. Unlimited token consumption is financially and environmentally untenable for providers and users alike. By experimenting with the governance simulator (Lab 1), students see how tighter limits curb capability while looser limits boost utility but raise risk of runaway spend.
+
+===== Key Points
+
+* Cost = economic access control  
+* Sustainability of AI services  
+* Cost‑based fairness metrics as governance levers (EU/NIST)  
+
+.Figure 11.2: Cost & Rate‑limit Flow
+[plantuml,ch11-l02,png,theme=sketchy-outline]
+....
+@startuml
+skinparam backgroundColor #FDF6E3
+title Cost & Rate‑limit Flow
+:Incoming Request;
+if (Cost & Budget OK?) then (yes)
+  if (Rate within quota?) then (yes)
+    :Forward to LLM;
+  else (no)
+    :Return 429 (Rate limit);
+    :Trigger rate‑limit alert;
+  endif
+else (no)
+  :Return 403 (Budget exceeded);
+  :Trigger budget alert;
+endif
+@enduml
+....
+
+==== Discussion Prompts
+
+* In the opening scenario, what governance mechanisms could have prevented the $2 500 surprise?  
+* Who should bear the cost of AI services—providers, end‑users, or society at large?  
+* How can rate limiting be justified when it throttles legitimate high‑throughput workloads?  
+* In what ways does cost governance intersect with traditional access‑control models?  
+* What audit‑log features are essential for post‑incident analysis of overspend?  
+* When might strict cost control conflict with an agent’s functional objectives?
+
+==== Lab Prep
+
+Lab 1: Extend the governance simulator with full cost tracking and a rate‑limiter middleware. Implement token‑cost calculation, daily budget alerts at 80 % usage, and a back‑off strategy for rejected requests. Verify that audit logs capture every cost‑related decision.
+
+===== Key Points
+
+* Implement token‑cost calculator  
+* Add rate‑limiter (10 req/min) with 429 response  
+* Configure budget alerts and back‑off jitter  
+* Record immutable audit entries  
+
+*Next up we will explore privacy‑preserving governance and data minimisation, linking economic controls to the protection of personal information.*
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch11,Chapter 11>>).

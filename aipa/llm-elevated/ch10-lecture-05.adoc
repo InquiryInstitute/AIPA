@@ -1,0 +1,9 @@
+json
+{
+  "request_id": "string",
+  "step": "int",
+  "tool_name": "string",
+  "input": "object",
+  "output": "object",
+  "timestamp": "ISO8601"
+}

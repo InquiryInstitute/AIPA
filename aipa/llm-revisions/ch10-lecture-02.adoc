@@ -1,0 +1,133 @@
+=== 10.2: Multi-Agent Systems — Specialists and Coordination
+:leveloffset: 2
+
+[.epigraph]
+"No one knows everything; together we know more."
+— Latour, _Reassembling the Social_ <<Latour2005>> (multi-agent systems)
+
+*Can a single AI handle a complex research‑write‑review workflow, or do we need a team of specialised agents? What are the trade‑offs between a monolithic design and a coordinated collection of specialists?* This question frames today’s exploration of **multi‑agent architectures**.
+
+==== Example Prompts
+
+* "Delegate this to a specialist." — _Multi‑agent: specialist handles sub‑task_
+* "Coordinate these agents." — _No central control; coordination protocols_
+* "When is one agent enough vs. many?" — _Delegation; risks and benefits_
+
+==== Conceptual Core
+
+**Specialist agents** are purpose‑built components that excel in a narrow domain—e.g., a *researcher* that searches literature, a *writer* that drafts prose, and a *critic* that evaluates quality. By isolating expertise, each agent can use tailored prompts, tools, or models, reducing the cognitive load on any single system.
+
+**Coordination patterns** determine how these specialists exchange work. The three canonical patterns are:
+
+* *handoff* – a linear transfer of output from one agent to the next;
+* *delegation* – an agent assigns a sub‑task to another while retaining overall responsibility;
+* *consensus* – multiple agents produce competing outputs that are reconciled through voting or arbitration.
+
+**The cost of coordination** is not negligible. Messaging overhead, state synchronization, and error propagation can erode the efficiency gains from specialization. Designers must therefore weigh the *benefits of parallel expertise* against the *burden of orchestration*.
+
+**Decision criteria** help choose between a single‑agent and a multi‑agent design. Consider task complexity, the need for parallelism, latency tolerances, and the availability of domain‑specific models. When the workflow can be decomposed into independent stages with clear handoff points, a multi‑agent architecture often yields higher quality and scalability.
+
+**Scalability and control**: Multi‑agent systems can be scaled horizontally by adding more instances of a specialist, but they also introduce decentralised control challenges. Understanding when to adopt *centralised orchestration* versus *distributed consensus* is crucial for building robust AI pipelines.
+
+The orchestrator you will construct in later chapters relies on these patterns; mastering them now ensures your system can grow by composition rather than by monolithic expansion.
+
+===== Key Points
+
+* **Specialist agents** – domain‑specific expertise (researcher, writer, critic)  
+* **Coordination patterns** – handoff, delegation, consensus  
+* **Communication mechanisms** – messages, shared state, event streams  
+* **Coordination overhead** – latency, error propagation, synchronization cost  
+* **When to choose multi‑agent** – complex, parallelizable tasks, heterogeneous expertise  
+* **Scalability considerations** – horizontal scaling of specialists, load balancing  
+* **Centralised vs. decentralised control** – orchestration layer vs. peer consensus  
+* **Collective intelligence** – system performance exceeds any single component  
+
+==== Technical Example
+
+Design a three‑agent pipeline that produces a research brief:
+
+1. **Message schema** – Agents exchange JSON payloads containing `type`, `content`, and `metadata`. For example, the *researcher* sends `{ "type": "docs", "content": [...], "metadata": {"source": "arXiv"} }`.
+
+2. **Handoff protocol** – The orchestrator routes the *researcher*’s output to the *writer* via a `handoff docs` message. The *writer* returns a `draft` payload, which the orchestrator then forwards to the *critic*.
+
+3. **Parallelism and error handling** – If multiple *researcher* instances are available, the orchestrator can request documents in parallel, merging results before handoff. Each step includes a verification step: the receiving agent validates schema compliance and may request a retry, ensuring robustness against tool failures.
+
+Lab 2 will have you implement this pipeline, defining the JSON contracts, wiring the handoff flow, and adding retry logic for failed tool invocations.
+
+===== Key Points
+
+* **Researcher, writer, critic** – concrete specialist roles  
+* **JSON message schema** – standardized inter‑agent communication  
+* **Handoff protocol** – linear transfer of `Docs → Draft → Feedback`  
+* **Parallel execution** – concurrent document retrieval for speed  
+* **Verification & retry** – error handling to maintain reliability  
+* **Tool‑based agents** – each specialist may be a separate LLM or external API  
+* **Orchestrator routing logic** – decides which agent receives each payload  
+
+==== Philosophical Reflection
+
+The notion of **collective intelligence** echoes Latour’s claim: no single entity can possess all knowledge, but a network of agents can approximate a richer understanding. This distributed cognition challenges the myth of the omniscient monolithic AI.
+
+**Delegation versus verification** raises epistemic questions. Trusting a specialist’s output speeds the workflow, yet verification imposes a cost. The balance mirrors human organisations where delegation is paired with audits, reflecting a deeper tension between *epistemic humility* and *efficiency*.
+
+Cultural artefacts illustrate these ideas. Gibson’s _Neuromancer_ <<Gibson1984>> envisions a cyberspace populated by autonomous agents, while the film _Her_ <<Her2013>> portrays an AI that seamlessly integrates multiple sub‑personalities to assist its user. Both works foreground the ethical implications of **delegated agency**—who is responsible when an autonomous specialist errs, and how do we ensure accountability in a distributed system?
+
+Historical precedents, from early expert systems to modern micro‑service architectures, show a long trajectory toward **distributed cognition**. Recognising this lineage helps us frame contemporary multi‑agent designs within a broader philosophical and ethical context.
+
+===== Key Points
+
+* **Collective intelligence** – emergent knowledge from distributed agents  
+* **Delegation & verification** – trade‑off between trust and robustness  
+* **Epistemic humility** – acknowledging limits of any single component  
+* **Ethical implications** – responsibility and accountability in delegated agency  
+* **Historical precedents** – expert systems, micro‑services as antecedents of AI multi‑agentism  
+* **Cultural analogues** – _Neuromancer_, _Her_ illustrate societal imagination of distributed AI  
+
+.Figure 10.2: Multi-agent coordination
+[plantuml,ch10-l02,png,theme=sketchy-outline]
+....
+@startuml
+skinparam backgroundColor #FDF6E3
+skinparam handwritten true
+
+start
+:Researcher;
+note right: searches & retrieves docs
+-> Writer : Docs
+note right: handoff (solid arrow)
+:Writer;
+note right: drafts summary
+-> Critic : Draft
+note right: handoff (solid arrow)
+:Critic;
+note right: reviews & gives feedback
+-> Writer : Revised Draft
+note right: delegation (dashed arrow)
+stop
+@enduml
+....
+
+==== Discussion Prompts
+
+* When is multi‑agent better than single agent?
+* How do we coordinate without central control?
+* What are the risks of delegation?
+* How does delegation extend the agent's capabilities?
+* How does the orchestrator delegate to tool servers?
+* When does multi‑agent add value vs. complexity?
+
+In Lab 2 you will turn these coordination patterns into concrete orchestrator code, testing how trust and verification affect performance.
+
+==== Lab Prep
+
+Lab 2: Design multi‑agent coordination. Tool‑based: the orchestrator routes to different tools (or tool combinations) for different sub‑tasks. The "agents" may be tool invocations with different prompts. See Lab 2 for requirements.
+
+===== Key Points
+
+* Lab 2: Multi‑agent coordination implementation  
+* Tool‑based agents – each specialist may be a distinct LLM or API  
+* Orchestrator routes messages based on task type  
+* Verification & retry mechanisms for robustness  
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch10,Chapter 10>>).

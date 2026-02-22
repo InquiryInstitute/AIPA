@@ -1,0 +1,50 @@
+= Chapter 8: Reasoning and Inference
+
+This chapter covers reasoning: propositional and first-order logic (syntax, semantics, resolution), probabilistic reasoning (Bayesian networks, inference, sampling), LLMs and structured reasoning (CoT, verification), reasoning with tools (retrieval, computation, ReAct), and the reasoning tool. The reasoning tool—assert, query, prove, infer_probability, chain_of_thought—completes the cognitive triad with memory and llm. It integrates into student-ai/reasoning/. Labs 1–3 build logic, probability, and the full inference engine. By chapter end, the agent can reason symbolically, probabilistically, and via LLM CoT. Ch9 adds the ReAct agent that invokes reasoning.
+
+==== Learning Objectives
+After this chapter you will be able to:
+* Apply propositional and first-order logic (syntax, semantics, resolution)
+* Use probabilistic reasoning (Bayesian networks, inference, sampling)
+* Combine LLM chain-of-thought with symbolic verification
+* Build the reasoning tool (assert, query, prove, infer_probability, chain_of_thought)
+
+==== Course Learning Outcomes (CLOs)
+By the end of this course, you will be able to:
+* Apply propositional and first-order logic (syntax, semantics, resolution) (PLO 2).
+* Use probabilistic reasoning (Bayesian networks, inference, sampling) (PLO 2).
+* Combine LLM chain-of-thought with symbolic verification (PLO 2).
+* Build the reasoning tool (assert, query, prove, infer_probability, chain_of_thought) (PLO 2).
+
+include::lecture-01.adoc[]
+****
+include::lab-01.adoc[]
+****
+
+include::lecture-02.adoc[]
+include::lecture-03.adoc[]
+include::lecture-04.adoc[]
+****
+include::lab-02.adoc[]
+****
+
+include::lecture-05.adoc[]
+include::lecture-06.adoc[]
+include::lecture-07.adoc[]
+****
+include::lab-03.adoc[]
+****
+
+include::lecture-08.adoc[]
+
+==== Chapter Summary
+Reasoning spans logic, probability, and LLM-based CoT. The reasoning tool completes the cognitive triad with memory and llm. The agent can assert, query, prove, and infer. Reasoning integrates with the tool-calling agent (Ch9) and orchestrator (Ch10).
+
+==== Further Reading
+Readings for this chapter are collected in the <<reading-list,Reading List>> (<<reading-ch08,Chapter 8>>).
+
+* Pearl, _Probabilistic Reasoning_ <<Pearl1988>> — Bayesian networks, inference.
+* Wei et al., "Chain-of-Thought" <<Wei2022>> — CoT reasoning.
+* Russell & Norvig, _AIMA_ <<RussellNorvig2020>> — Logic, resolution, planning.
+
+include::exercises.adoc[]

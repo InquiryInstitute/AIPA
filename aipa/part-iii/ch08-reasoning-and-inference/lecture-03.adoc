@@ -1,0 +1,3 @@
+f1(R) = P(R)
+f2(S,R) = P(S|R)
+f3(W,R,S) = P(W|R,S)   (evidence: W = true → restrict to rows where W=true)

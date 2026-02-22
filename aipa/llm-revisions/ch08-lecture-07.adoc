@@ -1,0 +1,30 @@
+=== 8.7: The reasoning Tool
+:leveloffset: 2
+
+[.epigraph]
+"Inference as a service—the agent delegates reasoning."
+— Wei et al., "Chain-of-Thought" <<Wei2022>>; Schick et al., "Toolformer" <<Schick2023>> (adapted)
+
+==== Hook
+
+Imagine an autonomous tutoring bot that must (1) verify whether a student’s answer follows logically from the curriculum, (2) estimate the probability that the student will master a concept after a hint, and (3) explain its reasoning step‑by‑step so the learner can see the chain of thought. How can a single agent support all three capabilities without embedding three separate engines? The answer is to treat reasoning itself as a *service* that the agent can call on demand. This “inference as a service” mindset underlies the reasoning tool we will build.
+
+==== Example Prompts
+
+* "Prove this follows from the KB." — _Agent invokes `reasoning.prove(goal)`_
+* "What's the probability of X?" — _`reasoning.infer_probability(query)`_
+* "Reason about this and return the chain." — _`reasoning.chain_of_thought(prompt)`_
+
+==== Conceptual Core
+
+The agent frequently needs to **prove** a fact, **estimate** a probability, or **reason step‑by‑step**.  A naïve design would bake a monolithic logic engine, a probabilistic module, and a CoT LLM directly into the agent’s core loop.  Such tight coupling makes any upgrade—switching to a more expressive theorem prover, swapping a faster LLM, or adding a new probabilistic library—require invasive changes to the agent code.
+
+Instead we **externalize** these capabilities behind a uniform *reasoning tool* interface.  The agent simply issues a request (e.g., `prove("A ⇒ B")`) and receives a response, without needing to know which engine satisfied the request.  This service‑oriented abstraction yields three immediate benefits:
+
+1. **Separation of concerns** – the agent focuses on perception, planning, and actuation; the reasoning tool focuses on inference.
+2. **Hot‑swapability** – different logic solvers, probabilistic back‑ends, or LLMs can be deployed without touching the agent loop.
+3. **Versioning & latency control** – each tool can be versioned independently and scaled to meet latency budgets.
+
+The reasoning tool exposes a small, well‑defined API:
+
+* `assert(fact)`

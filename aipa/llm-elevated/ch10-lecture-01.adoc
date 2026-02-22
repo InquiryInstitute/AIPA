@@ -1,0 +1,227 @@
+=== 10.1: From Retrieval to Generation – Building a Three‑Stage AI Pipeline
+
+[.epigraph]
+____
+*“Imagine a researcher who can ask any question and receive a concise, accurate answer drawn from millions of pages of scientific literature, without ever opening a PDF.”*  
+____
+
+The promise of such a virtual research assistant is tantalising, but the technical challenge is stark: how do we let a machine “know” what to read, decide which fragments are most relevant, and finally express the answer in natural language?  In the next ninety minutes we will unpack a concrete, modular solution—a three‑stage pipeline that moves from **retrieval** through **reranking** to **generation**.  By the end of the lecture you will be able to explain why each stage is necessary, critique design choices, and implement a working prototype that you will extend in the lab.
+
+==== Conceptual Core
+
+Large‑scale information access has become the bottleneck for many AI‑driven products.  A naïve approach—feeding an entire corpus into a generative language model—fails for three reasons: (1) the model’s context window is limited, (2) inference cost grows linearly with the number of tokens, and (3) the model may hallucinate facts that never appear in the source material.  The pipeline architecture solves these problems by *splitting* the task into specialised components, each optimised for a narrow sub‑problem.
+
+The first component, **retrieval**, acts as a coarse filter.  Classical sparse methods such as BM25 or modern dense embeddings (e.g., DPR, ColBERT) map a user query to a ranked list of candidate documents or passages.  Retrieval is deliberately *recall‑oriented*: it prefers to return a superset of potentially relevant items, accepting that many will be irrelevant.  This design keeps the downstream stages lightweight because they operate on a bounded set (typically 10–100 items).
+
+Once a candidate set is in hand, the **reranker** refines the ordering using a more expressive model.  Cross‑encoders that jointly encode query and passage can assess relevance with fine‑grained attention, often achieving orders‑of‑magnitude improvements in precision at top‑k.  Reranking is *precision‑oriented*: it sacrifices recall for higher confidence in the top results, which is crucial when the next stage can only consume a handful of passages.
+
+The final component, **generation**, consumes the top‑k passages and produces a fluent answer or summary.  Retrieval‑augmented generation (RAG) techniques prepend the selected texts to a prompt, allowing a large language model (LLM) to ground its output in concrete evidence.  Generation can be tuned for style, length, or citation format, and it can incorporate chain‑of‑thought prompting to improve factual consistency.
+
+Together, these stages form a *modular pipeline* that balances efficiency, accuracy, and interpretability.  The modularity also enables independent research advances: a new dense retriever can be swapped in without touching the reranker or generator, and vice‑versa.  However, modular pipelines introduce *interface friction*: mismatched tokenisation, latency accumulation, and the need for a feedback loop to correct downstream errors.
+
+[plantuml, format=png, id=pipeline-diagram]
+....
+@startuml
+skinparam backgroundColor #F9F9F9
+skinparam node {
+  BackgroundColor #FFFFFF
+  BorderColor #CCCCCC
+  FontColor #333333
+}
+node "Retrieve\n(query → docs)" as R1
+node "Rerank\n(docs, query → ranked)" as R2
+node "Generate\n(ranked → answer)" as R3
+R1 --> R2 : raw docs
+R2 --> R3 : ranked passages
+R3 --> User : answer
+User --> R2 : feedback (optional)
+@enduml
+....
+
+**Key Points**
+
+* 1. Retrieval is recall‑oriented; it returns a superset of potentially relevant texts.  
+* 2. Sparse (BM25) vs. dense (DPR, ColBERT) retrieval trade‑offs: interpretability vs. semantic matching.  
+* 3. Reranking uses cross‑encoders to achieve fine‑grained relevance scoring.  
+* 4. Precision‑oriented reranking reduces the candidate set for generation.  
+* 5. Generation grounds LLM output in retrieved passages via prompt engineering.  
+* 6. Modular pipelines enable independent component upgrades.  
+* 7. Interface friction arises from token‑level mismatches and latency stacking.  
+* 8. Feedback loops (user‑in‑the‑loop) can improve reranker training.  
+* 9. End‑to‑end RAG models blur the boundaries but sacrifice interpretability.  
+*10. Evaluation must consider both retrieval metrics (recall@k) and generation metrics (BLEU, factuality).
+
+==== Technical Example
+
+To make the abstract discussion concrete we will build a minimal prototype that answers a question using a tiny, self‑contained corpus of five short documents.  The code is presented incrementally so you can see how each stage is added.
+
+[source,python]
+----
+# -------------------------------------------------
+# 1️⃣  Retrieval – naive BM25 over a list of strings
+# -------------------------------------------------
+from collections import defaultdict
+import math, re
+
+docs = [
+    "The Eiffel Tower was completed in 1889 and stands in Paris.",
+    "Python is a high‑level programming language created by Guido van Rossum.",
+    "The mitochondria is the powerhouse of the cell, generating ATP.",
+    "Quantum entanglement links particles instantaneously across distance.",
+    "The Great Wall of China stretches over 13,000 miles."
+]
+
+def bm25(query, corpus, k1=1.5, b=0.75):
+    # Simple tokenisation
+    def tokens(text): return re.findall(r'\w+', text.lower())
+    q_terms = tokens(query)
+    N = len(corpus)
+    # Document frequencies
+    df = defaultdict(int)
+    for d in corpus:
+        for term in set(tokens(d)):
+            df[term] += 1
+    # Average doc length
+    avgdl = sum(len(tokens(d)) for d in corpus) / N
+    scores = []
+    for idx, d in enumerate(corpus):
+        d_tokens = tokens(d)
+        dl = len(d_tokens)
+        score = 0.0
+        for term in q_terms:
+            f = d_tokens.count(term)
+            if f == 0: continue
+            idf = math.log(1 + (N - df[term] + 0.5)/(df[term] + 0.5))
+            score += idf * (f * (k1 + 1)) / (f + k1 * (1 - b + b * dl / avgdl))
+        scores.append((idx, score))
+    # Return top‑3 doc indices
+    return [i for i, _ in sorted(scores, key=lambda x: x[1], reverse=True)[:3]]
+
+# Example query
+query = "When was the Eiffel Tower built?"
+retrieved_ids = bm25(query, docs)
+print("Retrieved:", [docs[i] for i in retrieved_ids])
+----
+
+Running the snippet prints the two most relevant passages about the Eiffel Tower and, because of the tiny corpus, also a distractor about the Great Wall.  Next we add a **reranker** that uses a pre‑trained cross‑encoder from the `sentence‑transformers` library to re‑score the retrieved passages.
+
+[source,python]
+----
+# -------------------------------------------------
+# 2️⃣  Rerank – cross‑encoder relevance model
+# -------------------------------------------------
+from sentence_transformers import CrossEncoder
+
+# Load a small cross‑encoder fine‑tuned on MS‑MARCO
+reranker = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2')
+
+def rerank(query, candidates):
+    scores = reranker.predict([(query, c) for c in candidates])
+    ranked = [c for _, c in sorted(zip(scores, candidates), key=lambda x: x[0], reverse=True)]
+    return ranked
+
+candidates = [docs[i] for i in retrieved_ids]
+ranked = rerank(query, candidates)
+print("Ranked:", ranked)
+----
+
+The cross‑encoder pushes the Eiffel Tower passage to the top, demoting the unrelated Great Wall entry.  Finally we plug in a **generator**.  For the purpose of the lecture we will use OpenAI’s `gpt‑3.5‑turbo` via the `openai` Python client, but any LLM with a chat completion endpoint works.
+
+[source,python]
+----
+# -------------------------------------------------
+# 3️⃣  Generation – prompt‑based grounding
+# -------------------------------------------------
+import openai, os
+
+openai.api_key = os.getenv("OPENAI_API_KEY")
+
+def generate_answer(query, passages):
+    # Build a prompt that lists the passages as evidence
+    evidence = "\n".join(f"- {p}" for p in passages)
+    prompt = f"""You are an expert assistant. Use only the following evidence to answer the question.
+
+Evidence:
+{evidence}
+
+Question: {query}
+Answer:"""
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.2,
+        max_tokens=100
+    )
+    return response.choices[0].message.content.strip()
+
+answer = generate_answer(query, ranked[:2])   # use top‑2 after rerank
+print("Answer:", answer)
+----
+
+When executed, the model replies:
+
+```
+Answer: The Eiffel Tower was completed in 1889.
+```
+
+The prototype demonstrates the full retrieval → rerank → generate flow on a toy dataset.  In the lab you will replace each stub with a production‑grade component and scale up to a corpus of tens of thousands of documents.
+
+**Technical Key Points**
+
+* 1. BM25 provides a fast, interpretable baseline for recall‑oriented retrieval.  
+* 2. Tokenisation and document length normalisation are crucial for BM25 scoring.  
+* 3. Cross‑encoders compute query‑passage relevance jointly, yielding higher precision.  
+* 4. The `sentence‑transformers` library offers ready‑made rerankers with minimal code.  
+* 5. Prompt engineering grounds the generator in evidence, reducing hallucination.  
+* 6. Limiting the generator to the top‑k ranked passages controls latency and cost.  
+* 7. API keys and environment variables keep credentials out of source code.  
+* 8. The pipeline can be parallelised: retrieval and rerank can run on separate workers.  
+* 9. Evaluation should compare retrieved vs. reranked vs. generated outputs.  
+*10. Extensibility: swap dense retrievers (e.g., FAISS) or larger LLMs without changing glue code.
+
+==== Philosophical Reflection
+
+Modular pipelines embody a *post‑modern* view of intelligence: rather than seeking a monolithic “general AI”, we assemble specialised agents that communicate through well‑defined interfaces.  This mirrors how humans solve complex tasks—first gathering raw data, then filtering, then synthesising.  The advantage is clear interpretability: we can inspect the retrieval results, audit the reranker’s scores, and trace the generator’s citations.  However, modularity also raises questions about *emergent behavior*.  When components are trained independently, their joint dynamics may produce unexpected biases or failure modes that are not visible when each module is evaluated in isolation.
+
+Consider the tension between *control* and *autonomy*.  A tightly coupled end‑to‑end RAG model can learn to compensate for retrieval errors internally, potentially achieving higher performance but at the cost of losing the ability to intervene manually.  Conversely, a fully decoupled pipeline lets us replace a failing reranker with a human‑in‑the‑loop reviewer, preserving safety but possibly sacrificing efficiency.  The design choice thus reflects broader ethical and governance considerations: how much agency do we grant to opaque neural components versus transparent algorithmic stages?
+
+Looking ahead, research is converging on *adaptive pipelines* where feedback from the generation stage (e.g., user‑rated factuality) is fed back to retrain the reranker, creating a closed‑loop learning system.  Such systems blur the line between static architecture and dynamic, self‑optimising intelligence.  They also invite philosophical inquiry: if a pipeline can improve itself through interaction, does it still count as a collection of tools, or does it become a single, evolving agent?
+
+**Reflective Key Points**
+
+* 1. Modularity promotes interpretability and targeted debugging.  
+* 2. Independent training can lead to hidden cross‑component biases.  
+* 3. End‑to‑end RAG sacrifices transparency for potential performance gains.  
+* 4. Control vs. autonomy is a central ethical trade‑off in pipeline design.  
+* 5. Human‑in‑the‑loop feedback can mitigate hallucination and bias.  
+* 6. Adaptive pipelines blur the boundary between tool and agent.  
+* 7. Evaluation must span component‑level metrics and system‑level outcomes.  
+* 8. Governance frameworks need to address responsibility across the pipeline.  
+* 9. Future research: differentiable retrieval, reinforcement‑learning rerankers.  
+*10. Philosophical question: When does a pipeline become a single “mind”?
+
+==== Closing & Bridge
+
+We have seen how a three‑stage pipeline transforms a vague user query into a grounded answer by first casting a wide net (retrieval), then sharpening the focus (reranking), and finally articulating the result (generation).  This architecture balances scalability, accuracy, and interpretability, yet it also surfaces new challenges—latency accumulation, interface mismatches, and the need for continual feedback.  In the upcoming lab you will replace the naïve BM25 stub with a dense FAISS index, train a cross‑encoder reranker on your own relevance judgments, and experiment with prompt‑tuning for the generator.  As you do so, keep in mind the philosophical tension between modular control and emergent autonomy; your design choices will shape not only performance but also the transparency and trustworthiness of the system you build.
+
+==== Discussion Prompts
+
+* How does the choice of retrieval model (sparse vs. dense) affect downstream reranking and generation quality?  
+* In what scenarios might an end‑to‑end RAG model be preferable to a modular pipeline, despite the loss of interpretability?  
+* What are the most effective ways to incorporate user feedback into the reranking stage without introducing bias?  
+* How can we measure “groundedness” of generated answers beyond standard BLEU or ROUGE scores?  
+* Discuss the trade‑offs between latency and accuracy when scaling each pipeline component to millions of documents.  
+* Should ethical safeguards (e.g., fact‑checking modules) be placed before or after generation, and why?
+
+==== Lab Preparation
+
+In the lab you will construct a full‑scale retrieval‑augmented generation system using the following steps:
+
+* **Dataset ingestion** – load a public corpus (e.g., Wikipedia abstracts) into a FAISS index with dense embeddings.  
+* **Retriever implementation** – replace the BM25 stub with a dual‑encoder that encodes queries and passages into the same vector space.  
+* **Reranker training** – fine‑tune a cross‑encoder on a small relevance‑judgment set you will create from the corpus.  
+* **Generator prompting** – design a prompt template that includes citation markers and experiment with temperature settings.  
+* **Evaluation pipeline** – compute recall@k for retrieval, MAP for reranking, and factuality metrics (e.g., FEVER score) for generation.  
+* **Feedback loop** – implement a simple UI where users can up‑vote or down‑vote answers, and use these signals to periodically retrain the reranker.
+
+By the end of the session you will have a working prototype that you can extend to domain‑specific corpora (legal texts, scientific papers, etc.) and a deeper appreciation of the design decisions that shape modern AI systems.

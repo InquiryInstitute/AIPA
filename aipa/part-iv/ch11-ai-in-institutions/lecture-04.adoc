@@ -1,0 +1,88 @@
+=== 11.4: Experimental AI — A/B Testing and Statistical Rigor
+:leveloffset: 2
+
+[.epigraph]
+"Without comparison, we have only anecdotes."
+— NIST, _AI Risk Management Framework_ <<NIST2023>> (evaluation)
+
+*Evaluate rigorously: A/B tests, statistical significance.*
+
+==== Example Prompts
+
+* "Does the new config beat the baseline?" — _A/B test: control vs. treatment; significance_
+* "Compare these two models." — _Statistical comparison; p-value, confidence intervals_
+* "What is rigorous evaluation?" — _Multiple metrics; effect size; report honestly_
+
+==== Conceptual Core
+
+Without comparison, we have only anecdotes. Does the new prompt beat the old one? Does the new model reduce errors? We need more than a single run or a handful of examples—we need controlled comparison and a way to distinguish signal from noise. That is what rigorous evaluation provides: A/B testing, statistical significance, and honest reporting.
+
+A/B testing: split traffic between control (baseline) and treatment (new config). Random assignment ensures groups are comparable. Compare metrics: accuracy, latency, cost, user satisfaction. Statistical significance: the p-value is the probability of observing a difference as large or larger than we saw, assuming the null hypothesis (no real difference). Confidence intervals (e.g., 95% CI) give a range of plausible values for the true effect. Multiple comparisons: if we test many hypotheses, we inflate the chance of false positives. Correct with Bonferroni (strict) or FDR (less conservative). Effect size: significance tells us the result is unlikely to be chance; effect size tells us how large the difference is. A tiny improvement can be "significant" with enough data; is it meaningful? Reporting: communicate difference, CI, p-value, and sample size. Evidence and inference: we infer from samples to populations. The limits of statistical testing: significance ≠ importance; we can miss effects (type II) or get false positives (type I). Report honestly—include negative results.
+
+===== Key Points
+
+* A/B: control vs. treatment
+* Significance: p-value, CI
+* Multiple comparisons
+* Effect size
+* Limits of testing
+
+==== Technical Example
+
+Run an A/B test: compare two agent configurations (e.g., different prompts, models, or retrieval settings). Split traffic 50/50; random assignment per user or per request. Collect metrics: accuracy (on held-out eval), latency (p50, p95), cost (tokens, dollars). Compute significance: two-sample t-test or permutation test. Report: mean difference, 95% CI, p-value, sample size per group. Lab 2: Add A/B testing to the governance simulator. Support control/treatment arms, configurable metrics, and significance testing. Simulate experiments—e.g., does config B beat config A? The simulator becomes a testbed for evaluation before real deployment.
+
+===== Key Points
+
+* Run A/B test
+* Compute significance
+* Lab 2: A/B in simulator
+
+==== Philosophical Reflection
+
+Evidence and inference: we need comparison to know what works. Anecdotes and single runs are not enough—we need controlled comparison. The limits of statistical testing: we can be wrong (type I, type II). Rigor is a virtue—but it has limits. Significance does not imply importance; non-significance does not imply no effect. Report honestly: include negative results, pre-register when possible, and avoid p-hacking (trying many analyses until one is "significant"). The governance simulator supports rigorous evaluation as a governance practice—decisions should be evidence-based.
+
+When you add A/B testing to the governance simulator (Lab 2), you are building the same kind of check that organizations use before rolling out a new config: control vs. treatment, metrics, significance. Governance is not only policies and cost—it is also the discipline of evidence before we change what the system does.
+
+===== Key Points
+
+* Comparison = evidence
+* Limits of testing
+* Report honestly
+* A/B in simulator = evidence-based governance; Lab 2
+
+.Figure 11.4: A/B test design
+[plantuml,ch11-l04,png,theme=sketchy-outline]
+....
+@startuml
+start
+:Traffic;
+:Control;
+:Metrics A;
+:Treatment;
+:Metrics B;
+:Compare;
+stop
+@enduml
+....
+
+==== Discussion Prompts
+
+* When is A/B testing sufficient?
+* How do we handle multiple metrics?
+* What is "rigorous" evaluation?
+* How does A/B testing support governance decisions?
+* How does the governance simulator support A/B scenarios?
+* When does statistical rigor conflict with speed?
+
+==== Lab Prep
+
+Lab 2: Add A/B testing to the governance simulator. Support control/treatment, metrics, significance testing. See Lab 2 for requirements.
+
+===== Key Points
+
+* Lab 2: A/B testing
+* Control, treatment, significance
+
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch11,Chapter 11>>).

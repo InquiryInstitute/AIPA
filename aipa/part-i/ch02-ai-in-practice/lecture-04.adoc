@@ -1,0 +1,11 @@
+json
+{
+  "request_id": "uuid",
+  "timestamp": "ISO‑8601",
+  "model_version": "v1.2.3",
+  "input_hash": "sha256",
+  "output_hash": "sha256",
+  "confidence": 0.92,
+  "latency_ms": 124,
+  "status": "OK"
+}

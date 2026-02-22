@@ -1,0 +1,45 @@
+=== Lab 3: Vector Memory System — Hybrid and Symbolic Memory
+:leveloffset: 2
+
+*Final deliverable: Vector Memory System (tool)*
+
+==== Tool Deliverable
+
+Complete tool server `memory`. Tools: `index`, `search`, `rag_retrieve`, `add`, `update`. Hybrid vector + symbolic. Register in agent tool config.
+
+==== Prerequisites
+
+* Complete Labs 1 and 2 (index, search, RAG)
+* Review 7.4–7.8: hybrid memory; updates; eviction; tool schema; agent integration
+
+==== Objectives
+
+* Combine vector and symbolic memory (e.g., graph + vectors)
+* Support updates and eviction
+* Integrate with agent reasoning
+
+==== Steps
+
+. Add add(doc) and update(doc_id, doc): insert or update document; re-chunk, re-embed, update index. Handle delete (remove chunks).
+. Optionally: add eviction (LRU when size exceeds threshold) or TTL.
+. Optionally: add symbolic layer—integrate Ch1 knowledge graph. Query graph for structure; use vectors for ranking.
+. Consolidate index, search, rag_retrieve, add, update into one module. Expose tool schema.
+. Register memory tool in agent config. Document schema.
+. Test: index → add → update → search → rag_retrieve. Verify consistency.
+. Submit: full memory system, query interface, integration as submodule in student-ai/memory/.
+
+==== Deliverables
+
+* Full memory system
+* Query interface
+* Integration as submodule in student-ai/memory/
+
+*Acceptance criteria:*
+* add() and update() modify index correctly
+* search and rag_retrieve work after updates
+* Tool schema documented: index, search, rag_retrieve, add, update
+* README documents full API and agent integration
+
+==== Lab Prep
+
+* Review 7.4–7.8: hybrid; updates; agent integration

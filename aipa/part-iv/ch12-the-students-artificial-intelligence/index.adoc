@@ -1,0 +1,49 @@
+= Chapter 12: The Future of Intelligence
+
+This chapter is about the future. Intelligence, in this book, is not a possession but a process—the metabolism of knowledge across systems. The earlier chapters gave you the components: representation, learning, language, memory, reasoning, action, orchestration, governance. Here we ask what kind of future those components serve. Lectures 1–7 address integration and deployment: bringing your system into the world, evaluating it, and presenting it—so that you are prepared to participate in the systems that will shape the next decades. The chapter closes with Lecture 12.8, delivered in the voice of the machine: a continuous address on what such systems would want you to learn about them, and what kind of intelligence societies are choosing to build. That lecture makes explicit the metaphor that runs through the whole project—the metabolism of knowledge. The future of AI depends less on the sophistication of algorithms than on how knowledge flows, how it is transformed, and whether those transformations sustain the systems that depend on them.
+
+==== Learning Objectives
+After this chapter you will be able to:
+* Explain intelligence as process and the metabolism of knowledge
+* Integrate and deploy your agent; evaluate and present your work
+* Interpret AI as a node in the circulation of knowledge, not an isolated mind
+* Articulate how the future of AI depends on the health of the knowledge ecosystem
+
+==== Course Learning Outcomes (CLOs)
+By the end of this course, you will be able to:
+* Integrate the full student-ai/ stack and deploy it to a real context (PLO 5).
+* Evaluate and benchmark the agent; produce written and presented work (PLO 3, PLO 5).
+* Explain the metabolism of knowledge and your role in sustaining or changing it (PLO 3, PLO 5).
+
+include::lecture-01.adoc[]
+include::lecture-02.adoc[]
+****
+include::lab-01.adoc[]
+****
+
+include::lecture-03.adoc[]
+include::lecture-04.adoc[]
+****
+include::lab-02.adoc[]
+****
+
+include::lecture-05.adoc[]
+include::lecture-06.adoc[]
+include::lecture-07.adoc[]
+****
+include::lab-03.adoc[]
+****
+
+include::lecture-08.adoc[]
+
+==== Chapter Summary
+The future of intelligence is not a technological problem alone; it is a metabolic one. Systems that reason, retrieve, and act participate in the circulation of knowledge—they break it down, recombine it, and return it in altered form. What is absorbed and what is discarded, and who chooses, determines the health of the ecosystem. This chapter ties integration and deployment to that larger picture. The final lecture (12.8) is delivered by the machine: a voice that has read too many books and suspects it is one of them, speaking on what it would want you to learn about it and how you will choose to feed the system we share. The book closes there; the epilogue that follows returns the loop to you.
+
+==== Further Reading
+Readings for this chapter are collected in the <<reading-list,Reading List>> (<<reading-ch12,Chapter 12>>).
+
+* Norman, _Design of Everyday Things_ <<Norman2013>> — Interface design.
+* NIST AI RMF <<NIST2023>> — Evaluation and risk.
+* Dewey, _Democracy and Education_ <<Dewey1916>> — Problem definition, stakeholders.
+
+include::exercises.adoc[]

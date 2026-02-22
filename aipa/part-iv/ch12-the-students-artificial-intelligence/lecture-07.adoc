@@ -1,0 +1,91 @@
+=== 12.7: The Formal Presentation
+:leveloffset: 2
+
+[.epigraph]
+"To present is to make the work public."
+— Dewey, _Democracy and Education_ <<Dewey1916>> (adapted)
+
+*Present the capstone: technical findings, demonstration.*
+
+==== Example Prompts
+
+* "Present your agent." — _Formal presentation; demo_
+* "Defend your design." — _Technical findings; demonstration_
+* "What did you learn?" — _From consumer to builder; the loop closes_
+
+==== Conceptual Core
+
+Presentation format: duration (e.g., 20–30 min), structure (intro, problem, approach, demo, conclusion, Q&A), demo (live or recorded). Audience: faculty, peers, stakeholders. Technical depth vs. accessibility: balance. The audience may include non-experts; explain concepts clearly. But also demonstrate technical competence. Handling questions: be ready. Anticipate: what could they ask? Limitations: acknowledge them. Do not oversell. The presentation as performance: you perform the work for the audience. Making the invisible visible: the agent's behavior is hidden—the demo reveals it. Show, do not just tell.
+
+Structure suggestion: intro (1 min), problem (3 min), approach (5 min), demo (10 min), conclusion (2 min), Q&A. Rehearse. Time yourself. Have a fallback if the demo fails (recorded backup, screenshots). The presentation is an act of accountability: you stand behind the work.
+
+===== Key Points
+
+* Format: duration, structure, demo
+* Audience: faculty, peers, stakeholders
+* Depth vs. accessibility: balance
+* Handle questions, acknowledge limitations
+* Demo makes invisible visible
+* Rehearse, have fallback
+* Presentation = performance
+* Accountability
+
+==== Technical Example
+
+Rehearse the presentation. Practice timing. Prepare the demo: live (risky, impressive) or recorded (safe, reliable). Test tech: connectivity, display, audio. Have a fallback: if live demo fails, switch to recording. Structure: intro (who you are, what you built), problem (scope, users, value), approach (design, key choices), demo (run the agent on 2–3 tasks), conclusion (summary, limitations, future work), Q&A. Present. Defend. Lab: Rehearse. Present. Defend. Acknowledge limitations. The presentation makes the capstone public. See Lab 3 for requirements.
+
+===== Key Points
+
+* Rehearse
+* Demo: live or recorded
+* Test tech, have fallback
+* Structure: intro, problem, approach, demo, conclusion, Q&A
+* Present, defend
+
+==== Philosophical Reflection
+
+The presentation as performance: you make the work public. Until now, the work may have been private—code, documents, your own understanding. The presentation puts it in front of others. That is performative: you are saying, this is my work, I stand behind it. Making the invisible visible: the agent's behavior is hidden in code and APIs. The demo reveals it. The audience sees what the agent does. That visibility is essential—it is how we evaluate, critique, and appreciate. The presentation is an act of accountability. You stand behind the work. Questions test that. Limitations acknowledged honestly strengthen the presentation—they show you understand the boundaries.
+
+===== Key Points
+
+* Presentation = performance
+* Making invisible visible
+* Accountability
+* Stand behind the work
+
+.Figure 12.7: Presentation outline
+[plantuml,ch12-l07,png,theme=sketchy-outline]
+....
+@startuml
+start
+:Intro;
+:Problem;
+:Approach;
+:Demo;
+:Conclusion;
+stop
+@enduml
+....
+
+==== Discussion Prompts
+
+* Live demo or recorded? Pros and cons?
+* How do we handle technical failures during the demo?
+* What if the audience challenges your approach?
+* How do we balance technical depth and accessibility?
+* What makes a presentation "successful"?
+* How do we prepare for difficult questions?
+
+==== Lab Prep
+
+Rehearse the presentation. Prepare the demo (live or recorded). Present. Defend in Q&A. Acknowledge limitations. The presentation makes the capstone public. See Lab 3 for requirements.
+
+===== Key Points
+
+* Rehearse
+* Demo ready
+* Present, defend
+
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch12,Chapter 12>>).

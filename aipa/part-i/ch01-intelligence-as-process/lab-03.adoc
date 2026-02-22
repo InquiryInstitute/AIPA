@@ -1,0 +1,44 @@
+=== Lab 3: Knowledge Graph Explorer — Interface and Visualization
+:leveloffset: 2
+
+*Final deliverable: Knowledge Graph Explorer (tool)*
+
+==== Tool Deliverable
+
+Complete tool server `knowledge_graph`. Tools: `query_graph`, `traverse`, `add_node`, `add_edge`, `visualize`. Register in agent tool config.
+
+==== Prerequisites
+
+* Complete Labs 1 and 2 (schema, ingestion, query, traversal)
+* Review 1.6: infrastructure; what "interface" means for your graph; failure modes
+
+==== Objectives
+
+* Build explorer UI (CLI or web)
+* Visualize graph structure (e.g., D3, Cytoscape, or Kroki)
+* Expose query interface for users
+
+==== Steps
+
+. Design the explorer interface: CLI (e.g., `graph query "..."`, `graph visualize`) or web (simple HTML/JS or framework).
+. Implement a visualization of the graph structure. Use D3, Cytoscape.js, Kroki (Graphviz/PlantUML), or equivalent. Support at least: display nodes and edges, optional filtering by type.
+. Expose the query and traversal functions from Lab 2 through the interface. Users can run queries and see results.
+. Optionally: add `add_node` and `add_edge` so users can extend the graph.
+. Document the explorer: how to run it, supported commands or endpoints, and how to integrate as a submodule in student-ai/.
+. Register the knowledge_graph tool in the agent tool config (schema: `query_graph`, `traverse`, `visualize`, and optionally `add_node`, `add_edge`).
+
+==== Deliverables
+
+* Working knowledge graph explorer
+* Documentation and diagrams
+* Integration as submodule in student-ai/
+
+*Acceptance criteria:*
+* Explorer launches and displays the graph (or a subset)
+* Users can run at least one query and see results
+* README documents how to run the explorer and integrate with student-ai/
+* Tool schema is defined for agent invocation (or documented as future step)
+
+==== Lab Prep
+
+* Review 1.6: infrastructure; interface as infrastructure for users; dependency diagram

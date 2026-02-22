@@ -1,0 +1,6 @@
+python
+# Pseudo‑code illustrating the ReAct trace
+plan = "fetch GDP → compute 15% → answer"
+gdp = search("Brazil GDP 2022")          # tool call #1
+percentage = calc(f"{gdp} * 0.15")       # tool call #2
+answer = f"The 2022 GDP of Brazil was {gdp:,} and 15 % of that is {percentage:,}."

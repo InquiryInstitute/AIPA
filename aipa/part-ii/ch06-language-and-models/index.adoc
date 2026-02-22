@@ -1,0 +1,51 @@
+= Chapter 6: Language and Models
+
+This chapter covers language models: word embeddings, attention and transformers, LLM pretraining and fine-tuning, prompting (zero-shot, few-shot, CoT), knowledge engineering and AI-mediated writing, caching and cost, and the llm tool. The llm tool—embed, generate, prompt, cache—is the agent's language organ. It integrates into student-ai/llm/ and feeds memory (embeddings for RAG), reasoning (CoT), and tools. Labs 1–3 build embeddings, prompting, and the full llm pipeline. By chapter end, the agent can embed, generate, and cache—the linguistic substrate for the rest of the system.
+
+==== Learning Objectives
+After this chapter you will be able to:
+* Explain word embeddings, attention, and the transformer architecture
+* Use prompting strategies (zero-shot, few-shot, chain-of-thought)
+* Apply LLM APIs for embedding, generation, and caching
+* Build the llm tool (embed, generate, prompt, cache)
+
+==== Course Learning Outcomes (CLOs)
+By the end of this course, you will be able to:
+* Explain word embeddings, attention, and the transformer architecture (PLO 1).
+* Use prompting strategies (zero-shot, few-shot, chain-of-thought) (PLO 2).
+* Apply LLM APIs for embedding, generation, and caching (PLO 2).
+* Build the llm tool (embed, generate, prompt, cache) (PLO 2).
+
+include::lecture-01.adoc[]
+****
+include::lab-01.adoc[]
+****
+
+include::lecture-02.adoc[]
+include::lecture-03.adoc[]
+****
+include::lab-02.adoc[]
+****
+
+include::lecture-04.adoc[]
+include::lecture-05.adoc[]
+include::lecture-06.adoc[]
+****
+include::lab-03.adoc[]
+****
+
+include::lecture-07.adoc[]
+include::lecture-08.adoc[]
+
+==== Chapter Summary
+The LLM is the agent's language organ. Embeddings enable similarity; transformers enable generation. Prompting shapes output. The llm tool feeds memory (RAG), reasoning (CoT), and tools. Language models connect to memory (Ch7), reasoning (Ch8), and the agent loop (Ch9).
+
+==== Further Reading
+Readings for this chapter are collected in the <<reading-list,Reading List>> (<<reading-ch06,Chapter 6>>).
+
+* Vaswani et al., "Attention Is All You Need" <<Vaswani2017>> — Transformer architecture.
+* Brown et al., "Few-Shot Learners" <<Brown2020>> — GPT-3, in-context learning.
+* Wei et al., "Chain-of-Thought" <<Wei2022>> — CoT prompting.
+* Mikolov et al., "Word Representations" <<Mikolov2013>> — Word2vec, embeddings.
+
+include::exercises.adoc[]

@@ -1,0 +1,97 @@
+=== 12.2: Problem Definition and User Validation
+:leveloffset: 2
+
+[.epigraph]
+"If they can get you asking the wrong questions, they don't have to worry about answers."
+— Pynchon, _Gravity's Rainbow_ <<Pynchon1973>>
+
+"The problem is not given—it is constructed with stakeholders."
+— Dewey, _Democracy and Education_ <<Dewey1916>> (adapted)
+
+*Define the problem; validate with users.*
+
+==== Example Prompts
+
+* "What problem are you solving?" — _Problem definition; stakeholder validation_
+* "Who are the users?" — _Validate with users; situated context_
+* "Is this tractable and meaningful?" — _Problem selection; scope_
+
+==== Conceptual Core
+
+Problem definition requires clarity on three dimensions. Scope: what is in and what is out? What will the agent do? What will it not do? Users: who is this for? A specific team, a customer segment, an internal workflow? Value proposition: why does this matter? What pain does it address? What outcome do we expect? The problem is not discovered—it is constructed with stakeholders. You negotiate scope, users, and value with the people who will use or benefit from the system.
+
+User research: interviews, surveys, observation. Ask: what do you need? What hurts? What would success look like? Validation: does the problem matter? Will they use the solution? Problem-solution fit means the solution addresses a problem users actually have and will adopt. Scope creep: the capstone has limits. Define them clearly. A bounded, well-defined problem is better than an ambitious, fuzzy one. Problems as social constructs: the "problem" is agreed upon. Different stakeholders may have different views; your job is to synthesize and bound.
+
+The politics of "solution": whose problem gets solved? Whose problem is deferred? When we build an AI system, we make choices that favor certain users, workflows, or outcomes. Validation is a form of accountability—we check with stakeholders before building. It is not a formality; it is evidence.
+
+===== Key Points
+
+* Scope (in/out), users (who?), value proposition (why?)
+* Problem constructed with stakeholders—not discovered
+* User research: interviews, surveys
+* Validation: does it matter? Will they use it? Problem-solution fit
+* Scope creep: stay bounded
+* Problems as social constructs—negotiated
+* Politics: whose problem? Whose solution?
+* Validation = accountability
+
+==== Technical Example
+
+Document the problem definition. One page: scope (bullet points for in/out), users (personas or roles), value proposition (one paragraph). Conduct 2–3 user interviews. Structure: open questions about pain points, current workarounds, desired outcomes. Synthesize: what did they say? What do they need? What surprised you? Lab 1: Finalize the problem. Get user validation. Validation is evidence—not assumption. The thesis will cite this; the implementation will be judged against it. See Lab 1 for requirements.
+
+===== Key Points
+
+* Document: scope, users, value (one page)
+* 2–3 user interviews
+* Synthesize findings
+* Lab 1: Finalize, validate
+* Validation = evidence
+
+==== Philosophical Reflection
+
+Problems as social constructs: the problem is not "out there" waiting to be found. It is agreed upon. Stakeholders have different views; the problem definition is a negotiation. When we say "the problem is X," we are making a claim that others can accept or reject. Validation is the process of checking that claim. We ask users: is this your problem? Would this solution help? Their answers are data—but also performative. Saying "yes" can commit them; saying "no" can redirect us. The problem is constructed in dialogue.
+
+The politics of "solution": whose problem gets solved? When we build for "users," we often mean a particular subset. Internal workflows, power users, edge cases—choices about scope are political. Pynchon's line—if they can get you asking the wrong questions, they don't have to worry about answers—applies to problem definition: who gets to set the question shapes what gets built. Validation does not remove politics; it makes them explicit. We document who we talked to, what they said, and what we decided. That documentation is accountability.
+
+===== Key Points
+
+* Problems negotiated
+* Validation = checking the claim
+* Whose problem? Political dimension
+* Documentation = accountability
+
+.Figure 12.2: Problem definition framework
+[plantuml,ch12-l02,png,theme=sketchy-outline]
+....
+@startuml
+start
+:Scope;
+:Users;
+:Value Prop;
+:Validate;
+stop
+@enduml
+....
+
+==== Discussion Prompts
+
+* How do we know a problem is "real"?
+* What if users say one thing and do another?
+* How do we handle scope creep? When is it appropriate?
+* Who counts as a "stakeholder" for validation?
+* What are the risks of building without validation?
+* How do we balance stakeholder views when they conflict?
+
+==== Lab Prep
+
+Lab 1: Finalize problem definition. Get user validation. Document scope, users, value proposition. Conduct 2–3 interviews. Synthesize findings. The validated problem is the foundation for the rest of the capstone. See Lab 1 for requirements.
+
+===== Key Points
+
+* Lab 1: Finalize problem
+* User validation
+* Document, synthesize
+
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch12,Chapter 12>>).

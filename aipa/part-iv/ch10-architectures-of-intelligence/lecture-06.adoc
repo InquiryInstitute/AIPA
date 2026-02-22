@@ -1,0 +1,118 @@
+=== 10.6: Scaling — Throughput and Latency
+:leveloffset: 2
+
+[.epigraph]
+"Scale is not just size—it is the capacity to handle load."
+— NIST, _AI Risk Management Framework_ <<NIST2023>> (adapted)
+
+==== Example Prompts
+
+* "Handle 1000 requests per minute." — _Throughput; scaling; latency tradeoff_
+* "Reduce cost at scale." — _Batching; cheaper models; environmental cost_
+* "When is scaling enough?" — _Latency vs. throughput; deployment choices_
+
+==== Conceptual Core
+
+More users, more tools, more requests—how does the system hold up? A capstone that works for one user in a demo can collapse under ten concurrent users or a spike in tool calls. Scaling is not an afterthought; it is a design constraint. This lecture lays out the core concepts: throughput, latency, bottlenecks, and the strategies that let the orchestrator serve many users without failing or becoming unusably slow.
+
+*Throughput* is how many requests the system can handle per unit time—typically expressed as requests per second (req/s). *Latency* is how long a single request takes: time to first token (TTFT) in streaming, or time to completion for a full response. User experience depends on both. High throughput with high latency means many users are served, but each waits a long time. Low latency with low throughput means fast responses for a few users, but the system saturates quickly. We need to measure both and set targets: e.g. “p95 latency under 3 seconds” and “sustain 50 req/s.”
+
+*Bottlenecks* determine where scaling breaks. The LLM is often the slowest component—each call may take hundreds of milliseconds to several seconds. Tools vary: a fast API might add tens of milliseconds; a slow one (e.g. a heavy computation or external service) can dominate. Network round‑trips between orchestrator, LLM, and tool servers add up. So we profile: under load, where does time go? Identifying the bottleneck tells us what to optimize—caching LLM responses, parallelizing tool calls, or scaling the bottleneck horizontally. **Once the slowest component is identified, we can apply one or more of the following scaling strategies.**
+
+*Scaling strategies* address these limits. *Caching* reuses responses for repeated or similar queries; the cache key might be a hash of the prompt (and optionally tool results). *Parallelism* lets the agent issue concurrent tool calls instead of waiting for each; the orchestrator must manage concurrency and aggregate results. *Batching* groups requests to amortize cost (e.g. batch inference on a GPU). Each strategy has tradeoffs: caching assumes similarity and invalidation rules; parallelism increases complexity and resource use; batching can increase latency. Scale as infrastructure means the material conditions of serving many users—servers, networks, power—become visible. We cannot scale infinitely; we hit resource limits, and those limits are part of the system we design.
+
+===== Key Points
+
+* Throughput: requests per second (or per minute); capacity under load
+* Latency: TTFT (streaming), time to completion; user‑facing delay
+* Tradeoff: high throughput vs. low latency; set targets (e.g. p95, req/s)
+* Bottlenecks: LLM, tools, network; profile to find the slowest component
+* Caching: reuse responses; cache key (e.g. prompt hash); invalidation
+* Parallelism: concurrent tool calls; aggregate results; higher complexity
+* Batching: group requests; amortize cost; may increase latency
+* Scale as infrastructure: material conditions and limits of agency
+
+==== Technical Example
+
+Load‑test the agent before promising “production ready.” Send *N* concurrent requests (e.g. 10, 50, 100) and measure latency distribution (p50, p95, p99) and sustained throughput. Identify bottlenecks: is it the LLM? A particular tool? Network? Add instrumentation—log timings per component. If the same or similar prompts repeat, add caching: cache key from prompt hash (and optionally tool inputs); TTL or invalidation on model or data change. Re‑run the load test; throughput should improve for cache hits, and latency for repeated queries should drop.
+
+* Automate the load‑test in a CI pipeline so regressions are caught early.  
+* Collect resource utilization (CPU, GPU, network I/O) alongside latency metrics.  
+* Record per‑component latency (LLM, each tool, network) to pinpoint the bottleneck.  
+* Use a cache‑hit ratio monitor to decide when caching policies need tuning.  
+* After each optimization, re‑measure p95 latency and req/s to verify improvement.  
+
+Lab 3: Profile the orchestrator. Measure throughput and latency under increasing load. Document scaling limits: how many concurrent users can the system support at acceptable latency? What happens when you exceed that—degradation, queueing, or failure? Add caching where beneficial and document the policy. The capstone deliverable should state scaling assumptions and limits so deployers know what to expect.
+
+===== Key Points
+
+* Load test: N concurrent requests; measure latency (p50, p95, p99), throughput  
+* Automate tests in CI; capture CPU/GPU/network usage  
+* Identify bottlenecks: LLM, tools, network; instrument per component  
+* Cache‑hit ratio monitoring and TTL/invalidation policy  
+* Re‑run tests after each optimization; verify p95 latency and req/s targets  
+* Document scaling limits and assumptions for deployment  
+
+==== Philosophical Reflection
+
+Scale is infrastructure. Serving many users requires servers, networks, and power—the material conditions of the system. The NIST AI RMF (<<NIST2023>>) reminds us that scale is not just size but the capacity to handle load; that capacity has limits. The material limits of agency show up here: we cannot scale infinitely. At some point we hit compute, memory, or network limits; we face queueing, back‑pressure, or failure. Designing for scale means making those limits explicit—documenting what the system can and cannot do—and choosing tradeoffs (e.g. latency vs. throughput, cost vs. capacity).
+
+Scale is not free. It has environmental cost (energy, cooling) and economic cost (bigger instances, more APIs). Governance and sustainability ask: when is scaling “enough,” and who bears the cost? Balancing cost, performance, and sustainability becomes a design decision that must be justified to stakeholders. Moreover, responsibility for scaling decisions—whether they rest with developers, product owners, or the organization at large—should be made explicit. The next lecture ties the full stack together; from here, the capstone should be able to state its scaling story clearly.
+
+===== Key Points
+
+* Scale as infrastructure: material conditions of serving many users  
+* Material limits of agency: we hit compute, memory, network limits  
+* Document what the system can and cannot do; make limits explicit  
+* Environmental and economic costs of scale; governance and sustainability  
+* Balance cost, performance, and sustainability in scaling choices  
+* Define stakeholder responsibility for scaling decisions  
+
+.Figure 10.6: Scaling (caching, parallel tools, measurement)
+[plantuml,ch10-l06,png,theme=sketchy-outline]
+....
+@startuml
+skinparam backgroundColor #FDF6E3
+start
+:Incoming Request;
+if (Cache Hit?) then (yes)
+  :Return Cached Response;
+  note right: p95 latency target met
+  stop
+else (no)
+  :Send to LLM;
+  note right: Latency logger (p95)
+  if (Tool Needed?) then (yes)
+    :Parallel Tool Calls;
+    note right: Batching / Parallelism
+  endif
+  :Assemble Response;
+  :Store in Cache;
+endif
+:Return Response;
+note right: Throughput counter (req/s)
+stop
+@enduml
+....
+
+==== Discussion Prompts
+
+* What are the environmental costs of scale?
+* How do we trade off latency vs. throughput?
+* When is scaling “enough”?
+* How does scaling affect deployment choices?
+* How does the orchestrator scale with multiple tool servers?
+* When does the capstone need horizontal vs. vertical scaling?
+
+==== Lab Prep
+
+Lab 3: Profile the orchestrator. Measure throughput and latency. Identify bottlenecks. Document scaling limits. Add caching if beneficial. See Lab 3 for requirements.
+
+===== Key Points
+
+* Lab 3: Profile  
+* Document limits  
+* Caching  
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch10,Chapter 10>>).

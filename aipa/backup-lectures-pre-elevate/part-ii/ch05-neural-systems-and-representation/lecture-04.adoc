@@ -1,0 +1,138 @@
+=== 5.4: Convolutional Networks — Structure and Translation
+:leveloffset: 2
+
+[.epigraph]
+"Translation invariance: the same pattern, anywhere."
+— Krizhevsky et al., "ImageNet Classification" <<Krizhevsky2012>>
+
+*Convolution encodes a prior: local structure, translation equivariance.*
+
+==== Example Prompts
+
+* "Classify this image." — _CNN: local structure, translation equivariance; convolution_
+* "Detect edges and textures." — _Filters learn hierarchical features_
+* "Process spatial data efficiently." — _Parameter sharing; inductive bias_
+
+==== Conceptual Core
+
+Humans do not perceive an image as a flat list of pixel values; we first notice edges, then textures, and finally whole objects. Convolution provides a computational analogue of this hierarchy by looking at small, overlapping patches of the input.
+
+A convolutional kernel (or filter) slides across the input tensor. At each spatial location the dot‑product between the kernel weights and the local patch yields a single activation. This operation is *translation equivariant*: shifting the input results in an equally shifted activation map.
+
+Padding (often zero‑padding) surrounds the input so that kernels can be applied at the borders without shrinking the spatial dimensions. Stride controls how far the kernel jumps between positions; a stride of 2 reduces the height and width by roughly half, expanding the receptive field of deeper layers.
+
+Pooling (max or average) follows convolution to down‑sample the activation maps. By summarising local neighborhoods, pooling introduces a modest amount of translation *invariance* and reduces computational load.
+
+Stacking multiple conv‑pool blocks creates increasingly abstract feature maps. Early layers capture simple edges; deeper layers capture textures, parts, and eventually whole objects. The receptive field grows with depth, allowing the network to integrate information over larger portions of the image while still respecting the local‑structure prior.
+
+===== Key Points
+
+* Convolution slides a kernel → weight sharing across spatial locations  
+* Feature maps stack depth‑wise (H × W × K)  
+* Padding (zero, same) controls border effects and output size  
+* Stride determines spatial down‑sampling and receptive‑field growth  
+* Pooling (max/average) adds translation invariance and reduces dimensionality  
+* Parameter sharing dramatically reduces the number of learnable weights  
+* Receptive field expands with depth, enabling hierarchical abstraction  
+* Same‑padding preserves spatial dimensions, facilitating residual connections  
+
+==== Technical Example
+
+Build a small CNN (LeNet‑style: 2 conv layers, 2 FC layers) for image classification. Implement convolution and pooling layers; connect them to a fully‑connected head. Train on a modest dataset (e.g., MNIST or CIFAR‑10). Visualize the learned filters after training: early layers typically learn edge detectors; later layers learn more complex patterns such as textures or object parts. The `neural_classifier` tool should support both MLP (vector inputs) and CNN (image inputs) via configuration. Lab 2: add convolutional layer support to the neural classifier; architecture choice is driven by input shape.
+
+===== Key Points
+
+* LeNet‑style pipeline: Conv → Pool → Conv → Pool → Flatten → FC  
+* Initialize kernels with Xavier/He initialization for stable training  
+* Apply batch‑norm after each convolution to accelerate convergence  
+* Track training loss and accuracy each epoch; plot learning curves  
+* Save and reload model checkpoints to enable later analysis  
+* Compare parameter counts vs. a fully‑connected baseline to illustrate efficiency gains  
+* Use data augmentation (random crops, flips) to improve generalisation  
+* Visualize filters: edges in layer 1, textures/parts in layer 2  
+
+==== Philosophical Reflection
+
+Inductive biases shape the hypothesis space that a learning algorithm explores. Convolution encodes two complementary biases: *local patterns matter* and *position does not matter* (translation equivariance). By embedding these priors in the architecture, we reduce the amount of data required to learn useful representations.
+
+The bias‑variance trade‑off is directly influenced by architectural choices: a strong prior (convolution) lowers variance but may increase bias if the data violate the assumed invariance. Historical neuroscience research showed that early visual cortex neurons have localized receptive fields, providing a biological inspiration for convolutional filters.
+
+When translation equivariance is inappropriate—e.g., when the spatial location itself carries meaning (forms, medical imaging annotations, or language sequences)—the prior becomes a liability. In such cases, alternative architectures (e.g., recurrent networks or attention mechanisms) are preferable. The `neural_classifier` therefore offers both MLP and CNN pathways, letting the practitioner select the prior that matches the data.
+
+Ethical considerations arise because built‑in invariances can obscure important contextual information, potentially leading to biased decisions if spatial cues are relevant to fairness or safety.
+
+*Take‑away:* Where CNNs give us translation equivariance, attention mechanisms in the next chapter will provide a content‑based relational bias, complementing the spatial priors we have just explored.
+
+===== Key Points
+
+* Architectural priors reduce hypothesis space, lowering data requirements  
+* Convolution = explicit prior (locality + translation equivariance)  
+* Bias‑variance trade‑off is shaped by the strength of the prior  
+* Biological inspiration: receptive fields in early visual cortex  
+* Invariance can be harmful when position carries semantic meaning  
+* Attention in later chapters offers a complementary, content‑based bias  
+* Ethical implications of ignoring spatial context in decision‑making  
+
+.Figure 5.4: CNN architecture (two conv‑pool blocks → FC)
+[plantuml,ch05-l04,png,theme=sketchy-outline,scale=1.2]
+....
+@startuml
+skinparam rectangle {
+  BackgroundColor<<Conv>>#F0F8FF
+  BorderColor<<Conv>>#0066CC
+}
+rectangle "Input Image\n(H×W×C)" as IMG
+rectangle "Conv1\n(K1×K1×C→K)" <<Conv>> as C1
+rectangle "Pool1\n(2×2)" as P1
+rectangle "Conv2\n(K2×K2×K→K')" <<Conv>> as C2
+rectangle "Pool2\n(2×2)" as P2
+rectangle "Flatten" as FL
+rectangle "FC\n(softmax)" as FC
+
+IMG --> C1 : stride=1, pad=same
+C1 --> P1
+P1 --> C2
+C2 --> P2
+P2 --> FL
+FL --> FC : class scores
+@enduml
+....
+
+.Inset Figure: Kernel sliding over a 2‑D patch
+[plantuml,conv-slide,png,theme=sketchy-outline,scale=1.0]
+....
+@startuml
+skinparam rectangle {
+  BackgroundColor<<Patch>>#E8F5E9
+  BorderColor<<Patch>>#2E7D32
+}
+rectangle "Input Patch\n3×3" as PATCH <<Patch>>
+rectangle "Kernel\n3×3" as KERN
+rectangle "Dot‑product\n= activation" as DOT
+
+PATCH -[hidden]-> KERN
+KERN --> DOT : slide over patch
+@enduml
+....
+
+==== Discussion Prompts
+
+* When is translation equivariance wrong?
+* What other inductive biases might we encode?
+* Is convolution a "biological" prior?
+* Why do CNNs dominate vision tasks?
+* When does the `neural_classifier` need CNN vs. MLP?
+* How does inductive bias connect to the `ml_trainer` (Ch 4)?
+
+==== Lab Prep
+
+Lab 2: Add convolutional layer support to the neural classifier. For image inputs, use a CNN architecture. For vector inputs, use MLP. Config‑driven: architecture type in config. See Lab 2 for requirements.
+
+===== Key Points
+
+* Lab 2: Conv support  
+* CNN for images, MLP for vectors  
+* Config‑driven architecture selection  
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch05,Chapter 5>>).

@@ -1,0 +1,109 @@
+=== 2.3: Data Pipelines and Knowledge Flow
+:leveloffset: 2
+
+[.epigraph]
+"Knowledge is not something that is possessed but something that is done."
+— Dewey, _Democracy and Education_ <<Dewey1916>> (via Actor-Network Theory)
+
+*Data does not "flow" by itself—it is moved, transformed, and contested by actors in a network.*
+
+==== Example Prompts
+
+* "Train a model on our customer data." — _Pipeline: ingestion → transformation → training → who decides what is included?_
+* "Use this output to improve the next model." — _Feedback loop: outputs become training signals—epistemic circulation_
+* "Map our data flow for the audit." — _Audit documents pipeline: what flows in, what transforms, what flows out_
+
+==== Conceptual Core
+
+Data pipelines are the circulatory system of AI. Raw data is ingested, transformed, stored, and served. Training data flows into model development; inference data flows through the deployed model; outputs may feed back as new training data. The pipeline is not passive infrastructure—it is a site of decisions. What data is included? What is excluded? Who transforms it, and by what rules? Actor‑network theory (ANT) reminds us: data does not move by itself. It is moved, shaped, and contested by actors—humans, scripts, models, regulations—in a network.
+
+Training data produces the model; the model produces outputs; outputs may become training data. The feedback loop is epistemic. A recommendation system recommends; users click; clicks become signals; signals retrain the model. The system does not "reflect" user preferences—it co‑produces them. Knowledge flow asks: who produces training data? Who consumes outputs? Who governs the pipeline? Pipelines are infrastructure in the sense of Chapter 1: they enable other activity, and they are often invisible until they fail. A biased pipeline produces biased models; a leaky pipeline leaks; a broken pipeline breaks everything downstream.
+
+The pipeline stages are not neutral. Raw data carries the biases and exclusions of its sources. Preprocessing encodes choices about normalization, imputation, and feature engineering. Training optimizes an objective—accuracy, revenue, engagement—that may not align with fairness or safety. Each stage is a site of epistemic and political choice. When we audit a system, we audit the pipeline: what flows in, what is transformed, how, and what flows out. The audit tool you build will document this flow.
+
+**Governance** of a pipeline is a crucial, often hidden layer. Version control of data schemas, model registries, and explicit change‑log policies ensure that every transformation can be traced and rolled back. Regulatory compliance (e.g., GDPR, sector‑specific standards) imposes constraints on what may be collected, how it may be stored, and who may access it. Without systematic governance, pipelines become ad‑hoc, making accountability impossible.
+
+**Observability** turns the invisible into the visible. Logging at each stage, metric dashboards for data quality, and automated alerts for drift or failure surface the health of the pipeline. When a bias‑amplifying feedback loop emerges, observability tools flag anomalous patterns, prompting intervention before downstream harm accrues. In this way, pipelines become not only conduits of knowledge but also monitored ecosystems.
+
+===== Key Points
+
+* Data pipelines: ingestion, transformation, storage, serving
+* Training data → model → inference → (feedback) → training data
+* Data does not flow by itself—actors move, transform, contest
+* Feedback loop: outputs become training signals
+* Who produces? Who consumes? Who governs?
+* Pipelines as infrastructure—invisible until they fail
+* ANT: actors (humans, scripts, models, regulations) shape the network
+* Epistemic loop: recommendation → click → signal → retrain
+
+==== Technical Example
+
+Build a minimal pipeline: raw data → preprocess → train → model → serve. At each stage, failure points exist. Raw data may be incomplete or biased; preprocessing may introduce errors; training may overfit; deployment may face distribution shift. Identify the feedback loops: does the served model generate data that feeds back into training? If so, feedback can amplify small biases—recommendation systems that recommend popular items become more likely to recommend popular items. The rich get richer.
+
+The diagram shows: Raw Data → Preprocess → Training → Trained Model → Serving → Output, with a feedback arrow from Output back to Training. Map your audit target's data flow. Where does training data come from? How is it transformed? Where do model outputs go? Could they become training data? The audit tool (Lab 1) will document this flow. Trace a single datum from source to output and back, if applicable. The map reveals who has power in the pipeline.
+
+===== Key Points
+
+* Minimal pipeline: raw → preprocess → train → model → serve
+* Failure points at each stage
+* Feedback can amplify bias—rich get richer
+* Map: source → transform → output → (feedback?)
+* Trace a single datum through the pipeline
+* Add monitoring hooks at each stage to support observability
+
+==== Philosophical Reflection
+
+Data is a trace of practice. What gets logged, what gets labeled, what gets included in a training set—each choice excludes something. The excluded may be the most important: the users who did not click, the cases that were never labeled, the domains that were deemed out of scope. Epistemic circulation in ML systems is not neutral. The pipeline embodies decisions about what counts as data, what counts as signal, and what counts as noise. Dewey's formulation—knowledge as doing, not possession—fits. Knowledge is produced through the pipeline's operation, not stored in a static repository. Moreover, Dewey’s emphasis on “knowledge as doing” foregrounds **responsibility**: the actors who shape the pipeline must be accountable for the epistemic consequences of their choices.
+
+When we audit a system, we audit the pipeline. The inventory (Lab 1) includes data sources and transformations. The traceability design (Lab 2) will log what flows where. The audit report (Lab 3) will surface the epistemic structure: who produces what, who consumes what, and what might be missing. Data pipelines are knowledge‑producing machinery. Treat them as such.
+
+===== Key Points
+
+* Data as trace of practice—exclusions matter
+* Epistemic circulation: what counts as data, signal, noise
+* Knowledge produced through pipeline operation
+* Audit the pipeline: sources, transformations, flow
+* Treat pipelines as knowledge‑producing machinery
+* Responsibility rests with actors shaping the pipeline
+
+.Figure 2.2: Data pipeline with feedback loop
+[plantuml,ch02-l02,png,theme=sketchy-outline]
+....
+@startuml
+skinparam backgroundColor #F9F9F9
+skinparam handwritten true
+
+RawData --> Preprocess --> Training --> TrainedModel --> Serving --> Output
+Output --> Training : feedback / retraining signal
+note right of Output : possible consumer use
+
+' Legend
+legend left
+  ↺ feedback loop (re‑training)
+endlegend
+@enduml
+....
+
+==== Discussion Prompts
+
+* Can you trace where the training data for a system you use came from?
+* When have you seen feedback loops amplify bias or preference?
+* What would be excluded from a pipeline you know? Why might that matter?
+* How does "knowledge as doing" change how you think about data?
+* Who has power in a pipeline—and how would you map it?
+* **Identify a governance failure you have observed** (e.g., missing versioning, undocumented transformation) and discuss its impact.
+
+==== Lab Prep
+
+Lab 1 continuation: map the data flow for your audit target. From the inventory, trace: raw data sources → preprocessing steps → training (if applicable) → model → inference → output. Identify any feedback loops: do outputs become inputs? Document the flow in a diagram or narrative. **If a feedback loop exists, include the feedback arrow** as shown in the revised Figure 2.2. This map will inform the traceability design in Lab 2—you will need to log what flows where to enable accountability. See Lab 1 for the full scope.
+
+===== Key Points
+
+* Map data flow: sources → preprocess → model → output
+* Identify feedback loops
+* Diagram or narrative—inform Lab 2 traceability
+* Log what flows where for accountability
+* Include feedback arrow in your diagram when applicable
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch02,Chapter 2>>).

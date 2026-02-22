@@ -1,0 +1,154 @@
+=== 11.6: Epistemology and Infrastructure
+:leveloffset: 2
+
+[.epigraph]
+"AI systems produce knowledge conditions."
+— Foucault, _Power/Knowledge_ <<Foucault1980>> (adapted)
+
+==== Hook: A Vignette
+
+Imagine a popular video‑streaming platform that promises to “show you what you love.”  
+During a national election, a user named Maya opens the app and is immediately presented with a curated feed of political documentaries that all share a single ideological slant. Over the next week, Maya clicks, watches, and shares only those videos; the platform records each interaction as a signal of “interest.” When the recommendation engine is retrained, the model amplifies the same slant, pushing even more homogenous content to Maya and to thousands of users with similar early signals.  
+
+Who decided that this narrow set of documentaries now constitutes “relevant political information” for Maya? Was it Maya’s pre‑existing preference, or did the algorithm itself create a new epistemic reality? This tension—between algorithmic output and the knowledge it produces—frames our inquiry into *epistemic infrastructure*.
+
+==== Conceptual Core
+
+*Paragraph 1 – Problem framing*  
+The vignette illustrates a feedback loop in which an AI system does not merely retrieve existing facts; it *produces* categories, labels, and narratives that users and institutions come to treat as knowledge. When an algorithm decides what is “relevant,” it simultaneously defines what can be known. This dual role makes AI a piece of *epistemic infrastructure*—the technical and institutional scaffolding that enables knowledge creation, validation, and circulation.
+
+*Paragraph 2 – Defining epistemic infrastructure through practice*  
+Epistemic infrastructure comprises the data pipelines, model architectures, and policy layers that together generate epistemic artifacts such as “recommended,” “safe,” or “trusted.” In Maya’s case, the recommendation engine generated the label “politically relevant” for a narrow set of videos, and the platform’s UI amplified that label to shape user perception. The definition thus emerges from the concrete act of labeling, not from a dictionary entry.
+
+*Paragraph 3 – Institutional epistemology*  
+Traditional epistemic gatekeepers—editors, peer‑review committees, courts—decide what counts as knowledge. AI systems now occupy the same space, filtering, ranking, and even authoring content. Institutional epistemology asks: *who* (or what) holds the authority to declare a piece of information “valid”? The answer now includes algorithmic designers, platform operators, and the governance mechanisms that oversee them.
+
+*Paragraph 4 – Quantitative illustration of the feedback loop*  
+Consider a simple diversity metric D that measures the spread of political viewpoints in a recommendation list (D = 0.73 before retraining, D = 0.41 after three retraining cycles). The decline shows how the loop—output → user belief → user action → training signal → model—can systematically narrow epistemic horizons. The loop can amplify bias, entrench categories, or, if deliberately designed, broaden perspectives.
+
+*Paragraph 5 – Governance challenge*  
+Because the infrastructure that defines “what can be known” is political, governance must address *epistemic impact*: the knowledge the system produces, the audiences affected, and the mechanisms for auditing and intervening. Ignoring this dimension reduces AI governance to a narrow focus on accuracy or cost, missing the core question of *who gets to know what*.
+
+===== Key Points
+
+* Epistemic infrastructure: technical‑institutional scaffolding that creates knowledge artifacts  
+* AI outputs are labels/categories that *construct* reality, not merely retrieve facts  
+* Institutional epistemology extends to algorithmic gatekeepers (platforms, regulators)  
+* Feedback loop: output → belief → action → signal → model → new output  
+* Quantitative diversity loss illustrates how loops can narrow epistemic space  
+* Governance must audit *what knowledge* is produced and *for whom*  
+* Design choices (e.g., relevance thresholds) are inherently political decisions  
+
+==== Technical Example
+
+We illustrate the feedback loop with a toy collaborative‑filtering scenario. The platform starts with five videos (A–E) and records initial click counts:
+
+```
+Video   Clicks (t0)
+A       120
+B        80
+C        45
+D        30
+E        25
+```
+
+A simple matrix‑factorization model ranks the videos for a new user, producing the top‑3 list `[A, B, C]`. The user clicks on A and B, generating new signals. After retraining on the updated click matrix, the model’s next recommendation list becomes `[A, B, A]` (duplicate A due to higher latent score). The diversity metric drops from 0.73 to 0.58 after the first retraining and to 0.41 after the third cycle, as shown below:
+
+```
+Cycle   Top‑3 List      Diversity (D)
+0       [A, B, C]       0.73
+1       [A, B, A]       0.58
+2       [A, A, A]       0.44
+3       [A, A, A]       0.41
+```
+
+The system has *produced* the epistemic claim “Video A is the most relevant political documentary,” and users’ subsequent clicks reinforce that claim. Documenting this loop forces us to ask: what knowledge does the agent generate, and how does that knowledge reshape user behavior and future data?
+
+Figure 11.6 visualises the loop we have just traced.
+
+===== Key Points
+
+* Trace the feedback loop with concrete click data and model updates  
+* Observe how diversity (a proxy for epistemic breadth) degrades over cycles  
+* Identify the knowledge artifact produced (“Video A is most relevant”)  
+* Recognize that user actions become training signals that reinforce the artifact  
+* Use the example to practice documenting epistemic impact in governance simulations  
+
+.Figure 11.6: Epistemic feedback loop
+[plantuml,ch11-l06,png,theme=sketchy-outline]
+....
+@startuml
+skinparam backgroundColor #F9F9F9
+skinparam ArrowColor #555555
+skinparam rectangle {
+  BackgroundColor #E8F4FA
+  BorderColor #2B7A9B
+}
+actor User
+rectangle "AI Model\n(learns from data)" as Model
+rectangle "AI Output\n(label, ranking)" as Output
+rectangle "User Perception\n(belief, knowledge)" as Belief
+rectangle "User Action\n(click, share)" as Action
+rectangle "Training Signal\n(logs, feedback)" as Signal
+rectangle "Governance\n(Audit / Policy)" as Gov #DDDDDD
+
+User --> Output : sees
+Output --> Belief : influences
+Belief --> Action : decides
+Action --> Signal : generates
+Signal --> Model : updates
+Model --> Output : produces
+
+Gov ..> Model : audit / intervene
+Gov ..> Output : policy constraints
+@enduml
+....
+
+==== Philosophical Reflection
+
+*Dialogue*  
+
+**Data Scientist (DS):** “If we lower the relevance threshold from 0.7 to 0.5, we’ll increase diversity but risk showing users content they consider irrelevant.”  
+**Policy Analyst (PA):** “That threshold is a *political act*—it decides what knowledge is deemed acceptable for public consumption. Foucault would say we are exercising power/knowledge by setting it.”  
+
+The conversation reveals that technical knobs encode normative choices. Selecting a confidence cutoff, a fairness metric, or a “safe‑content” filter is not a neutral engineering problem; it is a governance decision that shapes the epistemic terrain.
+
+*Connecting Foucault to design*  
+Foucault’s insight that “knowledge is power” becomes concrete when an algorithmic label—“recommended” or “trusted”—carries authority. The label determines which facts enter public discourse and which remain invisible. By making these design decisions explicit, we can subject them to democratic oversight, audits, and public deliberation.
+
+*Implications for institutional practice*  
+When institutions adopt AI‑mediated recommendation pipelines, they inherit the epistemic authority of those pipelines. Therefore, governance frameworks must require *epistemic impact assessments*—systematic analyses of what categories are being created, whose perspectives are amplified, and how the feedback loop may entrench or disrupt existing power structures.
+
+===== Key Points
+
+* Technical thresholds (relevance, safety) are political acts that shape knowledge  
+* Foucault’s power/knowledge concept maps directly onto algorithmic labeling  
+* Dialogue illustrates the tension between performance and epistemic responsibility  
+* Institutions that deploy AI inherit its epistemic authority and must assess impact  
+* Epistemic impact assessments become a necessary complement to accuracy audits  
+* Making design choices transparent enables democratic oversight  
+
+==== Discussion Prompts
+
+* How does your system’s labeling (e.g., “recommended,” “trusted”) create new knowledge for users?  
+* In what ways does the feedback loop amplify or diminish epistemic diversity?  
+* Which institutional actors (editors, regulators, platform owners) hold epistemic authority in your context?  
+* How could an “epistemic impact assessment” be integrated into existing governance workflows?  
+* What tensions arise when a policy constraint (e.g., “no extremist content”) conflicts with a diversity goal?  
+* When might epistemic governance intersect with free‑speech considerations, and how should trade‑offs be negotiated?  
+
+==== Lab Prep
+
+*Lab 3 – Epistemology Scenarios*  
+In the governance simulator, construct a scenario where an AI agent recommends content X, users adopt X, and the resulting interaction data retrains the model. Record the epistemic artifact (“X is relevant”) and trace its propagation through the loop.  
+
+*Key preparation steps*  
+
+* Identify the categories your agent creates (labels, rankings, safety tags)  
+* Map the full feedback loop: output → user belief → user action → training signal → model update  
+* Define a quantitative metric for epistemic breadth (e.g., diversity score, topic entropy)  
+* Design an audit checkpoint where a governance actor can intervene (e.g., adjust relevance threshold)  
+* Document the epistemic impact before and after intervention for comparison  
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch11,Chapter 11>>).

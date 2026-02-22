@@ -1,0 +1,46 @@
+=== Lab 3: ML Model Trainer — Configuration and Reusability
+:leveloffset: 2
+
+*Final deliverable: ML Model Trainer (tool)*
+
+==== Tool Deliverable
+
+Complete tool server `ml_trainer`. Tools: `load_data`, `train`, `evaluate`, `export_model`. Config-driven. Register in agent tool config.
+
+==== Prerequisites
+
+* Complete Labs 1 and 2 (data pipeline, training, evaluation)
+* Review 4.6–4.8: experiment tracking; tool schema; ml_trainer as agent tool
+
+==== Objectives
+
+* Parameterize training (config files, CLI)
+* Support multiple model types and datasets
+* Export for deployment
+
+==== Steps
+
+. Consolidate load_data, train, evaluate into a single module. Expose as functions or a class with clear interface.
+. Add config support: YAML or JSON specifying model type (linear, tree, ensemble), data path, hyperparameters, evaluation config.
+. Support at least 2 model types (e.g., logistic regression and Random Forest). Config selects which to use.
+. Implement export_model: save trained model to disk (pickle, joblib, or format suitable for deployment).
+. Optionally: integrate experiment tracking (MLflow). Each train() creates a run.
+. Register ml_trainer in agent tool config. Document tool schema: load_data(config), train(config), evaluate(model_path, data_config), export_model(model_path, dest).
+. Submit: reusable trainer, documentation, integration as submodule in student-ai/.
+
+==== Deliverables
+
+* Reusable trainer
+* Documentation
+* Integration as submodule in student-ai/
+
+*Acceptance criteria:*
+* Config file drives model type, data path, and key hyperparameters
+* train(config) returns model path and metrics
+* export_model produces a loadable artifact
+* Tool schema documented for agent invocation
+* README explains config format and usage
+
+==== Lab Prep
+
+* Review 4.6–4.8: experiment tracking; tool schema; agent integration

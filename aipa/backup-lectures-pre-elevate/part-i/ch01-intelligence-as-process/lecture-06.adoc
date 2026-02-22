@@ -1,0 +1,15 @@
+yaml
+application: hiring-app
+model: screening-v2
+data_sources:
+  - resumes.yaml
+  - job_descriptions.yaml
+compute: cloud-gpu-cluster
+metrics:
+  - accuracy
+  - fairness_score
+dependencies:
+  - model -> data_sources
+  - model -> compute
+  - application -> model
+  - model -> metrics

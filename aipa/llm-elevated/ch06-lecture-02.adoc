@@ -1,0 +1,20 @@
+python
+# ---- Multi‑head extension (h=2) ---------------------------------
+dh = 2
+heads = []
+weights_list = []
+for _ in range(2):
+    W_Qh, W_Kh, W_Vh = [np.random.rand(4, dh) for _ in range(3)]
+    Qh = X @ W_Qh
+    Kh = X @ W_Kh
+    Vh = X @ W_Vh
+    scores_h = Qh @ Kh.T / np.sqrt(dh)
+    wh = np.exp(scores_h)
+    wh /= wh.sum(axis=1, keepdims=True)
+    weights_list.append(wh)
+    heads.append(wh @ Vh)
+
+# Concatenate and project back
+concat = np.concatenate(heads, axis=1)   # (3, 4)
+W_O = np.random.rand(4, 4)
+output_multi = concat @ W_O

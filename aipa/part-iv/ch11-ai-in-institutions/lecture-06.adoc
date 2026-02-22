@@ -1,0 +1,92 @@
+=== 11.6: Epistemology and Infrastructure
+:leveloffset: 2
+
+[.epigraph]
+"AI systems produce knowledge conditions."
+— Foucault, _Power/Knowledge_ <<Foucault1980>> (adapted)
+
+==== Example Prompts
+
+* "Recommend content." — _AI produces categories; shapes what users "know"_
+* "What does the agent produce as knowledge?" — _Output → belief → data → model; feedback loop_
+* "Govern epistemic impact." — _Who decides what counts as knowledge?_
+
+==== Conceptual Core
+
+Who decides what the system "knows"? An agent that recommends, classifies, or summarizes does not merely retrieve facts—it produces categories, labels, and narratives that users and institutions then treat as knowledge. That makes AI *epistemic infrastructure*: systems that enable and shape knowledge production. Foucault (<<Foucault1980>>) reminds us that power and knowledge are intertwined; the infrastructure that defines what can be known is political. This lecture connects that idea to AI in institutions and to the governance of epistemic impact.
+
+*Epistemic infrastructure* refers to the technical and institutional arrangements that enable knowledge to be produced, validated, and circulated. AI systems are part of that infrastructure. They produce categories (e.g. "relevant," "safe," "recommended"), labels (e.g. sentiment, topic), and predictions that users and downstream systems consume. The agent does not merely retrieve—it *constructs*. A recommendation engine does not discover preexisting user preference; it proposes an ordering that then influences what users see and do. So the question "What does the agent know?" is incomplete; we must ask "What does the agent produce as knowledge, and for whom?"
+
+*Institutional epistemology* asks who decides what counts as knowledge. In traditional settings, institutions—scientific bodies, editors, courts—play that role. AI systems are now participants. They filter, rank, and generate content that people and organizations act on. The feedback loop is central: model output → human belief and behavior → data collected from that behavior → next model. AI shapes what we know; what we know (and do) shapes the data that shapes AI. That loop can amplify bias, entrench categories, or open new possibilities—depending on design and governance.
+
+*Knowledge and power*: epistemic infrastructure confers authority. The system that decides what is "relevant" or "safe" has epistemic authority—it influences what counts as true or acceptable in practice. AI as institutional participant is not neutral; it produces the conditions under which knowledge counts. Governance must therefore consider epistemic impact: what knowledge does the agent produce? Who is affected? How do we audit and, where needed, constrain that impact?
+
+===== Key Points
+
+* Epistemic infrastructure: systems that enable and shape knowledge production
+* AI produces categories, labels, predictions; it constructs, not just retrieves
+* Institutional epistemology: who decides what counts as knowledge; AI as participant
+* Feedback loop: output → belief → behavior → data → model; amplification and entrenchment
+* Knowledge and power: epistemic infrastructure is political (Foucault)
+* Governance must consider epistemic impact: what, for whom, how to audit
+
+==== Technical Example
+
+Trace how a recommendation system shapes user behavior. Users click what is recommended; clicks become signals; signals retrain the model. The next iteration recommends more of what was clicked. So the system does not merely reflect preference—it shapes it. Document the epistemic impact of your agent: what knowledge does it produce (e.g. "this is relevant," "this is safe")? For whom? What is the feedback loop—could the agent's output change user behavior in a way that retrains or reinforces the model?
+
+Lab 3: Include epistemology in governance simulator scenarios. For example: "Agent recommends X; users adopt X; data reflects X." The scenario forces the simulator to consider epistemic impact—not just accuracy or cost but the way the system shapes what users "know" and do. Governance that ignores epistemology misses a central dimension of AI in institutions.
+
+===== Key Points
+
+* Trace feedback loop: recommendations → clicks → signals → retraining
+* Document epistemic impact: what knowledge, for whom, feedback loop
+* Lab 3: Epistemology scenarios in simulator; e.g. recommend → adopt → data
+* Governance must consider epistemic impact, not only accuracy or cost
+
+==== Philosophical Reflection
+
+Epistemic infrastructure confers authority. The system that decides what is "relevant," "safe," or "recommended" influences what counts as knowledge in practice. AI as institutional participant is not neutral; it produces the conditions under which knowledge counts. Foucault's power/knowledge (<<Foucault1980>>) applies here: the infrastructure that shapes what can be known is political. Governance must consider epistemic impact—what the agent produces as knowledge, who is affected, and how we audit or constrain it.
+
+As in Dick's androids (<<Dick1968>>) or _Blade Runner_ (<<BladeRunner1982>>), the question of what counts as real is also a question of governance. When an agent classifies, recommends, or summarizes, it is participating in the construction of reality for its users. The governance simulator and the capstone should make that participation explicit—so we can deliberate about it rather than assume the system is "just" a tool.
+
+===== Key Points
+
+* Epistemic authority: system influences what counts as knowledge
+* Not neutral; produces conditions under which knowledge counts
+* Power/knowledge (Foucault); governance of epistemic impact
+* Construction of reality; make participation explicit for deliberation
+
+.Figure 11.6: Epistemic feedback loop
+[plantuml,ch11-l06,png,theme=sketchy-outline]
+....
+@startuml
+start
+:AI Output;
+:Human Belief;
+:Training Data;
+stop
+@enduml
+....
+
+==== Discussion Prompts
+
+* How does your agent shape what users "know"?
+* What epistemic authority does AI have?
+* How do we govern epistemic impact?
+* How do epistemology scenarios extend governance (Ch11)?
+* How does the governance simulator model epistemic impact?
+* When does epistemic governance constrain free speech?
+
+==== Lab Prep
+
+Lab 3: Include epistemology in governance simulator scenarios. Consider: what knowledge does the agent produce? What is the feedback loop? Document epistemic impact. See Lab 3 for requirements.
+
+===== Key Points
+
+* Lab 3: Epistemology scenarios
+* Feedback loop
+* Document impact
+
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch11,Chapter 11>>).

@@ -1,0 +1,8 @@
+pass:q[
+class StatuteLookupTool:
+    def __init__(self, client):
+        self.client = client
+    def run(self, query: str) -> str:
+        response = self.client.get("/statutes", params={"q": query})
+        return response.json()["text"]
+]

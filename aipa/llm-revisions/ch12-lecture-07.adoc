@@ -1,0 +1,146 @@
+=== 12.7: The Formal Presentation
+:leveloffset: 2
+
+[.epigraph]
+"To present is to make the work public."
+— Dewey, _Democracy and Education_ <<Dewey1916>> (adapted)
+
+*Hook*  
+You step onto the stage, the projector flickers, and a hush falls over the room. In the next few minutes the audience will judge not only the brilliance of your code but also your ability to make that brilliance visible. Will your live demo run flawlessly, or will you have to switch to a backup video at the last second? The difference between a polished capstone and a disastrous showcase often hinges on a single, well‑rehearsed moment.
+
+==== Example Prompts
+
+* "Present your agent." — _Formal presentation; demo_
+* "Defend your design." — _Technical findings; demonstration_
+* "What did you learn?" — _From consumer to builder; the loop closes_
+
+==== Conceptual Core
+
+**Why a formal presentation matters**  
+In AI projects the artifact—an autonomous agent—is only as credible as the story you tell about it. A public presentation forces you to translate opaque code, data pipelines, and model choices into a narrative that stakeholders can evaluate, critique, and ultimately trust.
+
+**Audience analysis and depth‑accessibility balance**  
+Your listeners may include faculty members, fellow students, industry partners, and non‑technical stakeholders. Each group brings different expectations: experts look for methodological rigor, while lay audiences need clear analogies. Crafting a layered explanation—starting with high‑level goals and drilling down only where needed—keeps everyone engaged without sacrificing technical credibility.
+
+**Standard timing and structural template**  
+A reliable template helps you stay within the typical 20–30 minute slot: intro (1 min), problem statement (3 min), approach (5 min), demonstration (10 min), conclusion (2 min), and Q&A (4–5 min). This cadence respects attention spans and leaves room for interaction. Rehearsing against a timer ensures each segment receives its allotted share.
+
+**Demo logistics and risk mitigation**  
+The demonstration is the heart of the presentation; it makes the invisible behavior of your agent visible. Decide early whether a live run (high impact, higher risk) or a pre‑recorded video (safer, less dynamic) best serves your narrative. Prepare a fallback—recorded clips, screenshots, or log excerpts—so a technical hiccup does not derail the entire session.
+
+**Performance mindset and accountability**  
+Presenting is a performance in which you stand behind your work. By exposing your design choices, limitations, and future directions, you invite the audience to hold you accountable. This public stance not only satisfies academic assessment criteria but also mirrors real‑world stakeholder demos where transparency is a professional imperative.
+
+===== Key Points
+
+* Explain why a formal presentation is essential for AI credibility
+* Analyse audience composition and tailor depth accordingly
+* Follow a timed structural template (intro, problem, approach, demo, conclusion, Q&A)
+* Choose live vs. recorded demo based on impact and risk
+* Prepare a fallback (recording, screenshots, logs) for technical failures
+* Rehearse with a timer and iterate on timing
+* Treat the presentation as a performance that demonstrates accountability
+* Balance technical rigor with accessibility for diverse listeners
+
+==== Technical Example
+
+**Rehearsal workflow**  
+Write a concise script that maps each slide to a spoken segment, then run through the entire deck while timing yourself. Note any sections that exceed their allocated minutes and trim or simplify them. Repeat this loop until the total run‑time fits comfortably within the 20–30 minute window.
+
+**Live vs. recorded demo decision matrix**  
+| Criterion | Live demo | Recorded demo |
+|-----------|-----------|---------------|
+| Audience impact | High (real‑time interaction) | Moderate (controlled visuals) |
+| Technical risk | High (network, hardware failures) | Low (pre‑tested) |
+| Preparation effort | High (setup, contingency) | Medium (editing) |
+Select the option that maximises impact while keeping risk within your comfort zone.
+
+**Fallback checklist**  
+1. Record a full‑length demo video and keep it on a USB drive and in the cloud.  
+2. Capture screenshots of key states (e.g., agent success, error handling).  
+3. Export log files that show performance metrics.  
+4. Test the backup media on the presentation computer before the session.  
+Having these assets ready lets you switch seamlessly if the live demo stalls.
+
+===== Key Points
+
+* Script and time the entire presentation; iterate until it fits the slot
+* Use a decision matrix to choose between live and recorded demonstration
+* Prepare a fallback package: video, screenshots, logs
+* Test all backup media on the presentation hardware in advance
+* Keep the structure (intro, problem, approach, demo, conclusion, Q&A) intact
+* Present confidently and be ready to defend design choices
+
+==== Philosophical Reflection
+
+**Visibility as a moral act**  
+Making an AI agent’s behavior observable is not merely pedagogical; it is an ethical commitment. By exposing decision pathways, failure modes, and bias mitigation strategies, you allow the audience to scrutinise the technology’s societal impact. This transparency aligns with broader calls for accountable AI.
+
+**The presenter as a translator**  
+Performance theory reminds us that the presenter mediates between code (a private language) and people (a public audience). You become a translator, converting symbols, parameters, and training curves into stories, analogies, and visualisations that resonate beyond the lab.
+
+**Public accountability beyond the classroom**  
+The stakes of a capstone presentation echo real‑world stakeholder demos, board briefings, and regulatory hearings. Demonstrating humility—acknowledging limitations and open‑ending future work—signals professional maturity and prepares you for the accountability demanded by industry and policy makers.
+
+**Knowledge transfer and community building**  
+When you share not only results but also the reasoning behind design decisions, you contribute to a communal knowledge base. Peers can replicate, extend, or critique your work, accelerating collective progress in AI research and application.
+
+**Ethical visibility and trust**  
+A transparent demo builds trust. Audiences who see an agent fail gracefully are more likely to trust it in production. Conversely, hidden failures erode confidence and invite suspicion. Your presentation thus serves as a bridge between technical excellence and societal trust.
+
+===== Key Points
+
+* Visibility is an ethical commitment to transparent AI
+* The presenter acts as a translator of code into public narrative
+* Public accountability prepares you for industry and policy contexts
+* Sharing design reasoning fosters community knowledge transfer
+* Demonstrating limitations builds trust and credibility
+* Ethical visibility links technical performance to societal impact
+
+.Figure 12.7: Presentation outline
+[plantuml,ch12-l07,png,theme=sketchy-outline]
+....
+@startuml
+start
+:Rehearse & time;
+if (Intro ≤ 1 min?) then (yes)
+  :Intro;
+else (no)
+  :Trim Intro;
+endif
+:Problem;
+:Approach;
+:Demo;
+if (Demo succeeds?) then (yes)
+  :Conclusion;
+else (no)
+  :Fallback (recorded demo);
+  :Conclusion;
+endif
+:Q&A;
+stop
+@enduml
+....
+
+==== Discussion Prompts
+
+* Live demo or recorded? Pros and cons?
+* How do we handle technical failures during the demo?
+* What if the audience challenges your approach?
+* How do we balance technical depth and accessibility?
+* What makes a presentation "successful"?
+* How do we prepare for difficult questions?
+
+==== Lab Prep
+
+Mastering the formal presentation not only secures your capstone grade but also prepares you for real‑world stakeholder demos. In Lab 3 you will record a 5‑minute demonstration, rehearse the full 20‑minute talk, and field a mock Q&A session with peers acting as skeptical reviewers. This exercise reinforces the rehearsal loop, fallback planning, and accountability mindset introduced here.
+
+===== Key Points
+
+* Rehearse the full presentation with timing constraints
+* Prepare both live and recorded demonstration assets
+* Execute the presentation and defend design choices in Q&A
+* Reflect on feedback to improve future stakeholder demos
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch12,Chapter 12>>).

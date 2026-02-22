@@ -1,0 +1,141 @@
+=== 1.6: Infrastructural Intelligence — Systems in Context
+:leveloffset: 2
+
+Imagine you are applying for a job. You upload your résumé, click “Submit,” and an automated screening tool instantly rejects you with a terse “Not a fit” message. No human ever looked at your experience; the decision emerged from a cascade of services that you never saw. In that moment the invisible AI infrastructure becomes starkly visible, and you start asking: *who built that decision‑engine?* *what data fed it?* *who is responsible when it goes wrong?* This vignette frames our inquiry into the hidden layers that shape everyday digital life.
+
+[.epigraph]
+"Technology is the answer. But what was the question?"
+— Price, _Works II_ <<Price1976>> (via Latour)
+
+*AI is infrastructure—invisible until it breaks, constitutive of the worlds we inhabit.*
+
+==== Example Prompts
+
+* "Search for X." — _Invisible infrastructure: we assume it; it conditions what we see_
+* "Why was my application rejected?" — _Infrastructure becomes visible when it fails—governance becomes urgent_
+* "Map what depends on our ML model." — _Dependency map: application, data, compute, metrics—what breaks when?_
+
+==== Conceptual Core
+
+Infrastructure is that which enables other activity. Roads, power grids, and networks are classic examples: we rely on them without thinking until they fail. AI has become infrastructure. Search, translation, recommendation, moderation—these systems sit beneath applications, shaping what we see and how we interact. They are often invisible. We do not "use" Google Search as a tool; we assume it. The infrastructure conditions possibility.
+
+When infrastructure becomes visible, it is usually through failure. A biased hiring algorithm surfaces when it discriminates; a broken translation surfaces when it mistranslates; a content moderator surfaces when it wrongly removes a post. Visibility is a moment of politicization. Suddenly we ask: who built this? Who benefits? Who is harmed? Governance becomes urgent. Latour observed that technology is "frozen" or "delegated" social relations—the choices of designers are inscribed in artifacts that then constrain users. AI infrastructure is no different. The model in the stack embodies decisions about training data, objectives, and deployment—decisions that persist even when the designers have moved on.
+
+Historically, AI moved from a *feature*—a clever add‑on to a product—to a *service* that powers entire platforms. The rise of cloud‑based ML APIs, SaaS recommendation engines, and pre‑trained language models turned AI into a utility that developers consume without ever seeing the underlying code or data pipelines. This shift amplified the opacity of AI: the more we delegate core functionality to external models, the less we understand the dependencies that bind our applications to them.
+
+The politics of "invisible" systems is that they escape scrutiny until they break. The task is to make infrastructure legible—to surface dependencies, trace failures, and enable contestation. Your knowledge graph will be infrastructure for whatever applications build on it. The audit tool in Chapter 2 will extend this theme: mapping what depends on what, and what breaks when things change.
+
+===== Key Points
+
+* Infrastructure: that which enables other activity
+* AI as invisible substrate: search, translation, moderation
+* Invisible until it breaks—visibility is politicization
+* Latour: technology as frozen (delegated) social relations
+* When infrastructure fails: bias, error, wrong removal—governance becomes urgent
+* Make infrastructure legible: surface dependencies, trace failures
+
+==== Technical Example
+
+Map the dependencies for a single ML model in a production stack. The model sits between an application (e.g., a hiring platform) and a data layer (resumes, job descriptions, historical decisions). It depends on compute, on the pipeline that trained it, on the evaluation metrics that were optimized. When the model drifts—when the distribution of inputs shifts and performance degrades—what breaks? The application may produce worse recommendations; users may lose trust; stakeholders may be harmed. Who is affected? Applicants who are wrongly filtered out, employers who miss qualified candidates, the organization that bears reputational risk.
+
+The dependency map is not just technical. The model inherits biases from training data; the choice of metrics (accuracy, fairness, revenue) reflects organizational priorities; the decision to deploy reflects a judgment that the benefits outweigh the risks. One model, many dependents—and many who depend on it working "correctly." Your knowledge graph is similarly situated. Applications will depend on its schema, its data quality, its query performance. When the graph is incomplete or biased, what breaks? Who is affected? Sketch the stack: application, knowledge layer, data sources, users. Infrastructure thinking begins with the map.
+
+Below is a minimal manifest that makes those relationships explicit:
+
+[source,yaml]
+----
+application: hiring-app
+model: screening-v2
+data_sources:
+  - resumes.yaml
+  - job_descriptions.yaml
+compute: cloud-gpu-cluster
+metrics:
+  - accuracy
+  - fairness_score
+dependencies:
+  - model -> data_sources
+  - model -> compute
+  - application -> model
+----
+
+Your graph’s dependency manifest would look analogous, listing schema, source feeds, and consumer services.
+
+===== Key Points
+
+* One model: application, data layer, compute, training pipeline
+* Model drift: inputs shift, performance degrades
+* What breaks: recommendations, trust, stakeholders harmed
+* Dependency map is social: biases, metrics, deployment decisions
+* Your graph: applications depend on schema, quality, query performance
+* Sketch the stack: application, knowledge layer, data, users
+
+==== Philosophical Reflection
+
+Infrastructural power is not sovereignty—it is conditioning. A sovereign commands; infrastructure shapes the space of possible action. You do not obey a search engine; you work within the results it returns. You do not consent to a recommendation system; you choose from what it offers. The power is diffuse, embedded, often invisible. The politics of invisible systems is that they escape democratic oversight. We do not vote on the algorithms that rank our news or filter our applications.
+
+Making infrastructure visible is a first step toward accountability. Audit trails, dependency maps, and impact assessments are tools for legibility. The diagram in this lecture shows an infrastructure stack—application, AI/ML layer, data layer, compute/network. Each layer can fail; each layer embodies decisions. The task is to surface those decisions, trace their effects, and enable those affected to contest them. Chapter 2's audit tool will operationalize this: mapping what "infrastructure" means for your AI system.
+
+A democratic regime for AI infrastructure would require public scrutiny of these maps, transparent reporting of failure modes, and mechanisms for affected parties to demand remediation. What would such a regime look like in practice, and how might we begin to build it?
+
+===== Key Points
+
+* Infrastructural power: conditioning, not sovereignty
+* Diffuse, embedded, often invisible
+* Invisible systems escape democratic oversight
+* Legibility: audit trails, dependency maps, impact assessments
+* Diagram: application → AI/ML → data → compute
+
+.Figure 1.6: AI‑Enabled Service Stack – Dependency Map
+[plantuml,ch01-l06,png,theme=sketchy-outline]
+....
+@startuml
+title AI‑Enabled Service Stack – Dependency Map
+skinparam shadowing false
+
+rectangle "Hiring Platform\n(Application)" as APP
+rectangle "Screening Model\n(AI/ML Layer)" as MODEL
+rectangle "Resume & Job DB\n(Data Layer)" as DATA
+rectangle "Cloud Compute / Network" as COMP
+
+APP --> MODEL : request scoring
+MODEL --> DATA : fetch features
+MODEL --> COMP : inference compute
+DATA --> COMP : storage I/O
+
+' feedback / failure annotations
+APP -[#red,dashed]-> COMP : latency spikes
+MODEL -[#orange,dashed]-> DATA : data drift
+MODEL -[#red,dashed]-> APP : biased decisions
+
+rectangle "Audit & Impact\nAssessment" as AUDIT
+AUDIT -right-> APP
+AUDIT -right-> MODEL
+AUDIT -right-> DATA
+AUDIT -right-> COMP
+@enduml
+....
+
+==== Discussion Prompts
+
+* When has AI infrastructure become "visible" to you? What triggered the visibility?
+* Who should be responsible when infrastructure fails—designers, deployers, or organizations?
+* How would you map the dependencies for a system you use daily? Sketch a simple dependency diagram.
+* What does "infrastructure" mean for your knowledge graph project? Which layers would you audit?
+
+==== Lab Prep
+
+The audit tool in Chapter 2 will surface dependencies—mapping what depends on what in an AI system. For now, sketch what "infrastructure" means for your knowledge graph. Where does it sit in a stack? What applications might build on it? What breaks when the graph is incomplete, slow, or biased? Lab 3 (Explorer) will add an interface; that interface will be infrastructure for users who navigate the graph. Before Lab 3, draw a simple dependency diagram: your graph, its data sources, its consumers, and the failure modes that matter.
+
+In the next lecture we will turn this dependency map into a living audit that continuously surfaces hidden risks, giving you concrete tools to keep your AI infrastructure legible and accountable.
+
+===== Key Points
+
+* Ch2 audit tool: will map dependencies
+* Your graph: where in the stack? What builds on it?
+* What breaks: incomplete, slow, biased
+* Lab 3 Explorer: infrastructure for users
+* Sketch: graph, sources, consumers, failure modes
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch01,Chapter 1>>).

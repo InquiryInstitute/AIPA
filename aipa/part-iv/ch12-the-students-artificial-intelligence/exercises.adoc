@@ -1,0 +1,7 @@
+=== Exercises
+
+. *Conceptual* Why is problem definition "constructed with stakeholders" rather than "given"? What role does the user play?
+. *Conceptual* What makes an evaluation "rigorous"? What metrics and baselines would you use for your capstone?
+. *Design* Draft a one-page problem definition for a capstone: problem, users, value, scope, success criteria.
+. *Design* Design an evaluation plan: test set, metrics, baselines, ablation studies. What would you compare?
+. *Design* Outline the structure of the capstone thesis: problem, approach, implementation, evaluation, limitations, future work.

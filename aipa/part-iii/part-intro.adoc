@@ -1,0 +1,4 @@
+= Part III: Memory, Reasoning, and Action
+:part:
+
+This part addresses memory, inference, and agency—the components that turn representation into action. RAG, vector stores, logical and probabilistic reasoning, and tool-calling agents. Memory and reasoning are epistemic practices: they produce and circulate what the agent "knows"; the lens from Part I (metabolism, representation as choice) applies throughout.

@@ -1,0 +1,80 @@
+=== 8.2: First-Order Logic — Quantifiers and Unification
+:leveloffset: 2
+
+[.epigraph]
+"All and some: the quantifiers that scale logic."
+— Russell & Norvig, _AIMA_ <<RussellNorvig2020>> (first-order logic)
+
+==== Example Prompts
+
+* "All humans are mortal. Socrates is human. Therefore?" — _FOL: quantifiers, unification_
+* "Express: every X that satisfies P also satisfies Q." — _∀x P(x) → Q(x)_
+* "What can we infer from this KB?" — _FOL inference; undecidability in general_
+
+==== Conceptual Core
+
+Variables and quantifiers—how do we reason about "all" and "some"? Propositional logic (L1) has no variables; we cannot express "every human is mortal" compactly. First-order logic adds terms (constants, variables, functions), predicates, and quantifiers (∀, ∃). That expressiveness scales logic to rich domains (Russell & Norvig, <<RussellNorvig2020>>)—but we pay in tractability: FOL inference is undecidable in general. This lecture covers the syntax, unification, and resolution for FOL—and where the limits lie.
+
+FOL: terms (constants, variables, functions), predicates (relations), quantifiers (∀, ∃). Express "all X are Y," "some X is Y." Unification: find substitution that makes terms identical. Resolution for FOL: skolemization (remove ∃), convert to clauses, resolve with unification. Limitations: FOL is undecidable in general—no algorithm that always halts with correct answer. Expressiveness vs. tractability: FOL is more expressive than propositional; it is also harder to reason with. What can logic capture? Formal domains (math, programs); informal domains require approximation. The reasoning tool (L7) will expose FOL-style inference where the agent needs guaranteed entailment; probabilistic and LLM-based reasoning (L3, L5) extend the agent when the domain is uncertain or informal.
+
+===== Key Points
+
+* FOL: terms, predicates, ∀, ∃
+* Unification
+* Resolution: skolemization, unification
+* Undecidable in general
+* Expressiveness vs. tractability
+
+==== Technical Example
+
+Encode a domain in FOL (e.g., family relations: Parent(x,y), Ancestor(x,y)). Prove Ancestor(Alice, Bob). Use resolution with unification. Lab 1: Implement resolution or forward chaining for FOL. The implementation will feed the reasoning tool.
+
+===== Key Points
+
+* Encode domain, prove
+* Lab 1: Resolution or forward chaining
+
+==== Philosophical Reflection
+
+Expressiveness vs. tractability: we want to express more; we pay in computational cost. What can logic capture? Formal relations, yes. Vagueness, context, uncertainty—logic struggles. FOL is a powerful tool within its scope. So we choose: use FOL (and the reasoning tool) when we need precise, verifiable inference; use probability or LLMs when the domain is uncertain or open-ended.
+
+===== Key Points
+
+* Tradeoff: expressiveness, tractability
+* Logic has scope limits
+
+.Figure 8.2: FOL inference (unification, resolution)
+[plantuml,ch08-l02,png,theme=sketchy-outline]
+....
+@startuml
+start
+:Knowledge Base;
+:Resolution;
+:Goal;
+:Proof;
+stop
+@enduml
+....
+
+==== Discussion Prompts
+
+* When is FOL the right representation?
+* What does undecidability mean in practice?
+* How do we handle domains logic cannot capture?
+* What is the relationship between logic and search?
+* How does the reasoning tool support FOL or fragments?
+* When does the agent need FOL vs. propositional for planning?
+
+==== Lab Prep
+
+Lab 1: Implement resolution or forward chaining for FOL. Use skolemization and unification. The reasoning tool will expose this for assert/query. See Lab 1 for requirements.
+
+===== Key Points
+
+* Lab 1: FOL resolution/forward chaining
+* Skolemization, unification
+* Feeds reasoning tool
+
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch08,Chapter 8>>).

@@ -1,0 +1,8 @@
+json
+{
+  "tool_id": "search-01",
+  "capabilities": ["search"],
+  "endpoint": "https://search.example.com/query",
+  "auth": {"type":"bearer","token_env":"SEARCH_TOKEN"},
+  "policy": {"max_cost_usd":0.01,"max_latency_ms":200}
+}

@@ -1,0 +1,44 @@
+=== Lab 1: Agents — Tool Definition and Registration
+:leveloffset: 2
+
+*Milestone toward: Tool-Calling Agent (tool consumer)*
+
+==== Tool Deliverable
+
+Defines tool schemas and registers tools. Agent discovers tools via tool invocation and builds a tool registry. Prerequisite for ReAct loop.
+
+==== Prerequisites
+
+* Review 9.1–9.2: tool schemas; registration; tool protocol
+
+==== Objectives
+
+* Define tool schemas (name, description, parameters)
+* Register tools with an agent framework
+* Validate tool calls
+
+==== Steps
+
+. Define tool schema format: name, description, parameters (JSON Schema). Each tool has inputs and outputs.
+. Create schemas for at least 3 tools: e.g., search(query, k), calculator(expression), memory.rag_retrieve(query, k).
+. Implement registration: load schemas, register with agent framework (e.g., MCP client, or custom registry).
+. Implement validation: given a tool call (name, args), validate args against schema. Return error if invalid.
+. At startup, agent loads tool registry and can list available tools. Document the format.
+. Submit: tool schema format, registration utilities, GitHub Classroom repo (ch09-lab-01).
+
+==== Deliverables
+
+* Tool schema format
+* Registration utilities
+* GitHub Classroom repo (ch09-lab-01)
+
+*Acceptance criteria:*
+* At least 3 tools have valid schemas (name, description, parameters)
+* Registration loads schemas without errors
+* Validation rejects invalid args (e.g., wrong type)
+* Agent or test can list registered tools
+* README documents schema format and registration
+
+==== Lab Prep
+
+* Review 9.1–9.2: tool schemas; registration; discovery

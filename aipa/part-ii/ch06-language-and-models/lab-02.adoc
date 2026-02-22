@@ -1,0 +1,45 @@
+=== Lab 2: LLMs — Prompting and Generation
+:leveloffset: 2
+
+*Milestone toward: Prompt/LLM Pipeline (tool)*
+
+==== Tool Deliverable
+
+Extends tool server `llm` with `prompt`, `generate`, `chain_of_thought`. Agent invokes LLM generation via tool invocation.
+
+==== Prerequisites
+
+* Complete Lab 1 (embeddings)
+* Review 6.3–6.4: prompting; zero-shot; few-shot; CoT
+
+==== Objectives
+
+* Design prompt templates
+* Implement few-shot and chain-of-thought
+* Handle API calls and rate limits
+
+==== Steps
+
+. Set up LLM access: OpenAI, Anthropic, OpenRouter, or local model. Implement generate(prompt, params) that returns text.
+. Design prompt templates for at least 3 tasks: summarization, classification, Q&A. Use placeholders for inputs.
+. Implement few-shot: include 2–3 examples in the prompt. Compare zero-shot vs few-shot on a small benchmark.
+. Implement chain-of-thought: add "Think step by step" or similar. Test on a reasoning task (e.g., arithmetic, logic).
+. Handle API errors: retry on rate limit (429), timeout, and invalid response. Add basic rate limiting if needed.
+. Submit: prompt library (templates + docs), generation utilities, submodule into student-ai/.
+
+==== Deliverables
+
+* Prompt library
+* Generation utilities
+* Submodule into student-ai/
+
+*Acceptance criteria:*
+* generate() returns valid text for a simple prompt
+* At least 3 prompt templates documented with purpose and example
+* Few-shot and CoT variants implemented (or one clearly working)
+* Error handling for common API failures
+* README documents model, templates, and usage
+
+==== Lab Prep
+
+* Review 6.3–6.4: prompting; few-shot; CoT

@@ -1,0 +1,130 @@
+=== 3.7: Meta-Reasoning and Search Control
+:leveloffset: 2
+
+[.epigraph]
+"To think about thinking is to step outside—or is it?"
+— Russell & Norvig, _AIMA_ <<RussellNorvig2020>> (recursion, meta-reasoning)
+
+*Hook.* Imagine a self‑driving car that must choose a lane within **200 ms** or risk a collision. The car cannot afford to run a full‑blown optimal search; it must decide **when to stop** and **what quality of solution** is acceptable. This tension between time pressure and solution quality is the essence of **meta‑reasoning** (or search control).
+
+*Search control: deciding how to search, not just what to search for.*
+
+==== Example Prompts
+
+* "Find a solution quickly, even if not optimal." — _Meta‑reasoning: when to stop, trade time vs. quality_
+* "Search until we have a good‑enough answer." — _Anytime algorithms: improve with time; bounded rationality_
+* "Decide which search strategy to use." — _Search control: BFS vs. A* vs. beam—the agent chooses_
+
+==== Conceptual Core
+
+Search algorithms often assume we have unlimited time to run to completion—but in the real world we rarely do. A game clock ticks; a user waits; a robot must act before the environment changes. Consequently we face a second‑order question: not only *how do we search?* but *how much do we search, and when do we stop?* This is **meta‑reasoning**: reasoning about reasoning.
+
+In the context of search, meta‑reasoning means deciding **what** to search for **and** **how** to search—when to expand a node, when to backtrack, when to commit to a path. An agent that can control its own search process is more flexible than one that runs a fixed algorithm to completion. Anytime algorithms return the best solution found so far; quality improves with time. If interrupted (e.g., by a time limit), we still have something usable. Real‑time search forces the agent to act within a strict time bound (e.g., a game clock). We cannot search until optimality; we must decide with limited computation. Resource‑bounded agents must also respect limits on memory, energy, and processing power.
+
+Search control strategies include: which node to expand next (A* uses *f‑values*), when to prune (alpha‑beta in game trees), when to restart (random restarts for local search), and when to switch strategies (meta‑learning). The meta‑level raises a paradox: if we need to reason about how to search, does that require another search? The recursion can bottom out by using fixed rules, learned policies, or simple heuristics. Bounded rationality (Herbert Simon) tells us we cannot optimize globally; we **satisfice**—find good enough—using heuristics and limited computation. The search tool (Lab 3) exposes timeout and approximation options precisely for this reason.
+
+===== Key Points
+
+* Meta‑reasoning (search control): how to search, not just what
+* Anytime algorithms return improving solutions over time
+* Real‑time search: act within strict time bounds
+* Resource‑bounded agents: limits on memory, time, energy
+* Control actions: expand, prune, restart, switch strategies
+* Bounded rationality: satisficing with heuristics
+* Fixed rules, learned policies, or simple heuristics can bottom out recursion
+* Utility functions can formalise trade‑offs between quality and cost
+
+==== Technical Example
+
+**Anytime A\*** runs the classic A\* algorithm but is allowed to return the current best path whenever the agent requests it. As the search proceeds, the path may improve (a better goal is found or a shorter route is discovered). This yields a **quality‑vs‑time curve**: early returns have lower quality; later returns approach optimality.
+
+Implementation tips:
+
+* Periodically check the open list for a goal node; if found, return the corresponding path.
+* The search can be stopped after any iteration and still yields a feasible solution.
+* Visualise performance with a quality‑vs‑time plot to help users set appropriate time budgets.
+* In Lab 3, add configurable options: a maximum time per query, or an early‑return after the top‑k results are found.
+* Users may prefer fast approximate results over slow exact results, depending on the application.
+
+===== Key Points
+
+* Anytime A\*: return improving solutions at any interruption point
+* Can be stopped after any iteration and still returns a feasible path
+* Quality‑vs‑time curve visualisation aids budget decisions
+* Lab 3: configurable time limit, top‑k early return, quality threshold
+* Fast approximate vs. slow exact trade‑off is explicit for users
+* Implementation uses periodic checks of the open list for goal nodes
+
+==== Philosophical Reflection
+
+Bounded rationality—Herbert Simon’s term—means agents have limited computational resources. We cannot optimise over all options; we **satisfice** (find good enough) and use heuristics. Search control is the embodiment of bounded rationality in search: we decide how much to search, when to stop, and what to prioritise. The meta‑level—reasoning about reasoning—seems to require another reasoner, but we can implement it as:
+
+* Fixed hand‑crafted rules (e.g., stop after *t* seconds)
+* Learned policies that map search state to actions, derived from past performance
+* Additional search processes that themselves are bounded
+
+Utility functions can formalise the trade‑off between solution quality and computational cost, turning meta‑reasoning into an optimisation problem over resources. The recursion therefore **bottoms out**: the agent uses a finite, often approximate, meta‑reasoner that is good enough for its context.
+
+The search tool (Lab 3) makes this concrete: configurable timeout, top‑k early return, or quality threshold are API‑level meta‑reasoning knobs the agent can query at run‑time.
+
+===== Key Points
+
+* Bounded rationality: limited resources, satisficing with heuristics
+* Meta‑reasoning can be implemented via rules, learned policies, or additional bounded search
+* Learned meta‑reasoning policies can improve over time from experience
+* Utility functions formalise quality‑vs‑cost trade‑offs
+* Lab 3’s timeout, top‑k, and quality‑threshold options expose meta‑reasoning to the agent
+
+.Figure 3.7: Anytime search (quality vs. time)
+[plantuml,ch03-l07,png,theme=sketchy-outline]
+....
+@startuml
+scale 1.5
+skinparam backgroundColor #FDFDFD
+skinparam shadowing false
+
+'--- Axes (crudely represented) ---
+note left of start
+  Time (t) →
+  0   1   2   3
+end note
+
+note right of start
+  Quality (Q) ↑
+  0.2 0.5 0.8 1.0
+end note
+
+'--- Plot points ---
+start
+:Plot (0,0.2);
+:Plot (1,0.5);
+:Plot (2,0.8);
+:Plot (3,1.0);
+note right: Quality improves as time passes
+stop
+@enduml
+....
+
+==== Discussion Prompts
+
+* When would you choose fast approximate over slow exact?
+* How do you "decide when to stop" in your own reasoning?
+* Is meta‑reasoning infinite regression, or can it bottom out?
+* What does "bounded rationality" mean for AI system design?
+* How does the search tool expose timeout and approximation options?
+* When does bounded search matter for the agent's tool invocation?
+* How could a learned meta‑reasoning policy replace hand‑crafted rules?
+
+==== Lab Prep
+
+Lab 3: Add configurable time/quality trade‑offs to the search engine. Options: max time per query, return top‑k as soon as available, or quality threshold (stop when result score exceeds X). Document the trade‑off for users. Implementing these knobs gives you a hands‑on meta‑reasoner that the agent can query at run‑time.
+
+===== Key Points
+
+* Lab 3: Time/quality trade‑offs
+* Max time, top‑k early, quality threshold
+* Document for users
+* Implementation serves as a concrete meta‑reasoner
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch03,Chapter 3>>).

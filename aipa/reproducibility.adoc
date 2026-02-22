@@ -1,0 +1,96 @@
+= Reproducibility Guide
+:doctype: book
+:toc:
+:idprefix: rep-
+:idseparator: -
+[[reproducibility]]
+
+This guide defines reproducibility practices for AIPA labs and experiments. All experimental labs must adhere to these requirements.
+
+== Dataset Handling
+
+=== Versioning
+
+- Use version control for datasets: DVC, Git LFS, or an artifact registry (e.g., HuggingFace Datasets, MLflow).
+- Record checksums (SHA-256) and provenance (source, date, preprocessing) in `config.yaml` or a manifest file.
+- Never modify a dataset in place after an experiment has been run; create a new version instead.
+
+=== Splits
+
+- Fix train/validation/test splits. Store split indices or use a deterministic split function (e.g., hash of instance ID modulo N).
+- Document split ratios and stratification (if any).
+- Avoid data leakage: ensure no overlap between splits; do not use test set for tuning or model selection.
+
+=== Contamination
+
+- For LLM evaluation, verify that benchmark data was not in the model's training set. Use contamination check tools when available.
+- Document the contamination-check protocol for published results.
+
+== Experiment Logging
+
+=== Config Capture
+
+Every run must log:
+
+- Model identifier and version (e.g., commit hash, checkpoint path)
+- Hyperparameters (learning rate, batch size, etc.)
+- Random seed(s)
+- Dataset path and version
+- Environment (Python version, library versions, hardware)
+
+Store in `config.yaml` or equivalent. Use a hash of the config as a run ID for deduplication.
+
+=== Seed Fixing
+
+Set seeds for:
+
+- Model initialization (e.g., `torch.manual_seed`, `numpy.random.seed`)
+- Data shuffling and sampling
+- Any stochastic operations (dropout, sampling during inference)
+
+Document all seed values in the config.
+
+=== Artifact Storage
+
+Store:
+
+- Model checkpoints (or pointers to registry)
+- Predictions on evaluation set
+- Metrics (raw and aggregated)
+- Logs and traces
+
+Use a consistent directory layout: `results/{run_id}/config.yaml`, `results/{run_id}/predictions.jsonl`, etc.
+
+== Evaluation Standards
+
+- *Fixed evaluation set:* Do not add or remove instances between runs. Version the evaluation set.
+- *No test-set tuning:* Never tune hyperparameters or select models based on test set performance. Use validation set.
+- *Report variance:* For each metric, report mean and standard deviation (or confidence interval) over multiple runs.
+- *Document protocol:* Describe preprocessing, postprocessing, and metric computation so others can replicate.
+
+== Statistical Testing
+
+When comparing systems:
+
+- Use paired comparison when systems are evaluated on the same instances (e.g., paired t-test, bootstrap).
+- Report p-values and effect sizes. Avoid claiming significance without statistical support.
+- Correct for multiple comparisons (e.g., Bonferroni, FDR) when testing many hypotheses.
+
+See <<appendix-e>> for formal definitions.
+
+== Lab Reproducibility Checklist
+
+Each experimental lab must include:
+
+[cols="1,4"]
+|===
+| Requirement | Description
+| `config.yaml` | Full run configuration: seeds, paths, hyperparameters
+| `results/` | Raw data, predictions, summary tables
+| `reproduce.sh` or `run_experiment.py` | Single command to regenerate results
+| Fixed seeds | All random sources seeded and documented
+| Versioned data | Dataset and code versions recorded
+| Report | Write-up with hypothesis, protocol, results, statistical analysis
+|===
+
+Instructors should verify that running the reproduce script yields equivalent results (within acceptable numerical tolerance) before accepting lab submissions.

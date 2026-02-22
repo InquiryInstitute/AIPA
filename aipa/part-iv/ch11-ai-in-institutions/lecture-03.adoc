@@ -1,0 +1,93 @@
+=== 11.3: Responsible AI — Fairness, Bias, Transparency
+:leveloffset: 2
+
+[.epigraph]
+"Bias is not a bug—it is baked into the data and the design."
+— Buolamwini & Gebru, "Gender Shades" <<Buolamwini2018>>; Mehrabi et al. <<Mehrabi2019>> (adapted)
+
+*Responsible AI: fairness, bias detection, transparency.*
+
+[.instructor]
+****
+*Note for Instructors:* Fairness and bias are sensitive topics. Students may have personal experience with discriminatory systems. Frame discussions as design choices with tradeoffs; avoid implying that any single fairness definition is "correct." Reference Buolamwini & Gebru, Mehrabi et al. for grounding.
+****
+
+==== Example Prompts
+
+* "Is this model fair across groups?" — _Demographic parity, equalized odds; audit for bias_
+* "Explain why you made this decision." — _Transparency: explainability, documentation_
+* "Document limitations." — _Intended use; what the model can and cannot do_
+
+==== Conceptual Core
+
+"Is this model fair?" sounds like one question—but it is many. Fairness has no single technical definition; different stakeholders mean different things, and the definitions can conflict. So we start from that tension: responsible AI requires us to make fairness and bias explicit, even when we cannot reduce them to one metric.
+
+Fairness has multiple formal definitions. Demographic parity: equal approval (or positive) rates across groups. Equalized odds: equal true positive rate and false positive rate across groups. Calibration: predicted probabilities match observed frequencies. No single definition captures "fairness" in all contexts—fairness is contested. Different stakeholders prefer different definitions; they can be mutually incompatible. Bias can arise at multiple stages: data bias (training distribution reflects historical inequalities), model bias (the learned function amplifies or encodes bias), deployment bias (context of use introduces disparity). Audit for bias: compare metrics (accuracy, TPR, FPR, etc.) across demographic or other groups. Transparency includes explainability (why did the model produce this output?) and documentation (intended use, limitations, known failure modes). Tradeoffs: improving fairness (e.g., via reweighting or post-processing) may reduce overall accuracy. Fairness is contested—which definition should we optimize? Transparency as accountability: we document to enable scrutiny by users, regulators, and affected communities.
+
+===== Key Points
+
+* Fairness: parity, equalized odds
+* Bias: data, model, deployment
+* Transparency: explainability, documentation
+* Tradeoffs: fairness vs. accuracy
+* Fairness contested
+
+==== Technical Example
+
+Audit a model for bias. Split test data by group (e.g., demographic, geographic). Compare metrics: accuracy, TPR, FPR, precision, recall. Report disparities—e.g., "Group A: 90% accuracy; Group B: 75% accuracy." Document limitations: "Not validated for use case X." Write an intended use statement: what the model is designed for, and what it is not. Lab 2: Add bias audit to the governance simulator. Simulate scenarios: e.g., a model trained on biased data, or deployed in a context where one group is underrepresented. The simulator runs bias checks and produces reports for governance review. Connect to the audit tool (Ch2) for traceability.
+
+===== Key Points
+
+* Audit across groups
+* Document limitations
+* Lab 2: Bias audit in simulator
+
+==== Philosophical Reflection
+
+Fairness is contested—there is no single correct definition. Different stakeholders (users, regulators, affected communities, developers) may prefer different definitions, and they can conflict. Transparency as accountability: we expose the system to scrutiny. Documenting limitations, intended use, and audit results enables others to assess whether the system is appropriate. The politics of fairness: who defines it? Who benefits from a given definition? Technical choices (which metric to optimize) have political consequences. The instructor note above reminds us to frame these as design choices with tradeoffs, not as problems with a single correct answer.
+
+Bias is not only in the model—it can be in the data (historical inequity), the model (amplification), or the deployment context (who is underrepresented in use). The governance simulator's bias audit (Lab 2) lets you run scenarios and compare metrics across groups; the audit tool (Ch2) connects traceability so that when a decision harms someone, we can ask what the system knew and how it was trained.
+
+===== Key Points
+
+* Fairness contested
+* Transparency = accountability
+* Politics of fairness
+* Bias: data, model, deployment; simulator + audit tool (Ch2) for traceability
+
+.Figure 11.3: Fairness metrics, bias sources
+[plantuml,ch11-l03,png,theme=sketchy-outline]
+....
+@startuml
+start
+:Data Bias;
+:Model;
+:Model Bias;
+:Deployment Bias;
+:Audit;
+stop
+@enduml
+....
+
+==== Discussion Prompts
+
+* Which fairness definition should we use?
+* How do we detect bias in generative AI?
+* What does "transparency" require?
+* How does fairness auditing integrate with the audit tool (Ch2)?
+* How does the governance simulator run bias audits?
+* When does fairness constrain vs. enable deployment?
+
+==== Lab Prep
+
+Lab 2: Simulate governance scenarios. Include bias audit. The simulator checks model outputs across groups. Document findings. See Lab 2 for requirements.
+
+===== Key Points
+
+* Lab 2: Bias audit
+* Simulate scenarios
+* Document findings
+
+
+==== Reading
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch11,Chapter 11>>).

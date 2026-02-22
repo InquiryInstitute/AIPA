@@ -1,0 +1,2 @@
+json
+{ "tool":"search", "input":"quantum error correction", "output":"[503 error]", "timestamp":"2026-02-20T14:32:01Z", "status":"failed" }

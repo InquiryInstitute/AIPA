@@ -1,0 +1,3 @@
+http
+GET https://api.semanticscholar.org/graph/v1/paper/DOI:10.1038/s41586-020-2649-2?fields=title,abstract,authors,citationCount
+Accept: application/json

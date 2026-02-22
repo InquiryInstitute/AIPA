@@ -1,0 +1,44 @@
+=== Lab 2: ML — Model Training and Evaluation
+:leveloffset: 2
+
+*Milestone toward: ML Model Trainer (tool)*
+
+==== Tool Deliverable
+
+Extends tool server `ml_trainer` with `train`, `evaluate`, `compare_models`. Agent trains and evaluates models via tool invocation.
+
+==== Prerequisites
+
+* Complete Lab 1 (data pipeline)
+* Review 4.3–4.5: regularization; model selection; evaluation metrics; cross-validation
+
+==== Objectives
+
+* Train baseline and improved models
+* Implement cross-validation and metrics
+* Track experiments (e.g., MLflow, Weights & Biases)
+
+==== Steps
+
+. Implement a training loop: load data (from Lab 1), train a baseline model (e.g., logistic regression, decision tree). Support config for model type and hyperparameters.
+. Add evaluation: compute accuracy, precision, recall, F1 (classification) or MSE, R² (regression). Support validation set evaluation.
+. Add cross-validation: k-fold CV for model selection. Compare at least 2 models or 2 hyperparameter settings.
+. Add regularization: L1, L2, or both. Tune strength via validation.
+. Optionally: integrate MLflow or W&B to log params, metrics, and model artifacts.
+. Submit: training pipeline, evaluation report (metrics for baseline and improved model), submodule into student-ai/.
+
+==== Deliverables
+
+* Training pipeline
+* Evaluation report
+* Submodule into student-ai/
+
+*Acceptance criteria:*
+* Training runs without errors; model converges or completes
+* Evaluation report includes at least 3 metrics
+* Cross-validation compares at least 2 configurations
+* Code supports config-driven model and hyperparameters
+
+==== Lab Prep
+
+* Review 4.3–4.5: regularization; cross-validation; metrics

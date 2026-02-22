@@ -1,0 +1,14 @@
+python
+from ml_trainer import load_data, train, evaluate, export_model
+config = {
+    "data_source": "memory://emails",
+    "model_type": "neural_classifier",
+    "learning_rate": 0.01,
+    "epochs": 5,
+    "metrics": ["accuracy", "f1"]
+}
+df = load_data(config["data_source"])
+model = train(df, config)
+metrics = evaluate(model, df, config["metrics"])
+export_model(model, version="v1.0", metadata=metrics)
+print("Training complete –", metrics)

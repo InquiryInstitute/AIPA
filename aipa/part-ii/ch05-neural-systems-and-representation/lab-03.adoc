@@ -1,0 +1,47 @@
+=== Lab 3: Neural Classifier — End-to-End Pipeline
+:leveloffset: 2
+
+*Final deliverable: Neural Classifier (tool)*
+
+==== Tool Deliverable
+
+Complete tool server `neural_classifier`. Tools: `create_architecture`, `train`, `predict`, `export`. Register in agent tool config.
+
+==== Prerequisites
+
+* Complete Labs 1 and 2 (architecture, training, regularization)
+* Review 5.6–5.8: CNN; deployment; tool schema; neural_classifier as agent tool
+
+==== Objectives
+
+* Integrate data, model, training, evaluation
+* Support configurable architectures
+* Export for inference
+
+==== Steps
+
+. Consolidate create_architecture, train, predict into one module. Expose tool schema: create_architecture(config), train(config), predict(model_path, data).
+. Add predict: load model, run forward pass, return predictions (class labels or probabilities).
+. Add export: save model in format suitable for deployment (e.g., PyTorch state_dict, ONNX, or pickle).
+. Support configurable architectures: MLP layer sizes, activation, dropout. Optionally: CNN for image input.
+. Run end-to-end: create → train → predict → export. Evaluate on held-out test set.
+. Register neural_classifier in agent tool config. Document schema.
+. Submit: working classifier, model cards (architecture, dataset, metrics), integration as submodule in student-ai/.
+
+==== Deliverables
+
+* Working classifier
+* Model cards
+* Integration as submodule in student-ai/
+
+*Acceptance criteria:*
+* create_architecture(config) returns model
+* train(config) runs and returns model path + metrics
+* predict(model_path, data) returns predictions
+* export saves loadable model
+* Model card documents architecture, data, and performance
+* README explains usage and agent integration
+
+==== Lab Prep
+
+* Review 5.6–5.8: CNN; export; tool schema

@@ -1,0 +1,2 @@
+bash
+docker compose -f student-ai/orchestration/docker-compose.yml up -d

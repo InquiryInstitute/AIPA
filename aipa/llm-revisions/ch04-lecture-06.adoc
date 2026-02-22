@@ -1,0 +1,25 @@
+python
+import mlflow
+import mlflow.sklearn
+import torch
+import numpy as np
+
+def train(model, cfg, train_loader):
+    # 1️⃣ Start a run – the context manager guarantees proper closure
+    with mlflow.start_run() as run:
+        # 2️⃣ Log hyper‑parameters and seeds
+        mlflow.log_params(cfg)
+        mlflow.log_param("numpy_seed", cfg["seed"])
+        mlflow.log_param("torch_seed", cfg["seed"])
+        np.random.seed(cfg["seed"])
+        torch.manual_seed(cfg["seed"])
+
+        # 3️⃣ Train the model (example loop omitted)
+        for epoch in range(cfg["epochs"]):
+            loss = train_one_epoch(model, train_loader)
+            mlflow.log_metric("loss", loss, step=epoch)
+
+        # 4️⃣ Log the final model artifact
+        mlflow.sklearn.log_model(model, "model")
+        # 5️⃣ Store the full configuration for later replay
+        mlflow.log_dict(cfg, "config.yaml")

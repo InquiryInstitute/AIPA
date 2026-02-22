@@ -1,0 +1,44 @@
+=== Lab 2: Orchestration — Multi-Agent Coordination
+:leveloffset: 2
+
+*Milestone toward: Agent Orchestrator (tool client)*
+
+==== Tool Deliverable
+
+Implements multi-agent coordination via tool invocation. Agents delegate to each other and to tools. Handles delegation protocol over the tool interface.
+
+==== Prerequisites
+
+* Complete Lab 1 (pipeline design)
+* Review 10.2–10.3: multi-agent; tool client; delegation
+
+==== Objectives
+
+* Coordinate multiple agents (specialist, generalist)
+* Implement delegation and handoff
+* Handle conflicts and consensus
+
+==== Steps
+
+. Implement tool client: connect to all student tool servers (search, memory, llm, audit, etc.). Discover tools at startup.
+. Implement routing: given a task, decide which tool(s) to invoke. Support simple routing (keyword, task type) or LLM-based.
+. Add delegation: one "agent" (orchestrator) delegates sub-tasks to tools or sub-agents. Implement handoff protocol (pass task spec, receive result).
+. Optionally: implement multi-agent coordination (researcher, writer, critic). Each may be a tool or a sub-agent. Orchestrator coordinates.
+. Test: run "Research X and summarize." Orchestrator routes to search, then llm. Verify handoff works.
+. Submit: multi-agent coordination logic (or tool client with delegation), submodule into student-ai/.
+
+==== Deliverables
+
+* Multi-agent coordination logic
+* Delegation protocol
+* Submodule into student-ai/
+
+*Acceptance criteria:*
+* Tool client connects to at least 3 tool servers
+* Routing invokes correct tools for a sample task
+* Delegation/handoff returns result to orchestrator
+* README documents coordination model and protocol
+
+==== Lab Prep
+
+* Review 10.2–10.3: multi-agent; tool client; delegation
