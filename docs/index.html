@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Artificial Intelligence: A Postmodern Approach — AIPA</title>
+  <meta name="description" content="A graduate-level textbook and construction manual for building your own AI agent. Agent-first curriculum, metabolism of knowledge, RAG, memory systems, and tool integration.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ink: #1a1a1a;
+      --paper: #faf9f6;
+      --accent: #2d5a4a;
+      --accent-soft: #e8f0ed;
+      --muted: #5c5c5c;
+      --border: #e0ddd8;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: 'Crimson Pro', Georgia, serif;
+      font-size: 1.15rem;
+      line-height: 1.65;
+      color: var(--ink);
+      background: var(--paper);
+      -webkit-font-smoothing: antialiased;
+    }
+    .wrapper { max-width: 52rem; margin: 0 auto; padding: 0 1.5rem; }
+    header {
+      padding: 4rem 0 3rem;
+      border-bottom: 1px solid var(--border);
+    }
+    h1 {
+      font-size: clamp(1.75rem, 4vw, 2.25rem);
+      font-weight: 600;
+      margin: 0 0 0.5rem;
+      letter-spacing: -0.02em;
+    }
+    .subtitle {
+      font-size: 1.1rem;
+      color: var(--muted);
+      font-style: italic;
+      margin: 0;
+    }
+    .tagline {
+      margin-top: 1.5rem;
+      font-size: 1.25rem;
+      color: var(--accent);
+      max-width: 36rem;
+    }
+    main { padding: 3rem 0 4rem; }
+    section { margin-bottom: 3rem; }
+    section h2 {
+      font-size: 1.35rem;
+      font-weight: 600;
+      margin: 0 0 1rem;
+      color: var(--accent);
+    }
+    section p { margin: 0 0 1rem; }
+    section p:last-child { margin-bottom: 0; }
+    .features {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .features li {
+      padding: 0.75rem 0;
+      border-bottom: 1px solid var(--border);
+      padding-left: 1.5rem;
+      position: relative;
+    }
+    .features li::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 1.1rem;
+      width: 6px;
+      height: 6px;
+      background: var(--accent);
+      border-radius: 50%;
+    }
+    .features li:last-child { border-bottom: none; }
+    .features strong { color: var(--ink); }
+    .parts {
+      display: grid;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    .part {
+      background: var(--accent-soft);
+      padding: 1rem 1.25rem;
+      border-radius: 6px;
+      border-left: 3px solid var(--accent);
+    }
+    .part strong { display: block; margin-bottom: 0.35rem; color: var(--accent); }
+    .part span { font-size: 0.95rem; color: var(--muted); }
+    .cta {
+      margin-top: 2.5rem;
+      padding: 1.5rem 0;
+      border-top: 1px solid var(--border);
+    }
+    .cta a {
+      display: inline-block;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--paper);
+      background: var(--accent);
+      padding: 0.6rem 1.2rem;
+      border-radius: 6px;
+      text-decoration: none;
+      transition: background 0.2s, transform 0.1s;
+    }
+    .cta a:hover { background: #234a3d; transform: translateY(-1px); }
+    .cta a:active { transform: translateY(0); }
+    footer {
+      padding: 2rem 0;
+      font-size: 0.9rem;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+    }
+    footer a { color: var(--accent); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <header>
+      <h1>Artificial Intelligence: A Postmodern Approach</h1>
+      <p class="subtitle">AIPA</p>
+      <p class="tagline">Not only a textbook — a guided construction manual for intelligence. By the end, you will have built your own working AI agent.</p>
+    </header>
+    <main>
+      <section>
+        <h2>Who it’s for</h2>
+        <p>Graduate-level learners, including those <strong>without a computer science or technical background</strong>. If you come from the humanities, social sciences, policy, or other fields, you can succeed here: the curriculum is designed so that an <strong>AI Tutor</strong> supports you on demand, teaching programming, math, and tooling when you need them. Technical readers get the full agent-building path; everyone follows the same arc.</p>
+      </section>
+      <section>
+        <h2>What makes it different</h2>
+        <ul class="features">
+          <li><strong>Agent-first architecture.</strong> Every deliverable is an agent tool — a server your AI invokes. The orchestrator discovers and calls tools via the tool protocol (e.g. MCP).</li>
+          <li><strong>Metabolism of knowledge.</strong> AI as a catalyst in the circulation of ideas. Representation, retrieval, and reasoning as transformations within epistemic networks.</li>
+          <li><strong>Postmodern lens.</strong> Knowledge produced in networks, representation that excludes as well as includes, agency distributed across humans and systems. Optional readings from Borges, Dick, <em>Blade Runner</em>, and others.</li>
+          <li><strong>RAG, memory, and retrieval</strong> as first-class modules (Chapter 7).</li>
+          <li><strong>Tool schemas, ReAct, and orchestration</strong> (Chapters 9–10). Students build the tool client that discovers and routes to all tool servers.</li>
+          <li><strong>Labs as tools.</strong> Each chapter has three labs; every lab produces a tool. The capstone integrates them.</li>
+        </ul>
+      </section>
+      <section>
+        <h2>Structure of the book</h2>
+        <p>Four parts, twelve chapters. Supports a two-semester sequence or self-paced study.</p>
+        <div class="parts">
+          <div class="part"><strong>Part I — Foundations</strong> <span>Intelligence as Process, AI in Practice, Search and Planning</span></div>
+          <div class="part"><strong>Part II — Learning Systems</strong> <span>Learning from Data, Neural Systems and Representation, Language and Models</span></div>
+          <div class="part"><strong>Part III — Memory, Reasoning, Action</strong> <span>Memory Systems, Reasoning and Inference, Acting in the World</span></div>
+          <div class="part"><strong>Part IV — System Integration</strong> <span>Architectures of Intelligence, AI in Institutions, The Student’s Artificial Intelligence (Capstone)</span></div>
+        </div>
+      </section>
+      <section class="cta">
+        <a href="https://github.com/InquiryInstitute/AIPA">View repository — InquiryInstitute/AIPA</a>
+      </section>
+    </main>
+    <footer>
+      <a href="https://github.com/InquiryInstitute">Inquiry Institute</a> · Complementary to <em>Artificial Intelligence: A Modern Approach</em> (AIMA)
+    </footer>
+  </div>
+</body>
+</html>
