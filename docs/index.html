@@ -51,6 +51,19 @@
       color: var(--accent);
       max-width: 36rem;
     }
+    .cover-wrap {
+      margin-bottom: 2rem;
+      text-align: center;
+    }
+    .cover-wrap img {
+      width: 100%;
+      max-width: 280px;
+      height: auto;
+      border-radius: 4px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+      display: block;
+      margin: 0 auto;
+    }
     main { padding: 3rem 0 4rem; }
     section { margin-bottom: 3rem; }
     section h2 {
@@ -129,6 +142,9 @@
 <body>
   <div class="wrapper">
     <header>
+      <div class="cover-wrap">
+        <img src="cover.png" alt="Artificial Intelligence: A Postmodern Approach — book cover" width="280" height="auto">
+      </div>
       <h1>Artificial Intelligence: A Postmodern Approach</h1>
       <p class="subtitle">AIPA</p>
       <p class="tagline">Not only a textbook — a guided construction manual for intelligence. By the end, you will have built your own working AI agent.</p>
@@ -160,7 +176,8 @@
         </div>
       </section>
       <section class="cta">
-        <a href="https://github.com/InquiryInstitute/AIPA">View repository — InquiryInstitute/AIPA</a>
+        <!-- Replace href with your Stripe Payment Link: Stripe Dashboard → Payment links → Create link (product: AIPA textbook). See docs/STRIPE_SETUP.md -->
+        <a href="https://buy.stripe.com/REPLACE_WITH_YOUR_PAYMENT_LINK" id="purchase" class="cta-primary">Purchase the book</a>
       </section>
     </main>
     <footer>
