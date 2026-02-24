@@ -3,91 +3,196 @@
 
 [.epigraph]
 "Bias is not a bug—it is baked into the data and the design."
-— Buolamwini & Gebru, "Gender Shades" <<Buolamwini2018>>; Mehrabi et al. <<Mehrabi2019>> (adapted)
+— Buolamwini & Gebru, "Gender Shades" <<Buolamwini2018>>; Mehrabi et al. <<Mehrabi2019>> (adapted)
 
 *Responsible AI: fairness, bias detection, transparency.*
 
 [.instructor]
 ****
-*Note for Instructors:* Fairness and bias are sensitive topics. Students may have personal experience with discriminatory systems. Frame discussions as design choices with tradeoffs; avoid implying that any single fairness definition is "correct." Reference Buolamwini & Gebru, Mehrabi et al. for grounding.
+*Note for Instructors:* Fairness and bias are sensitive topics. Students may have personal experience with discriminatory systems. Frame discussions as design choices with trade‑offs; avoid implying that any single fairness definition is “correct.” Reference Buolamwini & Gebru, Mehrabi et al. for grounding.
 ****
 
-==== Example Prompts
+==== Hook: A Real‑World Tension
 
-* "Is this model fair across groups?" — _Demographic parity, equalized odds; audit for bias_
-* "Explain why you made this decision." — _Transparency: explainability, documentation_
-* "Document limitations." — _Intended use; what the model can and cannot do_
+A mid‑size regional bank rolled out an automated credit‑scoring model last summer. Within weeks, community advocates reported that loan applications from zip codes with a majority of Black residents were being rejected at a rate three times higher than applications from neighboring, predominantly White zip codes. The model had passed internal validation—overall accuracy was 87 % and the ROC‑AUC was 0.91—yet regulators halted its deployment and demanded an audit.  
+
+*Is the model “fair” because it performs well on aggregate, or is it unfair because it harms a specific group?* This tension between statistical performance and group‑level outcomes frames today’s exploration of fairness, bias, and transparency.
 
 ==== Conceptual Core
 
-"Is this model fair?" sounds like one question—but it is many. Fairness has no single technical definition; different stakeholders mean different things, and the definitions can conflict. So we start from that tension: responsible AI requires us to make fairness and bias explicit, even when we cannot reduce them to one metric.
+**Problem framing.**  The bank’s dilemma is not merely a statistical curiosity; it is a concrete illustration of how a high‑performing model can still violate societal expectations of equity.  When a regulator asks whether the model “treats all applicants equally,” the answer depends on which notion of equality we invoke.  By grounding the discussion in this real‑world case, we can see why a taxonomy of fairness definitions matters.
 
-Fairness has multiple formal definitions. Demographic parity: equal approval (or positive) rates across groups. Equalized odds: equal true positive rate and false positive rate across groups. Calibration: predicted probabilities match observed frequencies. No single definition captures "fairness" in all contexts—fairness is contested. Different stakeholders prefer different definitions; they can be mutually incompatible. Bias can arise at multiple stages: data bias (training distribution reflects historical inequalities), model bias (the learned function amplifies or encodes bias), deployment bias (context of use introduces disparity). Audit for bias: compare metrics (accuracy, TPR, FPR, etc.) across demographic or other groups. Transparency includes explainability (why did the model produce this output?) and documentation (intended use, limitations, known failure modes). Tradeoffs: improving fairness (e.g., via reweighting or post-processing) may reduce overall accuracy. Fairness is contested—which definition should we optimize? Transparency as accountability: we document to enable scrutiny by users, regulators, and affected communities.
+**Fairness definitions as lenses.**  Three families of formal fairness criteria dominate the literature, each highlighting a different intuition:
+
+* *Demographic parity* (DP) demands that the proportion of positive outcomes (loan approvals) be equal across protected groups.  *What‑if* the bank were required to meet DP?  Its current approval rate for the Black‑majority zip codes is 12 % versus 18 % for the White‑majority zip codes; achieving parity would require raising the former by 6 percentage points—potentially increasing the bank’s exposure to default risk.
+* *Equalized odds* (EO) requires that true‑positive rates (TPR) and false‑positive rates (FPR) be equal across groups.  In the bank’s model the TPR for the Black‑majority zip codes is 0.65 while for the White‑majority zip codes it is 0.78; the FPR gap is 0.09 versus 0.04.  Satisfying EO would force the bank to lower its decision threshold for the disadvantaged zip codes, again shifting the risk profile.
+* *Calibration* (also called predictive parity) insists that, for any predicted probability score, the observed outcome frequency be the same across groups.  The bank’s model predicts a 70 % chance of repayment for a subset of applicants; historically, that subset repays 68 % of the time for White‑majority zip codes but only 60 % for Black‑majority zip codes, indicating a calibration breach.
+
+These definitions are often mutually exclusive; improving one can worsen another.  The bank must therefore decide which normative goal aligns with its regulatory obligations and business strategy.
+
+**Bias sources across the pipeline.**  Bias can creep in at three distinct stages:
+
+1. *Data bias*: Historical loan records reflect past discrimination (e.g., fewer approved loans for minority neighborhoods), so the training set is already skewed.
+2. *Model bias*: Standard loss functions optimise overall accuracy, implicitly giving more weight to the majority group that dominates the data.
+3. *Deployment bias*: The model trained on one geographic region is deployed in another where demographic composition and economic conditions differ, amplifying existing disparities.
+
+Understanding where bias originates guides the choice of mitigation technique.
+
+**Audit pipeline and transparency tools.**  An audit is a systematic, repeatable process that surfaces these biases:
+
+* *Segment* the evaluation set by protected attributes (race, gender, geography).  
+* *Compute* a suite of fairness metrics (DP, EO, calibration) for each segment.  
+* *Report* disparities with visualisations and contextual notes.  
+* *Feedback* the findings into model development (re‑training, threshold adjustment, data collection).
+
+Transparency complements the audit.  Explainability methods such as SHAP or LIME reveal which features drove a particular loan denial, while documentation artifacts—model cards, datasheets, and fairness statements—record intended use, known limitations, and provenance.  Together, they create an evidence trail that regulators, auditors, and affected customers can examine.
+
+**Trade‑offs and contestability.**  Mitigation techniques—re‑weighting training examples, adversarial debiasing, post‑processing threshold adjustments—typically reduce overall accuracy or increase variance.  Selecting a fairness definition therefore becomes a *policy decision* that must balance stakeholder values (regulators, customers, investors) against business objectives (risk exposure, profit).  Because fairness is inherently contested, the design team should make these normative choices explicit, negotiate compromises, and document the rationale so future auditors can trace the decision path.
 
 ===== Key Points
 
-* Fairness: parity, equalized odds
-* Bias: data, model, deployment
-* Transparency: explainability, documentation
-* Tradeoffs: fairness vs. accuracy
-* Fairness contested
+* Problem framing: bank’s high‑accuracy model harms a protected group  
+* Fairness families: demographic parity, equalized odds, calibration (with “what‑if” mini‑cases)  
+* Bias sources: data, model, deployment  
+* Audit pipeline: segment → compute metrics → report → feedback loop  
+* Transparency tools: SHAP/LIME explainability, model cards, datasheets, fairness statements  
+* Trade‑offs: mitigation ↔ accuracy / variance; policy decision required  
+* Contestability: explicit negotiation among regulators, customers, investors, and engineers  
 
 ==== Technical Example
 
-Audit a model for bias. Split test data by group (e.g., demographic, geographic). Compare metrics: accuracy, TPR, FPR, precision, recall. Report disparities—e.g., "Group A: 90% accuracy; Group B: 75% accuracy." Document limitations: "Not validated for use case X." Write an intended use statement: what the model is designed for, and what it is not. Lab 2: Add bias audit to the governance simulator. Simulate scenarios: e.g., a model trained on biased data, or deployed in a context where one group is underrepresented. The simulator runs bias checks and produces reports for governance review. Connect to the audit tool (Ch2) for traceability.
+The *Adult* income dataset is a standard benchmark for fairness research.  We train a logistic‑regression classifier to predict whether an individual earns > $50 k per year.  The following Python snippet partitions the test set by gender and computes true‑positive rate (TPR) and false‑positive rate (FPR) for each group:
+
+```python
+import pandas as pd
+from sklearn.metrics import confusion_matrix
+
+def group_metrics(df, model, group_col='sex'):
+    results = {}
+    for g, sub in df.groupby(group_col):
+        y_true = sub['income>50K']
+        X = sub.drop(columns=['income>50K', group_col])
+        y_pred = model.predict(X)
+        tn, fp, fn, tp = confusion_matrix(y_true, y_pred).ravel()
+        results[g] = {
+            'TPR': tp / (tp + fn),
+            'FPR': fp / (fp + tn)
+        }
+    return pd.DataFrame(results).T
+
+metrics = group_metrics(test_df, clf)
+print(metrics)
+```
+
+Running the code yields, for example, TPR = 0.78 for males and TPR = 0.62 for females, while FPR = 0.12 for males and FPR = 0.18 for females.  **What‑if** we required equalized odds?  The gap in TPR (16 pp) and FPR (6 pp) signals a violation that would likely trigger regulator scrutiny.
+
+To mitigate the disparity we apply **post‑processing equalized odds** (Hardt et al., 2016), adjusting decision thresholds per group until TPR and FPR align.  After mitigation, TPR converges to ≈ 0.70 for both groups, and FPR drops to ≈ 0.15.  Overall accuracy falls modestly from 0.84 to 0.81, illustrating the classic fairness‑accuracy trade‑off.
+
+In Lab 2 you will implement a function `run_audit(model, data, group_col)` that reproduces this pipeline, visualises the metric gaps, and then applies a chosen mitigation strategy.  The lab also requires you to update the model’s documentation with a *Fairness Statement* summarising the chosen definition, observed gaps, and mitigation outcome.
 
 ===== Key Points
 
-* Audit across groups
-* Document limitations
-* Lab 2: Bias audit in simulator
+* Load and split the public Adult dataset for fairness analysis  
+* Compute TPR/FPR per protected group with a concise Python function  
+* Visualise disparities with a side‑by‑side bar chart (described)  
+* Apply post‑processing equalized‑odds mitigation and observe trade‑offs  
+* Lab 2 tasks: implement `run_audit`, generate visual reports, write a Fairness Statement  
 
 ==== Philosophical Reflection
 
-Fairness is contested—there is no single correct definition. Different stakeholders (users, regulators, affected communities, developers) may prefer different definitions, and they can conflict. Transparency as accountability: we expose the system to scrutiny. Documenting limitations, intended use, and audit results enables others to assess whether the system is appropriate. The politics of fairness: who defines it? Who benefits from a given definition? Technical choices (which metric to optimize) have political consequences. The instructor note above reminds us to frame these as design choices with tradeoffs, not as problems with a single correct answer.
+Returning to the bank, the choice between a Rawlsian “fair equality of opportunity” and a utilitarian “maximise overall welfare” is no longer abstract.  If the regulator insists on demographic parity—a Rawlsian demand—the bank must raise approval rates for the disadvantaged zip codes, potentially increasing its portfolio risk.  A utilitarian stance would permit the current accuracy‑focused model, arguing that the higher aggregate approval rate benefits the majority of customers and shareholders.  The very act of selecting a fairness definition therefore encodes a normative judgment about whose interests are privileged.
 
-Bias is not only in the model—it can be in the data (historical inequity), the model (amplification), or the deployment context (who is underrepresented in use). The governance simulator's bias audit (Lab 2) lets you run scenarios and compare metrics across groups; the audit tool (Ch2) connects traceability so that when a decision harms someone, we can ask what the system knew and how it was trained.
+**Stakeholder mapping makes these judgments visible.**  Regulators often mandate demographic parity to protect historically marginalized groups; product managers may prioritise accuracy to satisfy investors; affected communities demand transparency to understand why a denial occurred; risk officers worry about default rates.  By explicitly documenting *who* advocated for each metric and *why*, teams create an audit trail that can be revisited as policies evolve or new regulations emerge.
+
+Emerging legal frameworks—such as the EU’s AI Act and the U.S. Algorithmic Accountability Act—are beginning to codify fairness requirements (e.g., “no unjustified disparate impact”).  These statutes will push organisations to embed bias‑audit checks early in the development lifecycle, turning what is now a post‑hoc audit into a **continuous governance** activity.  In practice this means the audit pipeline described earlier runs automatically on every model version, feeding results into a risk‑register that triggers mandatory mitigation before deployment.
+
+The broader question for tomorrow’s AI practitioners is not merely “how do we make a model fair?” but “how do we design institutions that can negotiate, enforce, and evolve fairness standards over time?”  Building transparent documentation, maintaining an auditable bias‑audit module, and fostering interdisciplinary dialogue are the institutional levers that turn fairness from a one‑off fix into a sustainable organisational capability.
 
 ===== Key Points
 
-* Fairness contested
-* Transparency = accountability
-* Politics of fairness
-* Bias: data, model, deployment; simulator + audit tool (Ch2) for traceability
+* Rawlsian vs. utilitarian fairness philosophies illustrated by the bank case  
+* Stakeholder mapping: regulators, product managers, risk officers, affected communities, investors  
+* Documentation of normative choices creates an audit trail for future policy shifts  
+* Emerging regulations (EU AI Act, U.S. Algorithmic Accountability Act) will formalise fairness requirements  
+* Continuous governance: automated audit loop, risk‑register integration, institutional negotiation  
 
-.Figure 11.3: Fairness metrics, bias sources
+==== Discussion Prompts
+
+* Which fairness definition aligns best with the bank’s regulatory environment, and why might another definition be more appropriate in a different context?  
+* How would you extend the bias‑audit pipeline to a generative‑AI system that produces text or images?  
+* What concrete artifacts constitute “transparency” for a black‑box model deployed in a high‑stakes domain?  
+* In what ways can the audit tool from Chapter 2 be integrated into continuous integration pipelines to enforce fairness thresholds automatically?  
+* How does the governance simulator’s bias‑audit feature help you explore “what‑if” scenarios about policy changes?  
+* How might GDPR’s “right to explanation” intersect with the fairness metrics you have computed?  
+
+==== Lab Prep
+
+In Lab 2 you will extend the governance simulator with a **bias‑audit module**. The module will (1) ingest a trained model and a test set, (2) automatically segment the data by any protected attribute you specify, (3) compute a suite of fairness metrics (demographic parity, equalized odds, calibration) per group, (4) visualise the disparities, and (5) apply a selectable mitigation strategy (re‑weighting, adversarial debiasing, post‑processing). You will also produce a **Model Card** that records the chosen fairness definition, observed gaps, mitigation steps, and a brief “Fairness Statement” for stakeholders.  
+
+The lab worksheet guides you through (a) writing the `run_audit` function, (b) interpreting the generated reports, and (c) reflecting on the trade‑offs you observe. Successful completion demonstrates competence in both technical bias detection and the documentation practices essential for responsible AI governance. In the next lecture we will extend these governance tools to address robustness and adversarial risk, completing the responsible‑AI toolbox.
+
+===== Key Points
+
+* Implement `run_audit(model, data, group_col)` within the simulator  
+* Compute and visualise DP, EO, and calibration metrics per group  
+* Choose and apply a mitigation technique; observe accuracy‑fairness trade‑off  
+* Produce a Model Card with a Fairness Statement documenting decisions  
+* Connect audit results to the governance simulator’s risk‑register workflow  
+* Forward bridge: upcoming lecture on robustness and adversarial risk  
+
+.Figure 11.3: Systemic view of bias sources, audit, and transparency
 [plantuml,ch11-l03,png,theme=sketchy-outline]
 ....
 @startuml
-start
-:Data Bias;
-:Model;
-:Model Bias;
-:Deployment Bias;
-:Audit;
-stop
+skinparam backgroundColor #F9F9F9
+skinparam ArrowColor #0066CC
+skinparam rectangle {
+  BackgroundColor #EFEFEF
+  BorderColor #999999
+}
+skinparam package {
+  BackgroundColor #FFFFFF
+  BorderColor #CCCCCC
+}
+skinparam note {
+  BackgroundColor #FFFFE0
+  BorderColor #AAAA00
+}
+skinparam shadowing false
+
+package "Data Layer" {
+  [Historical Data] --> [Training Set] : sampling
+  [Training Set] --> [Model] : train
+}
+package "Model Layer" {
+  [Model] --> [Deployment] : serve
+}
+package "Deployment Layer" {
+  [Deployment] --> [End‑User] : predictions
+}
+package "Audit & Transparency" {
+  [Audit] --> [Metrics] : compute (DP, EO, Calib)
+  [Metrics] --> [Model] : re‑train / adjust
+  [Metrics] --> [Deployment] : threshold tweak
+  [Audit] --> [Documentation] : record findings
+  [Documentation] --> [End‑User] : model card / explanation
+}
+[Historical Data] --> [Audit] : data‑bias check
+[Model] --> [Audit] : model‑bias check
+[Deployment] --> [Audit] : deployment‑bias monitor
+
+note right of [Audit & Transparency] : Continuous Governance Loop
 @enduml
 ....
 
 ==== Discussion Prompts
 
-* Which fairness definition should we use?
-* How do we detect bias in generative AI?
-* What does "transparency" require?
-* How does fairness auditing integrate with the audit tool (Ch2)?
-* How does the governance simulator run bias audits?
-* When does fairness constrain vs. enable deployment?
-
-==== Lab Prep
-
-Lab 2: Simulate governance scenarios. Include bias audit. The simulator checks model outputs across groups. Document findings. See Lab 2 for requirements.
-
-===== Key Points
-
-* Lab 2: Bias audit
-* Simulate scenarios
-* Document findings
-
+* Which fairness definition aligns best with the bank’s regulatory environment, and why might another definition be more appropriate in a different context?  
+* How would you extend the bias‑audit pipeline to a generative‑AI system that produces text or images?  
+* What concrete artifacts constitute “transparency” for a black‑box model deployed in a high‑stakes domain?  
+* In what ways can the audit tool from Chapter 2 be integrated into continuous integration pipelines to enforce fairness thresholds automatically?  
+* How does the governance simulator’s bias‑audit feature help you explore “what‑if” scenarios about policy changes?  
+* How might GDPR’s “right to explanation” intersect with the fairness metrics you have computed?  
 
 ==== Reading
-For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch11,Chapter 11>>).
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch11,Chapter 11>>).

@@ -3,62 +3,95 @@
 
 [.epigraph]
 "The LLM is the agent's language organ."
-— Vaswani et al., "Attention Is All You Need" <<Vaswani2017>> (adapted)
+— Vaswani et al., *Attention Is All You Need* <<Vaswani2017>> (adapted)
 
 ==== Example Prompts
 
-* "Embed this for similarity search." — _embed(text) → vector; feeds memory retrieval_
-* "Generate a response to this prompt." — _generate(prompt) → text; agent delegates language_
+* "Embed this for similarity search." — _embed(text) → vector; feeds memory retrieval_  
+* "Generate a response to this prompt." — _generate(prompt) → text; agent delegates language_  
 * "Use template X with variables Y." — _prompt(template_id, vars); cache for reuse_
 
 ==== Conceptual Core
 
 *Hook.*  
-Imagine a customer‑support chatbot that must answer a regulatory question about data‑retention within **two seconds**. The bot can either **retrieve** the exact policy paragraph from a knowledge base (using an embedding lookup) or **generate** a free‑form answer from the LLM. *When should it reach for the fast, cheap retrieval path, and when does it need the expressive power of generation?* This tension—speed versus depth, cost versus completeness—drives the design of the **llm tool**.
+Imagine a customer‑support chatbot that must answer a regulatory question about data‑retention **within two seconds**. The bot can either **retrieve** the exact policy paragraph from a knowledge base (using an embedding lookup) or **generate** a free‑form answer from the LLM. When the request is routine—*“What is the retention period for logs?”*—the fastest, cheapest path is a cache hit or a similarity‑search retrieval. When the user asks a nuanced “What are the implications of the new GDPR amendment for cross‑border transfers?” the system must summon the LLM’s reasoning power. This tension—*speed vs. depth, cost vs. completeness*—is the engine that drives the design of the **llm tool**.
 
 *Tool schema.*  
-The agent’s language interface collapses into four primitives:
+The language façade of any agent can be reduced to four primitives, each deliberately thin so that the orchestrator can decide **where** they run (local GPU, hosted API, edge device) and **when** they run (cache‑first, latency‑aware, cost‑aware).
 
-1. **embed(text)** – turns raw text into a dense vector for similarity search.  
-2. **generate(prompt, params?)** – sends a fully‑formed prompt to the LLM and returns raw text.  
-3. **prompt(template_id, vars)** – fills a stored template with variables, producing a ready‑to‑send prompt.  
-4. **cache(key, value?)** – a read‑through store that returns a cached result if present, otherwise records a new one.
+[options="header"]
+|===
+| Primitive | Signature | Primary Role | Typical Latency
 
-These primitives are deliberately minimal; they let the orchestrator (Chapter 10) decide *how* and *where* the work happens—local GPU, OpenRouter, or a hosted API—while the agent focuses on *when* to call.
+| embed(text) | embed(text: str) → vector | Turn raw text into a dense vector for similarity search | ~30 ms (local) – 200 ms (remote)
+
+| generate(prompt, params?) | generate(prompt: str, params?: dict) → text | Send a fully‑formed prompt to the LLM and receive raw text | 300 ms – 2 s (model‑dependent)
+
+| prompt(template_id, vars) | prompt(id: str, vars: dict) → str | Fill a stored template with variables, producing a ready‑to‑send prompt | <10 ms (local lookup)
+
+| cache(key, value?) | cache(key: str, value?: any) → any | Read‑through store; returns cached result or records a new one | <5 ms (in‑memory)
+|===
+
+*Decision matrix.*  
+When the orchestrator receives a request it first builds a **deterministic key** (hash of the fully‑filled prompt). The cache is consulted; a hit short‑circuits the whole pipeline. On a miss the orchestrator consults a **decision matrix** that balances three quantitative axes:
+
+[options="header"]
+|===
+| Latency budget | Cost budget | Desired precision | Chosen path
+
+| ≤ 150 ms | ≤ $0.001 | High recall (exact policy) | embed → retrieve → prompt → generate (retrieval‑augmented)
+
+| ≤ 150 ms | > $0.001 | Low precision acceptable | embed → retrieve → prompt (no generation)
+
+| > 150 ms | ≤ $0.005 | High precision required | generate only (creative answer)
+
+| > 150 ms | > $0.005 | Low precision acceptable | generate only (fallback)
+
+|===
+
+The matrix is not static; a learning component can adjust thresholds based on observed traffic patterns, SLA violations, or budget alerts. The key point is that **the agent decides** which primitive to invoke; the LLM itself remains a pure tool.
 
 *Orchestration and cache‑first strategy.*  
-When the agent needs language, it first queries **cache** with a deterministic key (e.g., the hash of the prompt). A cache hit bypasses both embed and generate, saving latency and cost. On a miss, the orchestrator follows a decision matrix (see below) to choose **embed** (for retrieval‑heavy tasks) or **generate** (for creative or open‑ended tasks). The selected tool runs, its output is optionally post‑processed (safety filters, formatting), then stored back in the cache for future reuse.
+1. **Cache lookup** – deterministic key → value (if any).  
+2. **Cache miss** – orchestrator evaluates the matrix.  
+3. **Embed path** – call `embed`, store vector, perform similarity search against the memory store, retrieve top‑k documents, inject them into the template via `prompt`.  
+4. **Generate path** – either directly call `generate` (creative mode) or after step 3 to produce a RAG answer.  
+5. **Post‑process** – safety filter, token budget enforcement, cost accounting.  
+6. **Cache store** – the final answer (or intermediate document list) is written back with the same key for future reuse.
+
+Because every cache entry is keyed by the *exact* prompt, the system can guarantee **idempotence**: repeating the same request will always return the same cached answer unless the underlying policy version changes (handled by TTL or versioned keys, see Lab Prep).
 
 *Integration with memory and routing.*  
-The **embed** primitive feeds directly into the memory subsystem (Chapter 7): vectors are stored, indexed, and later used for similarity search. Retrieved documents become part of the **prompt** payload, enriching the subsequent **generate** call. Routing logic can prefer a local model for privacy‑sensitive queries or an OpenRouter endpoint for high‑quality generation, with cost caps enforced by the orchestrator.
+The `embed` primitive feeds the **memory subsystem** (Chapter 7). Vectors are persisted in a vector store (e.g., FAISS, Milvus) and indexed for fast similarity lookup. Retrieved documents become part of the `prompt` payload, enriching the subsequent `generate` call with grounding evidence. Routing logic can be policy‑driven: privacy‑sensitive queries are forced to a **local** model, while high‑quality creative queries are sent to an **OpenRouter** endpoint. Cost caps are enforced by the orchestrator before the `generate` call, aborting the request if the projected token usage would exceed the budget.
 
 *Closing bridge.*  
-Understanding this tool schema equips you to build a **single, cache‑aware language façade** for any agent. In Lab 3 you will implement the FastAPI server that exposes these endpoints, wire it to the memory layer, and experiment with cost‑aware routing—laying the groundwork for a responsible, production‑ready AI assistant.
+By mastering this four‑primitive schema, you acquire a **single, cache‑aware language façade** that can be dropped into any agent architecture, from a tiny edge device to a cloud‑scale assistant. In Lab 3 you will implement the FastAPI server that exposes these endpoints, wire it to a real vector store, and experiment with a cost‑aware routing policy—laying the groundwork for a responsible, production‑ready AI assistant.
 
 ===== Key Points
 
 * Scenario‑driven tension: speed vs. depth, cost vs. completeness  
-* Four‑primitive llm tool schema: embed, generate, prompt, cache  
-* Cache‑first strategy reduces latency and expense  
-* Decision matrix guides embed vs. generate selection  
-* Orchestrator handles routing (local vs. OpenRouter) and post‑processing  
-* Embed feeds memory retrieval; retrieved docs enrich generate prompts  
-* Responsibility lies with the agent for call timing and result use  
-* Lab 3 will cement the schema into a working service  
+* Four‑primitive llm tool schema: embed, generate, prompt, cache (with signatures)  
+* Decision matrix balances latency, cost, and precision to pick embed vs. generate  
+* Cache‑first strategy guarantees idempotence and reduces latency & expense  
+* Orchestrator handles routing (local vs. OpenRouter) and post‑processing (safety, token budget)  
+* Embed feeds memory retrieval; retrieved docs enrich generate prompts (RAG)  
+* Deterministic keys enable versioned caching and auditability  
+* Lab 3 will cement the schema into a working service and explore governance knobs  
 
 ==== Technical Example
 
-First, we expose the llm tool as a tiny FastAPI service. The code below defines the four endpoints and a simple in‑memory cache. It also demonstrates how the orchestrator can switch between a local model and an OpenRouter endpoint based on a `provider` flag.
+First, we expose the llm tool as a tiny FastAPI service. The code below defines the four endpoints, a deterministic‑key cache, and a simple provider‑switch that toggles between a local model and an OpenRouter endpoint. The service also logs latency and estimated cost for each call, which will be visualised in Lab 3.
 
 [source,python]
 ----
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-import hashlib, json, os
+import hashlib, json, os, time
 
 app = FastAPI()
 cache_store = {}
 
+# ---------- request models ----------
 class EmbedReq(BaseModel):
     text: str
 
@@ -70,105 +103,168 @@ class PromptReq(BaseModel):
     template_id: str
     vars: dict
 
+# ---------- utility ----------
 def _hash_key(payload: dict) -> str:
+    """Deterministic hash for cache keys."""
     return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
 
+def _log(metric: str, value: float):
+    # Placeholder: in production send to Prometheus / Grafana
+    print(f"[log] {metric}: {value:.3f}")
+
+# ---------- cache ----------
 @app.post("/cache/get")
 def cache_get(key: str):
-    return {"value": cache_store.get(key)}
+    start = time.time()
+    value = cache_store.get(key)
+    _log("cache_get_latency", time.time() - start)
+    return {"value": value}
 
 @app.post("/cache/set")
 def cache_set(key: str, value: dict):
+    start = time.time()
     cache_store[key] = value
+    _log("cache_set_latency", time.time() - start)
     return {"status": "stored"}
 
+# ---------- embed ----------
 @app.post("/embed")
 def embed(req: EmbedReq):
-    # Placeholder: replace with actual embedding model
-    vector = [0.1] * 768
+    start = time.time()
+    # Real implementation would call Sentence‑Transformers or OpenAI embeddings
+    vector = [0.01] * 768
+    _log("embed_latency", time.time() - start)
     return {"vector": vector}
 
+# ---------- generate ----------
 @app.post("/generate")
 def generate(req: GenerateReq):
+    start = time.time()
     provider = os.getenv("LLM_PROVIDER", "openrouter")
+    # Mock token usage & cost estimation
+    token_est = len(req.prompt.split()) * 1.5
+    cost_est = token_est * (0.00002 if provider == "openrouter" else 0.00001)
     if provider == "local":
-        # call local model (e.g., llama.cpp)
-        text = "[local] " + req.prompt
+        text = f"[local] {req.prompt}"
     else:
-        # call OpenRouter API (mocked here)
-        text = "[openrouter] " + req.prompt
-    return {"text": text}
+        text = f"[openrouter] {req.prompt}"
+    _log("generate_latency", time.time() - start)
+    _log("generate_token_est", token_est)
+    _log("generate_cost_est", cost_est)
+    return {"text": text, "tokens": token_est, "cost_usd": cost_est}
 
+# ---------- prompt ----------
 @app.post("/prompt")
 def prompt(req: PromptReq):
-    # Simple template lookup (mock)
-    templates = {"policy_query": "Summarize policy {section} for {topic}."}
+    start = time.time()
+    templates = {
+        "policy_query": "Summarize policy {section} for {topic}.",
+        "compliance_check": "Does the following action comply with {regulation}? {action}"
+    }
     tmpl = templates.get(req.template_id)
     if not tmpl:
         raise HTTPException(404, "Template not found")
     filled = tmpl.format(**req.vars)
+    _log("prompt_latency", time.time() - start)
     return {"prompt": filled}
 ----
 
-Second, a client routine illustrates the **cache‑first** flow for a RAG request. It checks the cache, falls back to embed‑retrieve‑generate, and finally stores the result.
+Second, a client routine illustrates the **cache‑first** flow for a Retrieval‑Augmented Generation (RAG) request. It builds the prompt, checks the cache, falls back to embed → retrieve → generate, and finally stores the answer. The routine prints timestamps and cost estimates so that students can see the quantitative impact of a cache hit versus a miss.
 
 [source,python]
 ----
-import requests, hashlib, json
+import requests, hashlib, time, json
+
+BASE = "http://localhost:8000"
 
 def llm_request(template_id, vars):
     # 1️⃣ Build prompt
-    resp = requests.post("http://localhost:8000/prompt",
+    t0 = time.time()
+    resp = requests.post(f"{BASE}/prompt",
                          json={"template_id": template_id, "vars": vars}).json()
     prompt = resp["prompt"]
+    _log = lambda m, v: print(f"[{m}] {v:.3f}s")
+    _log("prompt_build", time.time() - t0)
 
-    # 2️⃣ Cache lookup
+    # 2️⃣ Deterministic cache key
     key = hashlib.sha256(prompt.encode()).hexdigest()
-    cached = requests.post("http://localhost:8000/cache/get",
-                           json={"key": key}).json()["value"]
+
+    # 3️⃣ Cache lookup
+    t1 = time.time()
+    cached = requests.post(f"{BASE}/cache/get", json={"key": key}).json()["value"]
     if cached:
-        return cached["text"]   # ✅ cache hit
+        _log("cache_hit", time.time() - t1)
+        return cached["text"]
 
-    # 3️⃣ Embed + retrieve (mocked)
-    vec = requests.post("http://localhost:8000/embed",
-                        json={"text": prompt}).json()["vector"]
-    # ... similarity search against memory ...
+    _log("cache_miss", time.time() - t1)
 
-    # 4️⃣ Generate
-    gen = requests.post("http://localhost:8000/generate",
-                        json={"prompt": prompt}).json()["text"]
+    # 4️⃣ Embed (mocked) – in a real system this would feed a vector store
+    t2 = time.time()
+    vec = requests.post(f"{BASE}/embed", json={"text": prompt}).json()["vector"]
+    _log("embed", time.time() - t2)
 
-    # 5️⃣ Store in cache
-    requests.post("http://localhost:8000/cache/set",
-                  json={"key": key, "value": {"text": gen}})
-    return gen
+    # 5️⃣ Retrieve (skipped – assume docs are found)
+    #    In practice you would query FAISS/Milvus here.
+
+    # 6️⃣ Generate
+    t3 = time.time()
+    gen = requests.post(f"{BASE}/generate",
+                        json={"prompt": prompt}).json()
+    _log("generate", time.time() - t3)
+
+    # 7️⃣ Store result in cache for future identical queries
+    requests.post(f"{BASE}/cache/set",
+                  json={"key": key, "value": {"text": gen["text"]}})
+
+    return gen["text"]
+
+# Example call
+print(llm_request("policy_query",
+                  {"section": "3.2", "topic": "data retention"}))
 ----
 
-Running `llm_request("policy_query", {"section":"3.2","topic":"data retention"})` will first attempt a cache hit, then embed the prompt, retrieve relevant policy excerpts, generate a concise answer, and finally cache the answer for the next identical query.
+Running the routine twice demonstrates a **sub‑second cache hit** on the second call, while the first call incurs embed + generate latency of roughly 350 ms and a modest cost estimate. Students can modify the `LLM_PROVIDER` environment variable to see how a higher‑quality remote model inflates latency and cost, reinforcing the decision‑matrix logic introduced earlier.
 
 ===== Key Points
 
-* FastAPI server implements embed, generate, prompt, cache endpoints  
-* Simple in‑memory cache keyed by deterministic hash of the prompt  
-* Provider flag enables local vs. OpenRouter routing  
-* Client flow: prompt → cache‑check → embed → retrieve → generate → cache‑store  
-* Cache hit bypasses both embed and generate, saving latency and cost  
-* Code is ready to be extended with real embedding models and vector stores  
+* FastAPI server implements the four primitives as HTTP endpoints  
+* Deterministic cache keyed by SHA‑256 of the fully‑filled prompt guarantees idempotence  
+* Provider flag (`LLM_PROVIDER`) enables local‑vs‑remote routing without code changes  
+* Client flow demonstrates the full cache‑first RAG pipeline with timing and cost logging  
+* Cache hit bypasses both embed and generate, cutting latency from ~350 ms to <5 ms  
+* Logging hooks (`_log`) provide data for the performance dashboards built in Lab 3  
+* Skeleton code is ready to be swapped for real embeddings, vector stores, and LLM APIs  
 
 ==== Philosophical Reflection
 
-The **llm tool** makes the agent an *epistemic delegate*: the agent does not “understand” language itself; it delegates that faculty to a specialized subsystem (the LLM). This mirrors a human assistant who relies on a calculator for arithmetic but decides *when* to hand over a problem. The agent retains responsibility for **strategic choices**—which tool to invoke, how to frame the prompt, and how to interpret the output—while the LLM provides the raw computational horsepower.
+The **llm tool** turns the agent into an *epistemic delegate*: the agent does not “understand” language itself; it decides *when* to outsource that faculty to a specialized subsystem (the LLM). This mirrors a human assistant who reaches for a calculator for arithmetic but chooses *when* to trust the calculator’s output. The agent retains strategic responsibility—prompt design, tool selection, and post‑processing—while the LLM supplies raw computational horsepower.
 
-Responsibility and governance therefore sit at the **tool boundary**. Hallucinations, bias, or cost overruns are not solely the LLM’s fault; they arise from the agent’s *calling policy*. By making cache usage explicit, logging each call, and enforcing provider‑level cost caps, we give the orchestrator (Chapter 11) the hooks it needs to audit, regulate, and intervene. In other words, the agent must be answerable for *when* it chose to query the LLM and *how* it used the result, while the LLM remains a powerful but bounded utility.
+*Accountability at the tool boundary.*  
+Consider a compliance‑critical incident: a financial‑services bot answers a regulator’s query with a hallucinated clause about “mandatory data‑encryption for all backups”. Because the orchestrator logged every cache key, provider choice, token count, and cost, an audit trail can pinpoint that the answer originated from a **generate‑only** path on a remote model, with no grounding documents retrieved. The cache entry shows the exact prompt that triggered the hallucination, enabling a post‑mortem fix (e.g., tightening the prompt template, adding a retrieval step, or lowering the temperature). Without an explicit tool boundary, the hallucination would be indistinguishable from a genuine policy excerpt, and responsibility would be diffused.
+
+*Governance mechanisms.*  
+1. **Audit logs** – every call records timestamp, provider, latency, token usage, and cost.  
+2. **Cost caps** – the orchestrator aborts generation if the projected cost exceeds a per‑request budget, forcing a fallback to retrieval‑only mode.  
+3. **TTL & versioned keys** – cache entries carry a policy version identifier; when a regulation updates, the TTL expires and the next request forces a fresh retrieval‑generate cycle.  
+4. **Safety filters** – post‑process steps can reject outputs that violate a profanity or bias whitelist before they are cached.  
+
+These mechanisms illustrate that *cognition emerges from the coupled system* of agent + llm + cache, not from the LLM in isolation. The agent’s design choices directly shape the ethical and economic profile of the whole service.
+
+*Design trade‑offs and future extensions.*  
+A cache‑first strategy improves latency and reduces cost but may serve stale information if policy documents change faster than the TTL. Conversely, always generating fresh answers guarantees up‑to‑date language but can explode cost under heavy traffic. Adaptive policies—where the decision matrix learns from recent latency spikes or cost overruns—offer a middle ground. Moreover, the tool schema is extensible: one can add a “summarize” primitive that calls a fine‑tuned summarizer before caching, or a “verify” primitive that runs a fact‑checking model on the LLM output. Each addition pushes the boundary of what the agent delegates versus what it retains, reshaping the accountability landscape.
+
+*Closing bridge.*  
+Understanding the philosophical stakes of the llm tool equips you to **design agents that are both performant and governable**. In the next lecture we will explore how agents can *learn* to adjust their decision matrix over time using reinforcement signals from latency, cost, and user satisfaction metrics—closing the loop between technical design and ethical stewardship.
 
 ===== Key Points
 
 * LLM as epistemic delegate – agent decides *when* to outsource language work  
-* Analogy: human assistant + calculator illustrates division of labor  
-* Agent bears responsibility for call timing, prompt design, and result handling  
-* Cache makes usage transparent, enabling audit trails and cost control  
-* Governance mechanisms (logging, caps) attach to the tool boundary  
-* Philosophical implication: cognition emerges from the *coupled* system, not from either component alone  
+* Accountability lives at the tool boundary; logs enable forensic audits of hallucinations  
+* Governance mechanisms (audit logs, cost caps, TTL, safety filters) are attached to the llm tool  
+* Cache‑first improves latency and cost but can serve stale data; TTL mitigates this  
+* Adaptive decision matrices let agents learn optimal embed vs. generate choices from operational feedback  
+* Extensible schema (e.g., summarize, verify) shifts responsibility and opens new governance questions  
+* Cognition emerges from the coupled agent + LLM + cache system, not from either component alone  
 
 .Figure 6.7: llm in agent stack
 [plantuml,ch06-l07,png,theme=sketchy-outline]
@@ -177,50 +273,57 @@ Responsibility and governance therefore sit at the **tool boundary**. Hallucinat
 skinparam backgroundColor #F9F9F9
 actor Agent
 rectangle "Cache?" as C
+diamond "Decision\n(latency, cost, precision)" as D
 rectangle "embed(text)" as E
 rectangle "Memory\n(similarity search)" as M
 rectangle "prompt(template, vars)" as P
 rectangle "generate(prompt)" as G
 rectangle "Post‑process\n(cost, safety)" as PP
+rectangle "Cache Store\n(set)" as CS
 rectangle "Response" as R
 
-Agent -> C : request
-C --> E : miss
+Agent -> C : request (hash(key))
+C --> D : miss
+D --> E : embed path?
+D --> G : generate path?
 E -> M : vector
 M --> E : docs
 E -> P : docs + vars
 P -> G : filled prompt
 G -> PP : raw text
-PP -> R : final answer
+PP -> CS : store(key, result)
+PP --> R : final answer
 R -> Agent : reply
 @enduml
 ....
 
 ==== Discussion Prompts
 
-* In the two‑second support scenario, how do you decide whether to **embed** (retrieve) or **generate**?
-* What are the trade‑offs of a **cache‑first** strategy for latency, cost, and answer freshness?
-* Should the LLM be classified as a *tool* or a *component* of the agent, and why does that distinction matter for governance?
-* How does the **decision matrix** (latency, cost, precision) influence the orchestrator’s routing logic?
-* In what ways does the tool boundary affect accountability for hallucinations or biased outputs?
-* How might you extend the cache (e.g., versioning, TTL) to balance reuse with policy updates?
+* In the two‑second support scenario, how would you set the latency and cost thresholds in the decision matrix to guarantee SLA compliance while staying within budget?  
+* What are the concrete trade‑offs of a **cache‑first** strategy for answer freshness versus latency, and how might TTL or versioned keys mitigate stale‑data risks?  
+* Should the LLM be classified as a *tool* or a *component* of the agent, and how does that classification affect legal liability and auditability?  
+* How does the decision matrix interact with dynamic routing policies (e.g., privacy‑sensitive vs. high‑quality requests)?  
+* In what ways does the tool boundary shape accountability for hallucinations, bias, or cost overruns, and what governance artifacts (logs, caps, filters) are essential?  
+* How could you extend the cache to support *semantic versioning* of policy documents, ensuring that cached answers automatically invalidate when the source policy changes?  
 
 ==== Lab Prep
 
 In Lab 3 you will turn the skeleton FastAPI service above into a **production‑ready llm tool server**. You will:
 
-* Implement real embedding (e.g., OpenAI, Sentence‑Transformers) and connect to a vector store for similarity search.  
-* Wire the generate endpoint to both a local model (e.g., Llama 3) and an OpenRouter API, toggling via environment variables.  
-* Add a **post‑process** step that applies a safety filter and enforces a maximum token budget.  
-* Write client‑side code that follows the cache‑first flow, logs each call, and measures latency and cost.
+* Replace the placeholder `embed` implementation with a real embedding model (e.g., OpenAI `text‑embedding‑ada‑002` or a Sentence‑Transformers model) and connect it to a persistent vector store such as FAISS or Milvus for similarity search.  
+* Wire the `generate` endpoint to both a local Llama 3 instance (via `llama.cpp`) and an OpenRouter API, toggling via the `LLM_PROVIDER` environment variable, and capture real token usage for cost estimation.  
+* Add a **post‑process** step that applies a safety filter (e.g., OpenAI moderation endpoint) and enforces a maximum token budget, aborting generation if the budget is exceeded.  
+* Implement a **version‑aware cache**: each key incorporates a policy‑version hash, and a TTL policy automatically expires entries when the underlying document set is updated.  
+* Write client‑side code that follows the cache‑first flow, logs each call (latency, cost, provider), and visualises the performance differences between cache hits, embed‑only, and generate‑only paths using a simple Matplotlib dashboard.  
 
 ===== Key Points
 
-* Replace placeholder embed/generate with real models and APIs  
-* Enable provider‑switching for privacy‑sensitive vs. high‑quality calls  
-* Implement safety post‑processing and token budgeting  
-* Build client logic that demonstrates cache hits, misses, and RAG flow  
-* Log and visualize latency and cost for governance discussion  
+* Swap placeholder embed for a real model and integrate a persistent vector store  
+* Enable dual‑provider generation (local Llama 3 vs. OpenRouter) with environment‑driven routing  
+* Implement safety moderation and token‑budget enforcement in post‑process  
+* Extend cache with versioning and TTL to keep answers up‑to‑date  
+* Build client logic that demonstrates cache‑first flow, logs metrics, and visualises latency/cost trade‑offs  
+* Use the lab to explore governance knobs (cost caps, safety filters) in a hands‑on setting  
 
 ==== Reading
 For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch06,Chapter 6>>).

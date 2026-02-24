@@ -1,8 +1,14 @@
 # Plan: Improve All Lectures to Grade A
 
-**Goal:** Raise every lecture to **A** (exemplary density, narrative arc, 90-minute ready). Current state: 20 A, 39 B, 34 C, 5 D (see [AIPA_CHAPTER_AND_LECTURE_REVIEW.md](AIPA_CHAPTER_AND_LECTURE_REVIEW.md)).
+**Goal:** Raise every lecture to **A** (exemplary density, narrative arc, 90-minute ready).
+
+**Current grades (LLM):** [AIPA_LECTURE_GRADES.md](AIPA_LECTURE_GRADES.md) — run `cd aipa && node scripts/grade-lectures-with-llm.mjs --reviews-dir llm-reviews-round6 --output ../AIPA_LECTURE_GRADES.md` to refresh.
+
+**Human review (reference):** [AIPA_CHAPTER_AND_LECTURE_REVIEW.md](AIPA_CHAPTER_AND_LECTURE_REVIEW.md).
 
 **Reference:** [LECTURE_DENSITY_SPEC.md](aipa/LECTURE_DENSITY_SPEC.md) — target density, narrative arc, benchmark Ch7 L1.
+
+**Automated pipeline:** Review → Grade → Elevate (sub-A) → Apply. See [aipa/scripts/README_LLM_REVIEW.md](aipa/scripts/README_LLM_REVIEW.md). One command: `cd aipa && node scripts/improve-lectures.mjs --round N` (optionally `--no-apply` to skip applying elevated content). Use `--model <id>` for a stronger model on elevate/review.
 
 ---
 

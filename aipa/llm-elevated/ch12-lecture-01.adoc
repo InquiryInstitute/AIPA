@@ -7,43 +7,48 @@
 
 ==== Hook
 
-Sofia, a product manager at a mid‑size logistics startup, has just been handed a stark KPI: *reduce delivery‑time prediction error by 15 % within the next quarter.* She knows her team’s data pipelines, but none of the off‑the‑shelf tools can reconcile the noisy GPS feeds, the shifting traffic patterns, and the occasional manual overrides. In the hallway she whispers to a colleague, “What if the AI assistant I’ve been tinkering with all semester could actually *run* this analysis for us?” The question hangs in the air: can a single student‑built agent become a decisive business asset?
-
-That moment is the spark for every capstone. It forces you to move from *“I can prompt a language model”* to *“I can deploy an integrated system that learns, reasons, and acts on real‑world constraints.”* The rest of this lecture unpacks how you turn that spark into a working, evaluated, and defensible AI solution.
+Sofia, a product manager at a mid‑size logistics startup, has just been handed a stark KPI: *reduce delivery‑time prediction error by 15 % within the next quarter.* Her team’s existing pipeline stitches together noisy GPS feeds, a legacy traffic‑estimation script, and a manual override spreadsheet. None of the off‑the‑shelf tools can reconcile the noisy GPS feeds, the shifting traffic patterns, and the occasional manual overrides. In the hallway she whispers to a colleague, “What if the AI assistant I’ve been tinkering with all semester could actually *run* this analysis for us?” The question hangs in the air: can a single student‑built agent become a decisive business asset? The answer will shape the rest of the semester, because the capstone is precisely the moment where a classroom experiment is forced to meet a real‑world deadline, a budget, and a stakeholder’s expectations.
 
 ==== Conceptual Core
 
-The capstone is the culminating narrative of the entire course. It is organized around **four escalating phases** that mirror a real product‑development lifecycle:
+The capstone is the culminating narrative of the entire course. It is organized around **four escalating phases** that mirror a real product‑development lifecycle, and each phase is illustrated by Sofia’s logistics problem.
 
-1. **Problem Discovery & Validation** – You articulate a concrete business problem drawn from your role, internship, venture, or client. Validation means interviewing stakeholders, sketching success metrics, and confirming that the problem is both tractable and valuable.  
-2. **System Design & Integration** – Using the twelve modules you have built (audit, search, ML, neural nets, LLM, memory, reasoning, tool‑calling, orchestrator, governance, and monitoring), you architect a pipeline that maps data sources to actions. This design must respect privacy, latency, and reliability constraints identified in Phase 1.  
-3. **Implementation, Testing, & Iteration** – You assemble the modules, configure prompts, connect domain‑specific tools (e.g., a CRM API or a routing engine), and run end‑to‑end tests. Failures are expected; each bug becomes a learning moment that sharpens the integration.  
-4. **Evaluation, Documentation, & Defense** – You evaluate the agent against the success metrics, produce a technical thesis that details architecture, data provenance, and governance, and finally defend your work before a panel of peers and industry mentors.
+*Phase 1 – Problem Discovery & Validation.*  
+You begin by grounding the project in a concrete business need. Sofia interviews dispatchers, reviews the KPI sheet, and discovers that the current error spikes whenever a driver deviates from the planned route due to construction. She drafts a one‑page brief that defines the success metric (15 % error reduction), the data sources (GPS logs, traffic API, driver notes), and the constraints (latency < 2 s, GDPR‑compliant storage). Validation is achieved when a senior manager signs off, confirming that the problem is both tractable and valuable.
+
+*Phase 2 – System Design & Integration.*  
+Armed with a brief, you map the twelve modules from the student‑AI repository onto the problem space. The design diagram (see Figure 12.1) shows how raw GPS logs flow through **Audit**, become searchable via **Search**, feed a gradient‑boosted **ML** model, are refined by a lightweight **Neural** transformer, and finally surface through an **LLM** that orchestrates **Memory**, **Reasoning**, and **Tool‑Calling**. Crucially, **Governance** and **Monitoring** are woven into every data path to enforce privacy, latency, and fairness constraints identified in Phase 1.
+
+*Phase 3 – Implementation, Testing, & Iteration.*  
+You now assemble the scaffolded modules, replace generic prompts with domain‑specific language (“Estimate travel time for a truck heading to Zone B”), and connect external tools such as the city’s traffic‑routing API. The first end‑to‑end run will almost certainly fail—perhaps the routing API times out or the LLM hallucinates a nonexistent road segment. Each failure becomes a learning moment: you adjust retry policies, tighten prompt context, or enrich the vector store with additional RAG examples. Iteration continues until the orchestrator reliably returns a prediction within the latency budget.
+
+*Phase 4 – Evaluation, Documentation, & Defense.*  
+With a stable prototype, you measure the KPI against a hold‑out test set, compute confidence intervals, and log every decision in the **Governance** audit trail. The technical thesis you write must detail data provenance, module versioning, and the ethical safeguards you have baked in. Finally, you defend the artifact before a panel of peers, industry mentors, and possibly a compliance officer, answering questions that range from “How did you handle missing GPS timestamps?” to “What policy prevented the model from exposing driver identities?”
 
 Throughout these phases you are not starting from a blank slate. The **student‑AI repository** already contains the scaffolding for each module, versioned and documented. Your job is to *customize* that scaffolding—adding domain‑specific prompts, extending tool‑clients, and tightening governance policies—so that the system behaves reliably in the wild.
 
 Milestones are deliberately concrete:
 
-* **Milestone 1:** A one‑page problem brief signed off by a stakeholder.  
-* **Milestone 2:** A functional prototype that can execute a full task using at least two tools.  
-* **Milestone 3:** Quantitative evaluation results (e.g., error reduction, latency) with statistical confidence.  
-* **Milestone 4:** A written thesis and a 15‑minute defense presentation.
+* **Milestone 1:** A signed problem brief (≤ 1 page).  
+* **Milestone 2:** A functional prototype that can execute a full task using at least two external tools.  
+* **Milestone 3:** Quantitative evaluation results (error reduction, latency) with statistical confidence (95 % CI).  
+* **Milestone 4:** A written thesis (≈ 12 pages) and a 15‑minute defense presentation.
 
 By the end of the capstone you will have transformed a collection of twelve independent tools into **one cohesive AI artifact** that you can point to as evidence of mastery.
 
 ===== Key Points
 
-* Real‑world problem originates from your professional context – not an abstract toy.  
+* Real‑world problem must be sourced from your professional context, not a textbook toy.  
 * Four‑phase lifecycle: discover → design → implement → evaluate → defend.  
-* Student‑AI repository supplies all twelve modules; you customize, not rebuild.  
-* Milestones provide concrete checkpoints and deliverables.  
+* The student‑AI repository supplies all twelve modules; you customize, you do not rebuild.  
+* Milestones provide concrete checkpoints and deliverables that map to industry practice.  
 * Integration is the core skill: linking audit, search, ML, neural, LLM, memory, reasoning, tool‑calling, orchestrator, governance, and monitoring.  
-* The capstone proves the epistemic shift from consumer to builder.  
+* The capstone marks the epistemic shift from consumer to builder, demanding both technical rigor and ethical awareness.  
 
 ==== Technical Example
 
-*Mapping the modules to a logistics use case.*  
-Imagine Sofia’s delivery‑time predictor. The data flow looks like this:
+*Mapping the modules to Sofia’s logistics use case.*  
+The data flow looks like this:
 
 1. **Audit (Ch 2)** ingests raw GPS logs, flags missing timestamps, and writes a clean CSV to the data lake.  
 2. **Search (Ch 3)** indexes the cleaned logs in a vector store so that the LLM can retrieve relevant routes on demand.  
@@ -52,7 +57,7 @@ Imagine Sofia’s delivery‑time predictor. The data flow looks like this:
 5. **LLM (Ch 6)** receives a natural‑language query from the dispatcher (“How long will the next truck to Zone B take?”) and constructs a prompt that calls the memory and reasoning modules.  
 6. **Memory (Ch 7)** performs Retrieval‑Augmented Generation (RAG) by pulling the most similar past trips from the vector store.  
 7. **Reasoning (Ch 8)** runs a probabilistic inference to combine the ML estimate, the neural refinement, and the contextual cues from RAG.  
-8. **Tool‑Calling (Ch 9)** invokes the routing engine API to fetch real‑time traffic updates.  
+8. **Tool‑Calling (Ch 9)** invokes the city’s routing engine API to fetch real‑time traffic updates.  
 9. **Orchestrator (Ch 10)** sequences the calls, handles retries, and formats the final response.  
 10. **Governance (Ch 11)** logs every decision, checks for policy violations (e.g., data‑privacy), and triggers an audit alert if thresholds are exceeded.
 
@@ -67,43 +72,74 @@ response = orchestrator.run(delivery_prompt("Zone B"))
 print(response)
 ```
 
-When you first run it, you will likely see a failure such as *“ToolCallingError: routing API timeout.”* The debugging checklist includes:
+When you first run it, the orchestrator raises a *ToolCallingError: routing API timeout*. The debugging saga proceeds as follows:
 
-* Verify API credentials in the tool‑client config.  
-* Check network latency and retry policy in the orchestrator.  
-* Inspect the audit logs for data‑validation warnings.  
-* Adjust the LLM prompt to include a fallback message.
+* **Step 1 – Credential check.** The routing client reads its API key from `~/.student_ai/keys.yml`. A missing key triggers the timeout error, so you add the key and restart.  
+* **Step 2 – Network latency.** The orchestrator’s default retry policy is three attempts with a 1‑second back‑off. You increase the back‑off to 3 seconds and observe a successful call.  
+* **Step 3 – Audit log inspection.** The audit module records a warning: “GPS log 2024‑01‑15 contains 12 % missing timestamps.” You add a preprocessing step in the Audit module to impute missing values, which improves the downstream ML accuracy by 3 %.  
+* **Step 4 – Prompt refinement.** The LLM initially returns “The estimated travel time is 42 minutes.” without a confidence score. By adding a suffix to the prompt—“Provide the estimate and a 95 % confidence interval”—the response becomes “42 ± 5 minutes (95 % CI).”
 
-Resolving these issues demonstrates the **integration tension** that the capstone is built to explore.
+After these fixes the orchestrator returns a coherent answer in 1.8 seconds, and the governance log shows a green pass for privacy and latency. Running the same script on a held‑out test set yields an average absolute error of 8 minutes, a 17 % improvement over the baseline, thereby meeting Sofia’s KPI.
 
 ===== Key Points
 
 * Concrete mapping of each module to a domain problem (logistics).  
 * Step‑by‑step assembly workflow illustrated with a runnable snippet.  
 * Typical failure (tool‑calling timeout) and a four‑item debugging checklist.  
-* Emphasis on configuration, credential management, and audit visibility.  
-* Lab 1 validates the end‑to‑end flow before customization begins.  
+* Emphasis on configuration, credential management, audit visibility, and prompt engineering.  
+* Lab 1 validates the end‑to‑end flow before customization begins, ensuring a solid foundation for later phases.  
 
 ==== Philosophical Reflection
 
-The capstone is more than a deliverable; it is a *statement of agency*. By weaving together representation (knowledge graphs, vector stores), learning (ML, neural nets), language (LLM), memory (RAG), reasoning (probabilistic inference), and action (tool‑calling, orchestration), you embody the curriculum in a single artifact. This integration raises profound questions:
+The capstone is more than a deliverable; it is a *statement of agency*. By weaving together representation (knowledge graphs, vector stores), learning (ML, neural nets), language (LLM), memory (RAG), reasoning (probabilistic inference), and action (tool‑calling, orchestration), you embody the curriculum in a single artifact. This integration raises profound questions that echo beyond the code.
 
-* **Ownership:** Who owns the knowledge that the agent extracts from proprietary data? The student, the employer, or the underlying model providers?  
-* **Epistemic Shift:** Moving from consumer to builder changes your relationship to uncertainty. You now *debug* the model’s reasoning rather than merely accept its output.  
-* **Ethical Responsibility:** Governance is not an afterthought; it is a core module that enforces fairness, privacy, and accountability. The capstone forces you to confront real‑world regulatory constraints.  
-* **Identity of the Builder:** By the end of the semester you have internalized a systems‑thinking mindset. You can articulate why a particular prompt failed, how a data drift manifested, and what governance rule prevented a breach.  
+* **Ownership and Data Sovereignty.** The travel‑time predictions are derived from proprietary GPS traces owned by Sofia’s company. Who owns the knowledge that the AI extracts? The student, the employer, or the cloud provider that hosts the LLM? In the thesis you must articulate a data‑use agreement that respects contractual obligations and GDPR’s “right to explanation.”  
+* **Epistemic Shift from Consumer to Builder.** Previously you may have asked a language model “What is the fastest route?” and accepted the answer. Now you must *debug* why the model suggested a route that violates a low‑emission zone, trace the failure to a stale traffic feed, and patch the tool‑calling module. This shift turns uncertainty into a design problem rather than a black‑box mystery.  
+* **Ethical Responsibility as a First‑Class Module.** Governance is not an afterthought; it is a core component that enforces fairness (e.g., avoiding bias toward certain delivery zones), privacy (masking driver IDs), and accountability (audit trails). The capstone forces you to confront real‑world regulatory constraints, such as the EU’s AI Act, and to embed compliance checks directly into the orchestrator.  
+* **Identity of the Builder.** By the end of the semester you have internalized a systems‑thinking mindset. You can articulate why a particular prompt failed, how a data drift manifested, and what governance rule prevented a breach. This narrative authority is what you will defend before the panel, and it reshapes your professional identity from “AI user” to “AI architect.”  
+* **Future Stakes.** Imagine a year from now: Sofia’s AI has been audited by a municipal regulator, and the audit log reveals that the system automatically rerouted trucks away from a newly declared low‑emission zone, saving the company fines and reducing emissions. The same artifact that began as a classroom exercise now influences city policy, illustrating how a capstone can ripple outward into societal impact.
 
-Reflecting on these dimensions helps you articulate the *why* behind every line of code, turning a technical project into a scholarly contribution that can be defended before both academic and industry audiences.
+These reflections are not optional essays; they are integral to the *defense* phase. Your ability to discuss ownership, epistemic responsibility, and ethical design will be evaluated alongside the quantitative KPI results.
 
 ===== Key Points
 
 * The integrated agent is a concrete expression of the curriculum’s epistemic goals.  
 * Ownership and privacy become design constraints, not optional add‑ons.  
-* Governance is a first‑class module that enforces ethical standards.  
+* Governance is a first‑class module that enforces fairness, privacy, and accountability.  
 * Building the agent reshapes your identity from user to system architect.  
-* The capstone invites a reflective stance on AI responsibility and agency.  
+* The capstone invites a reflective stance on AI responsibility, agency, and societal impact.  
 
-.Figure 12.1: Capstone Integration Map
+==== Discussion Prompts
+
+* What characteristics make a business problem “real” enough to justify a capstone, and how do those differ from a classroom toy?  
+* In what ways does integrating twelve modules create emergent failure modes that would not appear in isolated labs?  
+* How should you balance stakeholder‑driven success metrics with ethical constraints enforced by the governance module?  
+* Which phase of the capstone lifecycle (discover, design, implement, evaluate) do you anticipate being the most challenging, and why?  
+* Reflect on the statement “from consumer to builder.” What does that transformation feel like in practice?  
+* How will you decide that your capstone is “done” rather than merely “working”?  
+
+==== Lab Prep
+
+*Lab 1 – Integration Foundations*  
+Clone the `student-ai/` repository, install the dependency matrix, and run the **baseline orchestrator** against a synthetic task that requires two tools (a search API and a calculator). Success is confirmed when the orchestrator returns a coherent answer and the governance log records the transaction without errors.  
+
+*Lab 2 – Domain Customization*  
+Building on Lab 1, add a domain‑specific tool (e.g., the city routing engine) and extend the LLM prompt library to expose the new capability. Run a set of validation queries supplied by your stakeholder and record performance metrics (latency, accuracy, policy compliance).  
+
+===== Key Points
+
+* Clone `student-ai/` and install all module dependencies.  
+* Verify end‑to‑end flow with the baseline orchestrator (two‑tool task).  
+* Extend the system with a domain‑specific tool and custom prompts.  
+* Record quantitative metrics and governance logs for each run.  
+* Prepare a short lab report that links observed bugs to integration points.  
+* Use the report as the basis for Milestone 2’s prototype demonstration.  
+
+==== Closing Bridge
+
+Having walked through the four phases, examined a concrete logistics pipeline, and reflected on the ethical stakes, you are now ready to turn theory into practice. In the next session we will dive deeper into *prompt engineering for governance*, exploring how to phrase queries so that the LLM respects privacy policies while still delivering useful answers. Lab 1 will give you hands‑on experience with the integration tension that underlies every real‑world AI system, and the insights you gain there will feed directly into your capstone design.
+
+==== Figure 12.1: Capstone Integration Map
 [plantuml,ch12-l01,png,theme=sketchy-outline]
 ....
 @startuml
@@ -130,21 +166,25 @@ node "Reasoning (Ch8)" <<Reasoning>> as RE
 node "Tool‑Calling (Ch9)" <<ToolCalling>> as T
 node "Orchestrator (Ch10)" <<Orchestrator>> as O
 node "Governance (Ch11)" <<Governance>> as G
+node "Failure (red)" as F <<ToolCalling>>
 
-A --> S : clean data
-S --> M : indexed vectors
-M --> N : predictions
+A --> S : cleaned CSV
+S --> M : vector index
+M --> N : prediction
 N --> L : refined context
 L --> R : RAG query
 R --> RE : inference
-RE --> T : external tool request
+RE --> T : external request
 T --> O : result aggregation
-O --> G : audit log
-G --> A : policy feedback
-
+O --> G : audit log & policy check
+G --> A : policy‑driven re‑validation
+G --> S : data‑quality feedback
+G --> M : model‑retraining trigger
+O --> F : timeout / retry
+F --> O : fallback response
 note right of O
   Feedback loop:
-  Evaluate → Implement → (back to) Design
+  Evaluation → Design → Implementation
 end note
 @enduml
 ....
@@ -161,10 +201,10 @@ end note
 ==== Lab Prep
 
 *Lab 1 – Integration Foundations*  
-In this lab you will clone the `student-ai/` repository, install the dependency matrix, and run the **baseline orchestrator** against a synthetic task that requires two tools (e.g., a search API and a calculator). Success is confirmed when the orchestrator returns a coherent answer and the governance log records the transaction without errors.  
+Clone the `student-ai/` repository, install the dependency matrix, and run the **baseline orchestrator** against a synthetic task that requires two tools (a search API and a calculator). Success is confirmed when the orchestrator returns a coherent answer and the governance log records the transaction without errors.  
 
 *Lab 2 – Domain Customization*  
-Building on Lab 1, you will add a domain‑specific tool (e.g., a routing engine) and extend the LLM prompt library to expose the new capability. You will then run a set of validation queries supplied by your stakeholder and record performance metrics (latency, accuracy, policy compliance).  
+Building on Lab 1, add a domain‑specific tool (e.g., the city routing engine) and extend the LLM prompt library to expose the new capability. Run a set of validation queries supplied by your stakeholder and record performance metrics (latency, accuracy, policy compliance).  
 
 ===== Key Points
 
@@ -173,6 +213,7 @@ Building on Lab 1, you will add a domain‑specific tool (e.g., a routing engi
 * Extend the system with a domain‑specific tool and custom prompts.  
 * Record quantitative metrics and governance logs for each run.  
 * Prepare a short lab report that links observed bugs to integration points.  
+* Use the report as the basis for Milestone 2’s prototype demonstration.  
 
 ==== Reading
 For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch12,Chapter 12>>).

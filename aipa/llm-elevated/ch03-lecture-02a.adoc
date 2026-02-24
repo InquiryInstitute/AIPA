@@ -8,33 +8,38 @@ ____
 
 ==== Hook – The 8‑Puzzle in a Lisp List
 
-Imagine a sliding‑tile puzzle with three rows and three columns, the classic *8‑puzzle*.  
-The board starts in the configuration shown below, where `0` denotes the empty slot:
+Imagine a small robot arm perched above a wooden board.  The board is a 3 × 3 grid of numbered tiles, and one slot is empty so the arm can slide a neighboring tile into it.  From the robot’s point of view each slide is a *move*; from our point of view each move is a change in a list of numbers.  The classic *8‑puzzle* captures exactly this situation: the board starts in some scrambled arrangement and the goal is to reach the ordered configuration
 
 [listing]
 ----
 (define state '(1 2 3 4 5 6 7 8 0))
 ----
 
-The goal is to reach the ordered state `(1 2 3 4 5 6 7 8 0)` from any scrambled start by moving the empty slot left, right, up, or down.  
-*How can a computer reason about the sequence of moves that leads from the start to the goal?*  
+where `0` denotes the empty slot.  If we hand the robot a description of the start state, can we make it *plan* a sequence of slides that ends in the goal?  In other words, how can a computer *reason* about a series of moves that it cannot see directly?  
 
-We will answer this by using Lisp – a language whose very syntax mirrors the data structures we need to manipulate. By the end of the session you will have written a tiny Lisp program that explores the puzzle’s state space and discovers a solution.
+We will answer this by using Lisp – a language whose very syntax mirrors the list‑based representation of the puzzle.  By the end of the session you will have written a tiny Lisp program that explores the puzzle’s state space, discovers a solution for a hard start configuration, and sets the stage for a more efficient A* implementation.
 
 ==== Conceptual Core – Lisp Fundamentals for AI
 
-Lisp was invented for exactly this kind of symbolic manipulation. Its core ideas answer the questions raised by the hook:
+Lisp was invented precisely for symbolic manipulation, and its core ideas line up with the questions raised by the hook.  The following narrative shows how each idea appears in the 8‑puzzle code and why it matters for search.
 
-. **Atoms and Lists** – The smallest data objects (`1`, `2`, `0`) and the recursive containers that hold them (`'(1 2 3 …)`).  
-. **Quoting** – Prevents evaluation so that a list can be treated as data (`'(...)`).  
-. **`define`** – Binds a name to a value in the global environment (`state`).  
-. **`lambda`** – Creates anonymous functions, the building blocks of higher‑order operations.  
-. **`cond`** – Multi‑branch conditional, essential for pattern‑matching on board configurations.  
-. **Recursion & Tail‑Call Optimization** – Enables depth‑first search without explicit stacks.  
-. **Lexical Scoping** – Guarantees that helper functions see the correct board representation.  
-. **Code‑as‑Data (Homoiconicity)** – Allows programs to generate and transform their own code, a feature that later powers macro‑based domain‑specific planners.  
+*Atoms and Lists* – The board itself is a flat list of nine atoms.  When we write `'(1 2 3 … 0)` we are creating a data structure that the search algorithm can copy, compare, and mutate.  For example, `car` extracts the first tile (the upper‑left corner), while `cdr` gives us the rest of the board.
 
-Together these concepts give us a *uniform representation* for both the puzzle state and the algorithms that manipulate it. In the REPL we can type an expression, see it evaluated instantly, and then reuse the result as input to the next step – an interactive workflow that mirrors the trial‑and‑error process of AI research.
+*Quoting* – By prefixing a list with the quote character (`'`) we tell the Lisp reader to treat the list as data rather than as a function call.  In `(define state '(1 2 3 … 0))` the quote protects the board from being evaluated, allowing us to store it unchanged.
+
+*`define`* – This form introduces a global name (`state`) that points to our initial board.  Later we will also `define` helper functions such as `swap` and `successors` that operate on any board list.
+
+*`lambda`* – Anonymous functions let us build higher‑order operations without naming every intermediate step.  The `successors` function, for instance, creates a small lambda on the fly to capture the current empty‑slot position before generating moves.
+
+*`cond`* – A multi‑branch conditional is the workhorse for pattern matching on board geometry.  When we decide whether the empty slot can move left, right, up, or down we use a `cond` expression that selects the appropriate branch based on row and column indices.
+
+*Recursion & Tail‑Call Optimization* – The depth‑first search (`dfs`) is expressed as a recursive function that calls itself on each child board.  Because Lisp implementations perform tail‑call optimization, the recursion can explore deep branches without exhausting the call stack.
+
+*Lexical Scoping* – Helper functions defined inside `dfs` (such as the local `loop`) automatically capture the surrounding variables (`visited`, `node`).  This guarantees that each recursive call works with the correct view of the search frontier.
+
+*Code‑as‑Data (Homoiconicity)* – Since Lisp code is itself a list, we can write a function that builds new Lisp forms at runtime.  This property later enables us to write macros that generate entire families of move functions, turning a one‑line macro call into dozens of specialized procedures.
+
+Together these concepts give us a *uniform representation* for both the puzzle state and the search algorithm.  In the REPL we can type an expression, see it evaluated instantly, and then reuse the result as input to the next step – an interactive workflow that mirrors the trial‑and‑error process of AI research.
 
 [plantuml,8-puzzle-graph,svg]
 ----
@@ -44,28 +49,45 @@ skinparam node {
   BackgroundColor #FFFFFF
   BorderColor #666666
 }
-node "Start\n(1 2 3 4 5 6 7 8 0)" as start
-node "Move Left\n(1 2 3 4 5 6 7 0 8)" as left
-node "Move Up\n(1 2 3 4 5 0 7 8 6)" as up
+node "Start\n(2 8 3 1 6 4 7 0 5)" as start
+node "Left\n(2 8 3 1 6 4 7 5 0)" as left
+node "Right\n(2 8 3 1 6 4 7 0 5)" as right
+node "Up\n(2 8 3 1 6 4 7 0 5)" as up
+node "Down\n(2 8 3 1 6 4 7 0 5)" as down
+node "L‑L\n(2 8 3 1 6 4 0 7 5)" as ll
+node "L‑U\n(2 8 3 0 6 4 7 1 5)" as lu
 node "Goal\n(1 2 3 4 5 6 7 8 0)" as goal
+
 start --> left : left
+start --> right : right
 start --> up : up
-left --> goal : right
-up --> goal : down
+start --> down : down
+left --> ll : left
+left --> lu : up
+ll --> goal : up
+lu --> goal : left
+
+skinparam node {
+  BackgroundColor #E0FFE0
+}
+goal #green
 @enduml
 ----
 
 *Key Points*  
 
-* **Uniform Data Model** – Both the board and the search tree are lists.  
-* **Incremental Exploration** – Each move generates a new list that becomes a child node.  
-* **Search Space Explosion** – Even the 8‑puzzle has 181 440 reachable states; a naïve DFS may never finish without pruning.  
-* **Why Lisp?** – Its list primitives (`car`, `cdr`, `cons`) make successor generation a one‑liner.  
-* **Read‑Eval‑Print Loop** – Immediate feedback encourages rapid prototyping.  
+. **Uniform Data Model** – Both the board and the search tree are plain Lisp lists, so the same primitives (`car`, `cdr`, `cons`) work everywhere.  
+. **Incremental Exploration** – Each legal move creates a fresh list that becomes a child node in the search graph.  
+. **Search‑Space Explosion** – The 8‑puzzle has 181 440 reachable states; a naïve depth‑first search can wander for minutes on a scrambled start.  
+. **Why Lisp?** – List primitives make successor generation a one‑liner; quoting lets us store board configurations without accidental evaluation.  
+. **Read‑Eval‑Print Loop** – Immediate feedback encourages rapid prototyping and quick hypothesis testing.  
+. **Tail‑Call Guarantees** – Recursive backtracking runs safely even on deep branches.  
+. **Lexical Closure** – Helper functions see the exact board they were created for, avoiding accidental variable capture.  
+. **Homoiconicity** – Enables later macro‑based generation of move functions, reducing boilerplate dramatically.
 
 ==== Technical Example – From State to Solver
 
-First we define a few helpers that locate the empty slot and swap tiles:
+*Now we turn to the concrete implementation.*  First we define a few helpers that locate the empty slot and swap two tiles.  These helpers illustrate the list‑centric nature of Lisp code.
 
 [source,lisp]
 ----
@@ -80,9 +102,16 @@ First we define a few helpers that locate the empty slot and swap tiles:
     (list-set! (list-set! (list-copy lst) i b) j a)))
 ----
 
-*Try it yourself*: Evaluate `(index state 0)` – you should obtain `8`, the position of the empty slot.
+*Try it yourself*:  
 
-Next we generate all legal moves from a given state:
+```lisp
+> (index '(2 8 3 1 6 4 7 0 5) 0)
+8
+```  
+
+The result `8` tells us the empty slot sits in the bottom‑right corner (zero‑based indexing).  If you receive `-1` instead, check that you used `list-copy` before mutating; mutating the original list will corrupt later calls.
+
+Next we generate all legal moves from a given state.  The `successors` function uses `cond`‑style tests on row and column indices, and each branch builds a new board with `swap`.
 
 [source,lisp]
 ----
@@ -102,9 +131,16 @@ Next we generate all legal moves from a given state:
     moves))
 ----
 
-*Try it yourself*: `(successors state)` should return a list of four new board configurations.
+*Try it yourself*:  
 
-Finally, a depth‑first search that stops when the goal is reached:
+```lisp
+> (successors '(2 8 3 1 6 4 7 0 5))
+'((2 8 3 1 6 4 7 5 0) (2 8 3 1 6 4 7 0 5) (2 8 3 0 6 4 7 1 5) (2 8 3 1 0 4 7 6 5))
+```  
+
+Notice that the list contains four new board configurations, each differing by a single slide of the empty tile.  If you see fewer than four entries, double‑check the row/column calculations; a common mistake is swapping with the wrong index.
+
+Finally, a depth‑first search that stops when the goal is reached.  The `dfs` routine demonstrates recursion as backtracking, and it uses `member` to avoid revisiting already‑seen states.
 
 [source,lisp]
 ----
@@ -124,15 +160,27 @@ Finally, a depth‑first search that stops when the goal is reached:
                       (loop (cdr children) path))))))))
 ----
 
-Running `(dfs state '())` yields a sequence of board states that solves the puzzle (in this trivial start configuration the list contains only the initial state).  
+Running the solver on a *hard* start state demonstrates the search explosion:
+
+```lisp
+> (dfs '(2 8 3 1 6 4 7 0 5) '())
+#f   ; after several seconds the naïve DFS gives up without finding a solution
+```  
+
+If you replace the start state with the trivial ordered board, the solver returns instantly:
+
+```lisp
+> (dfs state '())
+'((1 2 3 4 5 6 7 8 0))
+```  
 
 *Key Points*  
 
-* **List Manipulation** – `car`, `cdr`, `cons`, `list-ref`, `list-set!`.  
-* **Recursion as Backtracking** – The call stack encodes the search frontier.  
-* **Cycle Detection** – `member` prevents revisiting already‑seen states.  
-* **Goal Test** – Simple structural equality suffices for the 8‑puzzle.  
-* **Extensibility** – Replacing `dfs` with an A* implementation is a one‑line change of the search strategy.  
+. **List Manipulation** – `car`, `cdr`, `cons`, `list-ref`, `list-set!` are the building blocks of state transition.  
+. **Recursion as Backtracking** – The call stack implicitly stores the current path; no explicit frontier data structure is needed.  
+. **Cycle Detection** – `member` prevents infinite loops by remembering visited configurations.  
+. **Goal Test** – Simple structural equality (`equal?`) suffices because the board is a flat list.  
+. **Extensibility** – Swapping the `dfs` body for an A* driver requires only a change of the search strategy, not a rewrite of the successor logic.  
 
 [plantuml,lisp-eval,svg]
 ----
@@ -146,40 +194,46 @@ rectangle "Evaluator\n(eval)" as V
 rectangle "Result" as Res
 
 User --> R : source code
-R --> A : AST
-A --> V : evaluate
+R --> A : quoted list stays unchanged
+A --> V : evaluate forms
 V --> E : lookup/define
-V --> Res : value
+V --> Res : value returned
+
+skinparam rectangle {
+  BackgroundColor #FFFFFF
+  BorderColor #666666
+}
+E #lightblue
 @enduml
 ----
 
-*Explanation*: The diagram shows how a quoted list (`'(1 2 3)`) bypasses the *Reader* and appears unchanged in the AST, while an unquoted form (`(define x 5)`) triggers evaluation that mutates the environment.
+*Explanation*: The diagram shows how a quoted list (`'(1 2 3)`) bypasses evaluation and appears unchanged in the AST, while an unquoted form (`(define x 5)`) triggers evaluation that mutates the environment.  This separation of *code* and *data* is what makes Lisp so flexible for AI prototyping.
 
 ==== Philosophical Reflection – Lisp’s Legacy in AI
 
-Lisp’s *homoiconicity*—the property that code and data share the same representation—made it the lingua franca of early AI laboratories. Researchers could write programs that *wrote* programs, enabling rapid experimentation with search strategies, knowledge representations, and symbolic reasoning. The macro system extended this power: by transforming Lisp forms before evaluation, developers built domain‑specific languages for planning, theorem proving, and expert systems without leaving the host language.
+*Now we step back to ask why Lisp’s design matters beyond this puzzle.*  Lisp’s *homoiconicity*—the fact that code and data share the same list representation—gave early AI researchers a unique ability: they could write programs that *wrote* programs.  In the 1970s, the Shakey robot’s planner was implemented in Maclisp; the planner could generate new planning operators on the fly, allowing Shakey to adapt to previously unseen obstacles.  This meta‑programming capability was a direct consequence of Lisp’s macro system, which transforms code before it ever runs.
 
-Contrast this with today’s dominant AI stack (Python + NumPy/TensorFlow). Python offers a rich ecosystem for statistical learning but treats code as opaque strings; meta‑programming is possible but far less ergonomic. Prolog, another AI staple, excels at declarative search but lacks Lisp’s flexible data structures and macro facilities. The question for us becomes: *When should we favor a language that lets us sculpt its own syntax (Lisp) over one that provides massive libraries (Python)?*  
+Contrast this with today’s dominant AI stack, Python + NumPy/TensorFlow.  Python’s syntax is not list‑based, so code generation usually involves string manipulation or external templating tools, which are far less ergonomic.  Prolog excels at declarative search but lacks Lisp’s flexible data structures and powerful macro facilities.  The trade‑off is clear: Python offers a massive ecosystem of statistical learning libraries, while Lisp offers *expressive power* that lets you sculpt the language itself to the problem at hand.
 
-Looking ahead, the same principles that made Lisp attractive for symbolic AI are resurfacing in modern “meta‑learning” and “program synthesis” research. Understanding Lisp’s evaluation model equips us to appreciate how newer frameworks (e.g., differentiable programming) might embed code‑as‑data concepts in neural architectures.
+The same principles that made Lisp attractive for symbolic AI are resurfacing in modern *meta‑learning* and *program synthesis* research.  Neural architectures that generate code snippets (e.g., GPT‑4‑based program synthesis) implicitly rely on a representation that treats programs as data—exactly the paradigm Lisp pioneered.  Understanding Lisp’s evaluation model therefore equips us to appreciate how newer frameworks might embed code‑as‑data concepts in differentiable pipelines.
 
 *Key Points*  
 
-* **Historical Dominance** – Lisp powered the first AI programs (Shakey, ELIZA, early planners).  
-* **Meta‑Programming** – Macros enable compile‑time code generation, a precursor to modern code‑generation models.  
-* **Trade‑offs** – Expressiveness vs. ecosystem size; static typing vs. dynamic flexibility.  
-* **Resurgence** – Current research on neural program synthesis revisits Lisp‑style representations.  
-* **Future Lens** – Asking “What would a Lisp‑style macro look like for a neural planner?” primes innovative thinking.
+. **Historical Dominance** – Lisp powered the first AI programs (Shakey, ELIZA, early planners).  
+. **Meta‑Programming** – Macros enable compile‑time code generation, a precursor to modern program‑synthesis models.  
+. **Trade‑offs** – Expressiveness and rapid prototyping vs. breadth of libraries and community support.  
+. **Resurgence** – Current research on neural program synthesis revisits Lisp‑style representations.  
+. **Future Lens** – Asking “What would a Lisp‑style macro look like for a neural planner?” primes innovative thinking about hybrid symbolic‑connectionist systems.  
 
 ==== Closing & Bridge to Lab
 
 *Take‑aways*:  
 
-1. Lisp’s list‑centric data model maps directly onto search‑space representations.  
-2. Simple recursion and backtracking give us a working depth‑first solver in just a few dozen lines.  
-3. Homoiconicity and macros explain why Lisp remains a fertile ground for AI research, even today.
+1. **Uniform list‑centric data** lets us model both the puzzle board and the search tree with the same primitive operations.  
+2. **Recursion and backtracking** give us a working depth‑first solver in just a few dozen lines, and they expose the limits of naïve search on a hard start state.  
+3. **Homoiconicity and macros** explain why Lisp remains a fertile ground for AI research, even as neural methods dominate today’s landscape.
 
-In the upcoming lab you will extend this solver to implement **A\*** with a Manhattan‑distance heuristic, and you will experiment with a macro that automatically generates successor functions for arbitrary board sizes.  
+*Now, returning to our opening robot arm*: we have seen how a computer can *see* the moves it plans, even when the moves are invisible to a human mind.  In the upcoming lab you will extend this solver to implement **A\*** with a Manhattan‑distance heuristic, and you will experiment with a macro that automatically generates successor functions for arbitrary board sizes.  
 
 *Final thought*: *If you could design a new programming language for AI, which of Lisp’s features would you keep, and which would you replace?*  
 
@@ -190,21 +244,21 @@ In the upcoming lab you will extend this solver to implement **A\*** with a Manh
 * Compare the cognitive load of writing recursive Lisp code versus iterative Python code for the same search task.  
 * What are the limitations of depth‑first search on the 8‑puzzle, and how does A\* overcome them?  
 * How might Lisp macros be used to embed heuristic functions directly into the search engine?  
-* Reflect on the trade‑offs between a language’s expressive power and the availability of libraries for machine learning.
+* Reflect on the trade‑offs between a language’s expressive power and the availability of libraries for machine learning.  
 
 ==== Lab Preparation
 
 *Before the lab* you should:
 
-. Install a Lisp implementation (e.g., SBCL or Racket) and verify the REPL starts.  
+. Install a Lisp implementation (e.g., SBCL or Racket) and verify that the REPL starts.  
 . Clone the starter repository containing `puzzle.lisp` with the `state` definition.  
-. Run the provided `dfs` function to ensure it returns a solution for the initial state.  
+. Run the provided `dfs` function on the hard start state `(2 8 3 1 6 4 7 0 5)` to observe its failure to finish quickly.  
 . Review the Manhattan‑distance heuristic formula and be ready to implement it as a Lisp function.  
 
 During the lab you will:
 
-* Refactor the `successors` function to accept a board size parameter.  
-* Write an A\* driver that uses a priority queue (provided as a library).  
-* Create a macro `defmove` that generates move functions (`move-left`, `move-right`, …) automatically.  
+* Refactor the `successors` function to accept a board size parameter, enabling 4 × 4 or larger puzzles.  
+* Write an A\* driver that uses a priority queue (provided as a library) and the Manhattan heuristic.  
+* Create a macro `defmove` that generates move functions (`move-left`, `move-right`, …) automatically for any board dimension.  
 
 Good luck, and enjoy the elegance of Lisp as a tool for AI search!

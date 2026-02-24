@@ -13,13 +13,17 @@ Imagine a news‑summarisation service that once delivered fresh, crisp briefs e
 
 ==== Conceptual Core
 
-Metabolism in biology consists of four tightly coupled stages: **intake**, **transform**, **circulate**, and **excrete**. An intelligent system can be read in the same way. First, it **intakes** raw signals—user queries, sensor streams, or newly scraped documents. Second, it **transforms** those signals through retrieval, inference, or generation. Third, the transformed representations **circulate** across network layers, APIs, or human‑machine interfaces, becoming available to downstream components. Fourth, the system **excretes** low‑relevance artefacts, archives obsolete models, or otherwise prunes the flow. The loop closes when the excreted artefacts (e.g., user ratings, error signals) are fed back into the next intake phase, creating a self‑sustaining circuit.
+When a living organism eats, digests, circulates nutrients, and finally excretes waste, it maintains a *continuous* internal turnover. The same four‑stage rhythm—**intake → transform → circulate → excrete**—can be mapped onto any computational system that claims to be intelligent. The first stage, **intake**, gathers raw material: sensor streams from a self‑driving car, user queries to a voice assistant, or freshly crawled news articles. Without a reliable intake, the downstream stages starve and the system’s behaviour freezes.
 
-In an AI‑augmented workflow this metabolic view flips the usual emphasis on static knowledge bases. Rather than asking *“What does the model know?”* we ask *“How does knowledge flow through the system, and who governs each stage?”* The metaphor foregrounds **agency distributed across the circuit**: the retrieval engine, the language model, the user interface, and the monitoring service each play a role in the ongoing metabolism.
+The second stage, **transform**, is the alchemical heart of the loop. Here raw signals become meaningful representations: a perception module converts LiDAR point clouds into a road map, a retrieval engine turns a query into a ranked list of passages, or a parser extracts intents from spoken language. Crucially, transformation is *not* a one‑off computation; it is designed to be *re‑invoked* whenever new intake arrives, ensuring that the system’s internal models stay current.
 
-A concrete illustration is a **personal voice assistant** that learns from corrections. When a user says “Set a reminder for *tomorrow* at 9 am” but the assistant schedules it for the wrong day, the user corrects the time. That correction is **intake** (user feedback), which **transforms** the internal intent parser, **circulates** through the dialogue manager, and finally **excretes** an updated reminder while also updating the model weights. The assistant’s intelligence lives in the loop, not in any single module.
+Once transformed, the artefacts **circulate** through the architecture. In a recommendation engine, the ranked items travel to the UI, to logging services, and to downstream personalization modules. In a knowledge‑graph explorer, the inferred edges propagate to visualisation widgets and to analytics pipelines. Circulation is the stage where multiple agents—human users, monitoring services, downstream APIs—can act on the output, creating a web of interactions that further enriches the system’s state.
 
-Contrasting this with the classic “brain‑in‑a‑vat” view highlights the stakes. A vat‑bound system treats knowledge as a fixed repository and performs offline inference. It can answer questions, but it cannot adapt to a shifting environment without an explicit metabolic circuit. Retrieval‑augmented generation (RAG) exemplifies the metabolic alternative: every query triggers a fresh intake of relevant passages, a transformation into a response, and a feedback signal that reshapes future retrievals.
+The final stage, **excrete**, disposes of what is no longer useful: low‑relevance passages are pruned from the vector store, outdated model checkpoints are archived, and erroneous predictions are flagged for removal. Excretion is a *protective* operation; without it the system accumulates noise, memory bloat, and bias. The excreted artefacts (e.g., user ratings, error logs) are then **fed back** into the next intake cycle, closing the loop and turning the system into a self‑regulating organism.
+
+A concrete failure story illustrates why every stage matters. A popular video‑streaming platform introduced a new recommendation algorithm but neglected to prune low‑performing candidate items. Over weeks, the candidate pool swelled with stale, irrelevant videos, causing the **circulate** stage to serve increasingly poor suggestions. Users churned, and the platform’s metrics collapsed. Only after engineers added an **excrete** routine that removed items with prolonged low engagement did the feedback loop restore freshness, and the system’s performance rebounded. This episode shows that a missing excretion step can cripple intelligence just as badly as a missing intake.
+
+Contrasting the metabolic view with the classic “brain‑in‑a‑vat” metaphor sharpens the stakes. The vat model treats knowledge as a static repository that is queried ad‑hoc; it assumes a perfect, immutable brain that can answer any question without needing to update itself. In reality, any deployed AI must survive a shifting environment, user drift, and evolving regulations. The metabolic metaphor forces designers to ask not “*What does the model know?*” but “*How does knowledge flow, who governs each stage, and how quickly can the loop close?*”
 
 ===== Key Points
 
@@ -28,17 +32,17 @@ Contrasting this with the classic “brain‑in‑a‑vat” view highlights the
 * AI stages mapped to metabolism: query/sensor (intake), retrieval/inference (transform), layer/network propagation (circulate), pruning/archiving (excrete)  
 * Feedback (user rating, error signal) feeds back into intake, closing the loop  
 * “Brain‑in‑a‑vat” vs. metabolic circuit: static vs. dynamic adaptation  
-* Emergent behavior arises from continuous circulation and excretion  
+* Failure case (stale recommendation pool) illustrates the cost of a missing excrete stage  
 * Design implication: optimize **flow** and **governance** at each stage, not just model size  
 
 ==== Technical Example
 
 Consider a **retrieval‑augmented generation (RAG) pipeline** handling a user’s question about recent policy changes.  
 
-1. **Intake** – The user’s query is captured and timestamped.  
-2. **Transform (Retrieval)** – A vector store is queried for the top‑k passages; the retrieval engine also logs the provenance of each passage.  
-3. **Transform (Generation)** – The language model receives the concatenated query + passages and produces a response.  
-4. **Circulate** – The response is sent to the user interface, logged for analytics, and simultaneously emitted to a monitoring service that tracks relevance scores.  
+1. **Intake** – The user’s query is captured, timestamped, and enriched with context metadata (e.g., location, device).  
+2. **Transform (Retrieval)** – A vector store is queried for the top‑k passages; the retrieval engine also logs the provenance of each passage and assigns a freshness score.  
+3. **Transform (Generation)** – The language model receives the concatenated query + passages and produces a response, while also emitting a confidence estimate.  
+4. **Circulate** – The response is sent to the UI, logged for analytics, and simultaneously emitted to a monitoring service that tracks relevance scores and latency.  
 5. **Excrete & Feedback** – The user may up‑vote, down‑vote, or edit the answer. Those signals are stored as **excreted artefacts** and later used to fine‑tune the retrieval index and, if needed, the model itself. The updated index becomes part of the next **intake** cycle.
 
 A **mini‑demo** (5 minutes) can show this flow in real time: a notebook cell that prints the intermediate passage list, another that runs the generation, and a final cell that records a simulated user rating. Students see exactly where each metabolic stage lives in code.
@@ -53,13 +57,33 @@ Your knowledge‑graph explorer will mirror this pipeline: ingest documents (int
 * Explorer analogy: ingest → traverse → surface → extend (feedback)  
 * Code‑level visibility of each stage reinforces the metabolic mindset  
 
+==== Case Study: Twitter Timeline Ranking
+
+Twitter’s timeline algorithm is a textbook example of a metabolic intelligence system.  
+
+* **Intake** – Every tweet that a user follows is streamed in real time, enriched with author metadata, engagement metrics, and a timestamp.  
+* **Transform** – A ranking model consumes this stream, applying relevance features (recency, social graph proximity, content similarity) to produce a score for each candidate tweet.  
+* **Circulate** – The scored tweets are delivered to the user’s timeline UI, to A/B‑testing dashboards, and to a logging service that records dwell time and interaction events.  
+* **Excrete** – Tweets that receive zero engagement for a prolonged period are flagged for de‑prioritization; low‑quality or abusive content is removed from the candidate pool.  
+* **Feedback** – Implicit signals (likes, retweets, scroll depth) and explicit reports (spam flags) are fed back into the next intake cycle as features that adjust both the ranking model and the candidate generation pipeline.
+
+When Twitter introduced a new “re‑ranking” layer in 2021, they initially omitted an aggressive **excrete** policy for low‑engagement tweets. Within days, the candidate pool grew to include a large fraction of stale or irrelevant content, causing the **circulate** stage to surface low‑value tweets. User satisfaction metrics dipped sharply. By adding a decay‑based excretion rule that pruned tweets older than 48 hours without interaction, the feedback loop tightened, and the system’s freshness metric recovered within a week. This case underscores how each metabolic stage must be actively managed to sustain intelligent behaviour at scale.
+
+===== Key Points
+
+* Real‑world system (Twitter) mapped onto the four metabolic stages  
+* Failure without timely excretion demonstrates the necessity of each stage  
+* Feedback (implicit/explicit engagement) directly reshapes intake and transform  
+* Metabolic view clarifies governance responsibilities at each stage  
+* Continuous pruning prevents “knowledge bloat” and preserves relevance  
+
 ==== Philosophical Reflection
 
 When we say intelligence **emerges**, we often invoke a mysterious “whole greater than the sum of its parts.” In the metabolic view, emergence is a **by‑product of circulation and feedback**. Each component contributes a transformation, but the loop’s closure creates a self‑referential dynamic: outputs become inputs, and the system continuously rewrites its own operating rules. There is no single “mind” to locate; the mind is the **ongoing metabolic process**.
 
 Foucault’s insight that power operates through networks finds a parallel in intelligence: the **network of intake, transformation, circulation, and excretion** distributes agency. Governance therefore becomes a matter of **who controls each metabolic stage**—who decides what data may be ingested, which transformations are permissible, how circulation is prioritized, and what criteria trigger excretion. This reframes ethical design from “protecting a static model” to “regulating the flow of information”.
 
-Adopting the metabolism metaphor reshapes design priorities. Instead of maximizing model parameters, we ask: *How can we make the intake pipeline robust to bias? How can we ensure transformation respects privacy? How can circulation be transparent? How can excretion prevent the accumulation of harmful artefacts?* The philosophical shift from storage to flow invites a **holistic governance model** that spans the entire loop.
+Adopting the metabolism metaphor reshapes design priorities. Instead of maximizing model parameters, we ask: *How can we make the intake pipeline robust to bias? How can we ensure transformation respects privacy? How can circulation be transparent? How can excretion prevent the accumulation of harmful artefacts?* The philosophical shift from storage to flow invites a **holistic governance model** that spans the entire loop, demanding new metrics (feedback latency, freshness decay, excretion rate) and new institutional roles (data curators, excretion auditors, feedback engineers).
 
 ===== Key Points
 
@@ -69,43 +93,52 @@ Adopting the metabolism metaphor reshapes design priorities. Instead of maximizi
 * The mind is the **process**, not the repository—design for flow, not for static storage  
 * Metabolic perspective invites new metrics: latency of feedback, freshness of intake, decay rate of excreted artefacts  
 
+==== Closing Bridge
+
+Having unpacked the metabolic metaphor, examined a concrete RAG pipeline, and walked through a large‑scale production case, we are ready to turn theory into practice. In the next lab you will **engineer the Transform block** of a knowledge‑graph explorer, explicitly wiring its intake, circulation, and excretion pathways. As you build, keep asking: *Where does the loop close?* and *What governance guardrails do I need at each stage?* Our next lecture will extend this conversation to **Governance of Metabolic Loops**, exploring policy design, audit trails, and automated fairness checks that keep the loop healthy.
+
 ==== Figure 1.4: Metabolism of Knowledge (flow diagram)
-[plantuml,ch01-l04,png,theme=plain]
+[plantuml,ch01-l04,png,scale=1.2]
 ....
 @startuml
 skinparam backgroundColor #FDF6E3
-skinparam handwritten true
-skinparam defaultFontName "Comic Sans MS"
+skinparam defaultFontName "Helvetica"
+skinparam ArrowColor #555555
+
+' Define colour stereotypes
+skinparam node {
+  BackgroundColor<<Intake>>    #D0E8FF
+  BackgroundColor<<Transform>> #DFFFD0
+  BackgroundColor<<Circulate>>#FFEFD0
+  BackgroundColor<<Excrete>>  #FFD0D0
+  BackgroundColor<<Feedback>> #E0D0FF
+}
 
 title Metabolism of Knowledge (flow)
 
-(*) --> :Intake\n(data, query, sensor) : 📥
- --> :Transform\n(retrieval, inference) : ⚙️
- --> :Circulate\n(distribution to layers, services) : 🔁
- --> :Excrete\n(archive, discard, publish) : 📤
- --> :Feedback\n(user rating, correction) : 🔄
- --> :Intake
+node "Intake\n📥" <<Intake>> as I
+node "Transform\n⚙️" <<Transform>> as T
+node "Circulate\n🔁" <<Circulate>> as C
+node "Excrete\n📤" <<Excrete>> as E
+node "Feedback\n🔄" <<Feedback>> as F
 
-note right of Excrete
-  📤 Excrete / Publish
-  (low‑relevance, outdated)
-end note
-
-note right of Feedback
-  🔄 Loop‑closure (learning / update)
-end note
+I --> T : ingest data
+T --> C : produce representations
+C --> E : deliver & log
+E --> F : generate artefacts
+F --> I : loop‑closure (learning)
 
 @enduml
 ....
 
 ==== Discussion Prompts
 
-* In the RAG pipeline, where does “intelligence” truly reside—within retrieval, generation, or the feedback loop that ties them together?  
-* Can a system that never excretes (i.e., never discards or archives) be considered intelligent? What pathologies might arise?  
-* How does reframing knowledge as a **flow** rather than a **store** change your approach to data versioning and model updates?  
-* Who should govern each metabolic stage in a large‑scale LLM‑powered product, and what criteria would you use?  
-* Sketch the metabolic loop for a system you use daily (e.g., email spam filter, recommendation engine), labeling intake, transform, circulate, excrete, and feedback.  
-* What metrics would you track to evaluate the health of a metabolic intelligence system (e.g., feedback latency, excretion rate)?
+* In the RAG pipeline, where does “intelligence” truly reside—within retrieval, generation, or the feedback loop that ties them together? *Consider how each stage contributes to the emergent capability.*  
+* Can a system that never excretes (i.e., never discards or archives) be considered intelligent? What pathologies might arise? *Think about memory bloat, bias amplification, and latency.*  
+* How does reframing knowledge as a **flow** rather than a **store** change your approach to data versioning and model updates? *Identify concrete workflow adjustments you would make.*  
+* Who should govern each metabolic stage in a large‑scale LLM‑powered product, and what criteria would you use? *Propose a governance checklist for intake, transform, circulate, and excrete.*  
+* Sketch the metabolic loop for a system you use daily (e.g., email spam filter, recommendation engine), labeling intake, transform, circulate, excrete, and feedback. *Share your sketch with a partner and discuss any missing feedback arrows.*  
+* What metrics would you track to evaluate the health of a metabolic intelligence system (e.g., feedback latency, excretion rate)? *Design a simple dashboard layout that visualizes these metrics.*
 
 ==== Lab Prep
 
@@ -116,7 +149,7 @@ You will build the **Transform** block of a metabolic knowledge‑graph explorer
 * **Circulate** – Design how results are delivered (REST endpoints, UI widgets).  
 * **Excrete & Feedback** – Plan how user edits, deletions, or ratings will be captured and fed back into the ingestion pipeline.
 
-Before Lab 2, **sketch the full loop on paper**, explicitly drawing the curved feedback arrow from “Feedback” back to “Intake” as shown in Figure 1.4. This visual will guide your implementation of the feedback‑driven update mechanism in Lab 3 (Explorer).
+Before Lab 2, **sketch the full loop on paper**, explicitly drawing the curved feedback arrow from “Feedback” back to “Intake” as shown in Figure 1.4. This visual will guide your implementation of the feedback‑driven update mechanism in Lab 3 (Explorer). During the lab you will also run a quick poll: *Which stage do you think most AI projects neglect?* Use the poll results to prioritize where you invest extra testing effort.
 
 ===== Key Points
 

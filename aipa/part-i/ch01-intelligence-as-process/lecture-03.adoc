@@ -1,131 +1,134 @@
 === 1.3: The Cognitive Turn — Minds as Information Processors
 :leveloffset: 2
 
-Imagine you are solving a crossword puzzle. You read a clue, retrieve possible words from memory, test them against the intersecting letters, and update your mental notebook with each trial. Suddenly you pick a word that looks right—only to discover later that it clashes with a crossing. What invisible machinery is orchestrating this dance of perception, memory, and decision, and why does it sometimes lead us astray?
-
 [.epigraph]
-"The map is not the territory."
-— Korzybski, _Science and Sanity_ <<Korzybski1933>> (via Deleuze)
+____
+“The mind is not a container but a crucible.” — Marjorie Grene (adapted)
+____
 
-*Every model of mind is a map; the territory—what mind actually does—remains contested.*
-
-==== Example Prompts
-
-* "Solve this puzzle step by step." — _Production systems: if‑then rules, working memory, traceable inference_
-* "Find related concepts in the knowledge graph." — _Input → represent → process → act → store_
-* "Traverse from node A to node B and return the path." — _Explicit rules (symbolic) vs. learned retrieval_
+==== Hook
+* A child solves a jigsaw puzzle without any explicit instruction—what “knowledge” is actually at work?  
+* What changes when we stop asking “What does the mind know?” and start asking “How does the mind transform information?”  
+* Imagine a computer that can both store facts and continuously remix them—does it become more “intelligent”?
 
 ==== Conceptual Core
 
-In the early 1950s a group of computer scientists and psychologists grew frustrated with behaviorism’s refusal to speak about inner mental life. They asked: *What if the brain were a kind of digital computer that could manipulate symbols?* This question birthed **cognitivism**, a research program that treats cognition as information processing. The landmark Dartmouth workshop of 1956 and Newell & Simon’s development of the **General Problem Solver** (GPS) illustrated the ambition: a machine that could search through symbolic representations to solve puzzles much like our crossword example.
+The **cognitive turn** in artificial intelligence marks a decisive shift from viewing the mind as a static library of facts to treating it as a dynamic **information processor**. Early AI research, inspired by the logic of formal systems, built machines that manipulated symbols according to pre‑written rules. In that paradigm, intelligence was essentially a matter of how much could be *stored* and subsequently *queried*. The moment we began to ask how mental activity *flows*—how activation spreads, how patterns self‑organise, how learning reshapes internal structures—the picture changed dramatically.
 
-Newell and Simon formalised this ambition in the **Physical Symbol System Hypothesis**: a physical symbol system has the *necessary and sufficient* means for intelligent action. In plain terms, any system capable of creating, modifying, and combining symbolic structures can, in principle, exhibit general intelligence. The hypothesis gave cognitivism a crisp, testable claim and set the stage for decades of symbolic AI research.
+One way to make this transition concrete is to contrast two archetypal systems. A classic symbolic parser holds a grammar in a lookup table; when a sentence arrives, the parser walks the table, matching tokens to productions. The knowledge resides in the table, and the computation is a deterministic traversal. By contrast, a modern recurrent neural network (RNN) contains a weight matrix that encodes statistical regularities gleaned from massive corpora. When a sequence of characters is fed in, the network’s hidden state *flows* through the matrix at each timestep, generating predictions that are never hard‑wired but emerge from the interaction of stored weights and current input. The two approaches illustrate the spectrum from pure storage to pure flow, but the reality of contemporary AI sits somewhere in the middle.
 
-The resulting **information‑processing psychology** portrayed the mind as a loop of five stages: sense, represent, process, act, store. Attention, working memory, and reasoning were each modelled as computational sub‑processes that could be isolated, measured, and simulated. This metaphor unified perception, memory, and problem‑solving under a single architecture, and it directly inspired early cognitive architectures such as ACT‑R and Soar.
+That middle ground is captured by the **metabolism metaphor**. Just as living organisms ingest nutrients, transform them through metabolic pathways, and excrete waste, an intelligent system ingests raw data, transforms it via computational pathways, and emits behaviour or predictions. The “nutrient” is the information that enters the system; the “circulation” is the algorithmic process that moves that information through layers of representation. This metaphor does more than provide a vivid image—it aligns with the book’s overarching thesis that intelligence is the *metabolism of knowledge* across systems, not a static repository.
 
-Critics soon warned that the metaphor was a *map* rather than the *territory*. **Embodiment** argued that cognition is inseparable from the body’s sensorimotor capacities; the iCub robot, for example, demonstrates how grasping a cup reshapes the very representations it uses. **Situated cognition** emphasized that intelligent behavior emerges from the tight coupling of agent and environment, not from internal symbols alone. These challenges reminded us that any purely symbolic model must be supplemented by interaction with the world.
+Hybrid architectures make the inseparability of storage and flow explicit. Neural‑symbolic systems, for example, embed symbolic rules within a neural substrate, allowing the system to both *store* declarative knowledge and *flow* activation that respects those constraints. In practice, the weight matrix of the neural component stores statistical tendencies, while the symbolic component supplies hard constraints that guide the flow of activation. The result is a system that can learn from data yet remain interpretable enough to be audited—a direct response to the limitations of purely symbolic or purely connectionist models.
 
-The first major symbolic challenge arrived with the rise of **connectionist** models in the 1980s. Neural networks compute over distributed, sub‑symbolic representations and learn from data, sidestepping explicit rule manipulation. Yet the tension between symbolic and connectionist approaches persists: modern systems such as IBM’s Watson combine explicit rule‑based reasoning with statistical learning, while large‑scale transformers act as *soft* production systems, learning to fire “rules” from massive text corpora. This ongoing dialogue shapes today’s AI landscape.
+Historically, the field moved from **symbolic AI** (the era of expert systems and logic programming) through a **connectionist resurgence** (the rise of neural networks in the 1980s and their explosion in the 2010s) to today’s **hybrid cognitive architectures**. Each stage can be seen as a refinement of the metabolism metaphor: early systems had abundant “nutrients” (knowledge bases) but weak circulation; connectionist models introduced vigorous circulation but initially lacked explicit nutrients; hybrids now strive for a balanced diet of both.
+
+Viewing AI as an **epistemic machine** reframes its role from a passive mirror of human knowledge to an active producer of new knowledge. When a system updates its weights, it is not merely recalling stored facts; it is *generating* a revised internal model that can, in turn, influence future data collection, hypothesis formation, and even scientific discourse. This productionist view forces us to ask who controls the “nutrients” we feed the machine and who decides how the circulation is regulated—a question that will become central when we move from theory to implementation in the lab.
+
+> **Bridge:** The upcoming labs on knowledge graphs will let students model stored entities and the “metabolic” queries that animate them.
 
 ===== Key Points
-
-* Cognitivism arose from frustration with behaviorism’s silence on inner states  
-* Physical Symbol System Hypothesis (Newell & Simon): symbols are sufficient for intelligence  
-* Information‑processing loop: sense → represent → process → act → store  
-* Embodiment (e.g., iCub) shows cognition is body‑dependent  
-* Situated cognition: intelligence emerges from agent‑world coupling  
-* Connectionist models (neural networks) offer distributed, learned representations  
-* Modern hybrids (Watson, transformers) blend symbolic rules with statistical learning  
-* The map/territory metaphor warns us to treat models as guides, not full realities  
+* The cognitive turn reframes the mind from a static repository to an active information processor.  
+* Early AI treated intelligence as stored symbols (logic, rule‑bases) while later connectionist models emphasized flowing activation patterns.  
+* Representation = the medium that can be queried; computation = the process that moves through that medium.  
+* Hybrid systems (e.g., neural‑symbolic architectures) illustrate that storage and flow are inseparable in practice.  
+* The metabolism metaphor captures this duality: knowledge is the “nutrient” and processing is the “circulation.”  
+* Historical trajectory: symbolic AI → connectionist resurgence → hybrid cognitive architectures.  
+* Viewing AI as an epistemic machine highlights its role in producing, not merely reflecting, knowledge.  
+* **Bridge:** The upcoming labs on knowledge graphs will let students model stored entities and the “metabolic” queries that animate them.
 
 ==== Technical Example
 
-Production systems—collections of if‑then rules that fire when conditions match a working memory—were among the first computational models of cognition. Architectures such as **ACT‑R** and **Soar** implement this idea at scale: a rule “if the goal is to retrieve a neighbor, then traverse the edge” fires, updates the memory, and the cycle repeats. Because each rule is explicit, we can trace exactly which productions fired and why, giving the model a level of interpretability prized in cognitive science.
+To see the storage‑flow duality in action, consider a simple recurrent neural network (RNN) that predicts the next character in a stream of text. During training, the network adjusts a weight matrix W that captures the statistical regularities of the training corpus—this matrix is the *stored representation*. Once training is complete, the network enters inference mode: each incoming character updates the hidden state hₜ by applying W to the previous state and the current input, thereby *flowing* information forward in time. The hidden state never settles into a fixed symbol; it continuously evolves, embodying the metabolism of knowledge as it processes a new sequence.
 
-A contemporary symbolic illustration is a tiny rule‑based chatbot that solves a logic puzzle in real time. The bot’s knowledge base contains rules like “if X is true and Y is false, then infer Z”. When a user submits a puzzle, the engine matches the premises to the rules, fires the appropriate productions, and returns a solution trace that can be displayed to the class. This live demo makes the abstract pipeline concrete and shows the transparency advantage of symbolic systems.
+The same task can be tackled with a symbolic rule‑based parser that encodes explicit bigram rules (e.g., “‘th’ is often followed by a vowel”). Here, the knowledge is a hand‑crafted table of probabilities, and the computation is a deterministic lookup. The parser excels at handling rare or out‑of‑vocabulary sequences if the rule is present, but it struggles with the fluid ambiguities that the RNN smooths over through its distributed representation. By juxtaposing the two, we see complementary strengths: the symbolic system offers interpretability and guarantees, while the RNN provides robustness through flowing activation.
 
-At the same time, modern deep‑learning models act as *soft* production systems. A transformer‑based language model learns to predict the next token, implicitly learning “rules” from billions of examples. While we cannot point to a single if‑then clause, we can probe the model’s attention patterns to see how it *softly* activates relevant knowledge. Your knowledge‑graph explorer will therefore support both **explicit traversal** (symbolic, transparent) and **learned retrieval** (connectionist, flexible), mapping directly onto the cognitive loop: input (user query), representation (graph or embedding), process (traversal or neural retrieval), act (return results), store (graph persists).
+A hybrid RNN‑rule system can combine these virtues. One design embeds the symbolic bigram constraints as a gating mechanism that modulates the hidden‑state update: if a rule predicts a low‑probability continuation, the gate suppresses the corresponding activation in the RNN’s output distribution. In this configuration, the weight matrix remains the primary storage of statistical knowledge, while the symbolic rules act as *metabolic regulators* that steer the flow of activation toward more plausible outcomes. Visualising the hidden‑state dynamics—e.g., using a t‑SNE plot over time—reveals trajectories that bend and twist whenever a rule intervenes, making the “circulation” of information visibly shaped by stored constraints.
+
+The following minimal Python + PyTorch snippet implements the core of this hybrid system. It defines an RNN cell, loads a pre‑trained weight matrix, and applies a rule‑based mask during inference. The code is deliberately compact so that students can focus on the conceptual interplay rather than boiler‑plate details.
+
+```python
+import torch, torch.nn as nn
+
+class HybridRNN(nn.Module):
+    def __init__(self, vocab_size, hidden_dim):
+        super().__init__()
+        self.embed = nn.Embedding(vocab_size, hidden_dim)
+        self.rnn   = nn.RNNCell(hidden_dim, hidden_dim)
+        self.out   = nn.Linear(hidden_dim, vocab_size)
+
+    def forward(self, idx, hidden, rule_mask):
+        x = self.embed(idx)
+        hidden = self.rnn(x, hidden)
+        logits = self.out(hidden)
+        # Apply rule‑based mask (0 = forbidden, 1 = allowed)
+        logits = logits + (rule_mask.log() - rule_mask.log())
+        return logits, hidden
+
+# Example usage:
+# vocab, hidden_dim = 100, 128
+# model = HybridRNN(vocab, hidden_dim)
+# hidden = torch.zeros(1, hidden_dim)
+# idx = torch.tensor([42])               # current character index
+# rule_mask = torch.ones(1, vocab)       # all allowed; replace with real mask
+# logits, hidden = model(idx, hidden, rule_mask)
+```
+
+This code illustrates how a *stored* weight matrix (learned during training) and a *flow* of hidden states interact, with a symbolic rule mask acting as a metabolic checkpoint.
 
 ===== Key Points
+* A simple recurrent neural network (RNN) predicts the next character in a text stream, embodying flowing computation.  
+* The network’s weight matrix serves as a stored representation of learned statistical regularities.  
+* Training updates the stored weights, while inference continuously transforms input sequences.  
+* Comparison with a symbolic rule‑based parser shows complementary strengths in handling ambiguity.  
+* Implementing a hybrid RNN‑rule system demonstrates how stored rules can guide the flow of activation.  
+* Visualization of hidden‑state dynamics reveals the “metabolic” circulation of information over time.  
+* Code snippet (Python + PyTorch) illustrates the minimal architecture and training loop.
 
-* Production systems: explicit if‑then rules over working memory  
-* ACT‑R, Soar: classic symbolic cognitive architectures  
-* Transparency: traceable rule firing provides interpretability  
-* Rule‑based chatbot demo: live illustration of symbolic reasoning  
-* Transformer models as soft production systems: learned, less interpretable  
-* Explorer design: combine explicit traversal (symbolic) with learned retrieval (connectionist)  
-* Cognitive pipeline mapping: input → representation → process → act → store  
+==== Bridge
+* Seeing storage and flow coexist in a hybrid RNN‑rule system raises deeper questions about what it means for an AI to *process* knowledge.
 
 ==== Philosophical Reflection
 
-If the mind is a kind of computer, then building a machine that simulates every neuron’s firing pattern would, by definition, be building a mind. Yet many philosophers ask: *Would such a simulation truly think, or would it merely mimic the outward signs of thought?* This “full‑brain‑simulation” thought experiment forces us to confront whether computation alone can capture consciousness, qualia, and the lived sense of embodiment.
+If we accept the **processor** view of the mind, then *intelligence* becomes a question of *how* information is transformed rather than *what* information is possessed. This reorientation foregrounds the dynamics of cognition—learning, inference, adaptation—over the static catalogues of concepts that earlier theories privileged. It also invites us to reconsider long‑standing debates about the nature of mental representation: are symbols merely placeholders, or are they the *vehicles* through which transformation occurs?
 
-What does the computational metaphor leave out? **Qualia** (the felt quality of experience), **embodiment** (how the body shapes cognition), **context** (the situational constraints that give meaning), and the **social** dimension (the co‑construction of meaning through interaction). In our crossword vignette, the puzzle’s meaning emerges not just from the letters but from the cultural context of the clues and the solver’s personal history. A knowledge graph can map relationships, but it cannot *feel* the satisfaction of a solved clue nor *sense* the tactile feedback of turning a page.
+The computational metaphor, however, risks eclipsing the embodied, affective, and environmental dimensions that many cognitive scientists argue are essential to cognition. A purely algorithmic description may capture the flow of symbols but can miss the way bodily states, emotions, and situated interactions shape that flow. Embodied cognition scholars would point out that the “nutrients” feeding an AI system are not just data points but also the *contexts* in which those data arise. Ignoring this context can lead to systems that process information efficiently yet remain blind to the lived realities they are meant to serve.
 
-Nevertheless, the map remains indispensable. Just as a cartographer’s map enables travelers to navigate unfamiliar terrain, a knowledge‑graph map enables agents—human or artificial—to navigate complex domains. The map is not the territory, but without it we would wander blindly. Recognising the limits of the map while exploiting its power is the central challenge for AI designers.
+From an epistemological standpoint, stored representations are never neutral; they are *theory‑laden* snapshots of the world. When a process accesses a representation, it can *reshape* the underlying theory by reinforcing certain patterns and suppressing others—a feedback loop reminiscent of Kuhnian paradigm shifts. The metabolism metaphor makes this feedback explicit: just as metabolic pathways can be up‑regulated or down‑regulated in response to physiological demands, AI systems can modify their internal weights (the stored knowledge) in response to the demands of ongoing computation. This raises profound questions about autonomy: can a system become sufficiently self‑modifying that it effectively *rewrites* its own epistemic foundations without external supervision?
+
+Viewing AI as *infrastructure* foregrounds power dynamics embedded in the design of both nutrients and circulation. Designers decide which datasets are ingested, which loss functions guide weight updates, and which symbolic constraints are imposed. Those choices encode values, biases, and political priorities. When an AI system is deployed as a decision‑making substrate—say, in hiring or policing—the metabolic flow of information becomes a conduit for those embedded values, amplifying or attenuating them at scale. Recognising AI as infrastructure thus obliges us to ask: who controls the “diet” of the machine, and who monitors the health of its circulatory system?
+
+Finally, the cognitive turn blurs the classic *mind‑body* split. In hybrid architectures, hardware (the physical substrate), software (the algorithms), and environment (the data stream) co‑constitute the metabolic process. The boundaries dissolve, suggesting a fluid continuum where changes in any one component ripple through the entire system. This perspective prepares us for the next lecture on “Intelligence as Metabolism,” where we will explore how systemic emergence arises when multiple metabolic loops intertwine.
+
+> **Bridge:** These reflections set up the next lecture on “Intelligence as Metabolism,” where we explore systemic emergence.
 
 ===== Key Points
-
-* Full‑brain‑simulation raises the question: does perfect computation equal thinking?  
-* Missing aspects: qualia, embodiment, context, social co‑construction  
-* Crossword example illustrates how meaning depends on cultural and personal context  
-* Knowledge graphs are maps: they guide navigation but do not become the territory  
-* The map/territory metaphor urges humility: use models as guides, not as complete explanations  
-
-.Figure 1.3: Information‑processing as circulation (loop with environment)
-[plantuml,ch01-l03,png,theme=sketchy-outline]
-....
-@startuml
-skinparam backgroundColor #FDF6E3
-skinparam ArrowColor #555555
-skinparam rectangle {
-  BackgroundColor #E8F5E9
-  BorderColor #2E7D32
-}
-skinparam rectangle<<Env>> {
-  BackgroundColor #FFF9C4
-  BorderColor #F9A825
-}
-rectangle "Environment" <<Env>> as ENV
-rectangle "Input\n(perception)" as IN
-rectangle "Represent\n(working memory)" as RE
-rectangle "Process\n(reasoning)" as PR
-rectangle "Act\n(action)" as AC
-rectangle "Store\n(long‑term knowledge)" as ST
-
-ENV --> IN : stimulus
-IN --> RE
-RE --> PR
-PR --> AC
-AC --> ST : update
-ST --> IN : feedback / context
-@enduml
-....
-
-==== Bridge to Lab
-
-In Lab 2 you will trace a single knowledge‑graph query through the stages of **Input**, **Representation**, **Process**, **Act**, and **Store** you have just examined. By visualising the loop on the diagram above, you will see how a seemingly simple request becomes a full cognitive cycle, and you will experience first‑hand the trade‑off between transparent symbolic traversal and flexible learned retrieval.
+* If minds are processors, intelligence becomes a matter of *how* information is transformed, not just *what* is stored.  
+* The computational metaphor risks overlooking embodied, affective, and environmental dimensions of cognition.  
+* Epistemologically, stored representations are theory‑laden; the process that accesses them can reshape the theory itself.  
+* Metabolism implies continual renewal—raising questions about AI autonomy and self‑modifying systems.  
+* Viewing AI as infrastructure foregrounds power dynamics: who designs the “nutrients” and who controls the “circulation.”  
+* The turn challenges the notion of a fixed “mind‑body” split, suggesting a fluid continuum between hardware, software, and environment.  
+* **Bridge:** These reflections set up the next lecture on “Intelligence as Metabolism,” where we explore systemic emergence.
 
 ==== Discussion Prompts
-
-* Have you ever felt that a computational model of mind was “missing something”? What?
-* Where does your knowledge‑graph explorer sit in the cognitive pipeline: input, representation, process, or store?
-* Can a system without a body be intelligent? What would count as evidence?
-* Is transparency (being able to trace reasoning) always a virtue? When might it be a cost?
-* Identify the Input‑Represent‑Process‑Act‑Store stages in solving a Sudoku puzzle and map them onto the diagram above.
-* Quick poll: raise your hand if you think embodiment is essential for true intelligence. What arguments support your view?
+* How does the shift from “knowledge as possession” to “knowledge as process” alter our evaluation of AI systems?  
+* In what ways do symbolic and connectionist approaches each embody aspects of the metabolism metaphor?  
+* Can a purely computational model ever capture the embodied, affective dimensions of human cognition?  
+* What ethical concerns arise when we treat AI systems as self‑metabolizing epistemic machines?  
+* How might the metaphor of metabolic flow influence the design of future hybrid AI architectures?  
+* Which historical moments most clearly illustrate the cognitive turn’s impact on AI research trajectories?
 
 ==== Lab Prep
 
-Identify where your knowledge‑graph explorer will sit in the cognitive pipeline. The graph itself is the **store**; the user's query is **input**; traversal or retrieval is **process**; the returned subgraph or visualisation is **output** (the **act** stage). Before Lab 2 (Knowledge Graph — Query and Traversal), sketch a single query flow from input to output, marking where representation (working memory) occurs and where feedback to the store happens. The Explorer (Lab 3) will add the interface layer—the point where the system meets the user's cognitive loop.
+Before stepping into the lab, make sure your development environment is ready. Install **Neo4j Desktop**, launch it, and create a new project named *CognitiveTurn*. Within this project, import the supplied “CognitiveTurn” dataset, which contains nodes for theories, models, and researchers, and edges that capture influences and critiques. This graph will serve as a concrete embodiment of stored knowledge.
+
+Your first task is to write simple **Cypher** queries that retrieve static representations—for example, “Find all models that were influenced by connectionism.” Next, design a “metabolic” query that propagates a unit of activation from a theory node through its influence edges, attenuating the signal at each hop. Finally, experiment with updating node properties (e.g., a “weight” attribute) to simulate learning, and document how the balance between storage and flow shifts over successive updates. This hands‑on exploration will cement the concepts discussed in today’s lecture and prepare you for the deeper metabolic analyses in the next session.
 
 ===== Key Points
-
-* Graph = store; query = input; traversal = process; results = output (act)  
-* Sketch query flow: input → representation → process → act → store feedback  
-* Lab 2 focuses on the query‑and‑traversal stage (process)  
-* Lab 3 adds the interface layer (input/act coupling with user)  
-* Visualise the loop with the revised PlantUML diagram to keep the cognitive metaphor concrete  
-
-==== Reading
-For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch01,Chapter 1>>).
+* Install Neo4j Desktop and create a new project for the knowledge‑graph lab.  
+* Load the provided “CognitiveTurn” dataset (entities: theories, models, researchers; relations: influences, critiques).  
+* Write basic Cypher queries to retrieve stored representations (e.g., all models influenced by connectionism).  
+* Design a “metabolic” query that simulates information flow (e.g., propagate activation from a theory node through influence edges).  
+* Experiment with updating node properties to mimic learning (weight adjustments).  
+* Prepare a short notebook documenting observations of storage vs. flow within the graph.

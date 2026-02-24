@@ -61,7 +61,18 @@ def get_weather(city, api_key):
     resp.raise_for_status()
     return resp.json()
 ----
-*The assistant would call `get_weather("Berlin", "<key>")` and crash on any 429 or 5xx.*
+*If the assistant calls `get_weather("Berlin", "<key>")` and the provider returns HTTP 429 because the daily quota is exhausted, the program aborts with an uncaught exception. A typical log line looks like:*
+
+```
+Traceback (most recent call last):
+  File "...", line 12, in <module>
+    get_weather("Berlin", "<key>")
+  File ".../requests/models.py", line 941, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 429 Client Error: Too Many Requests for url: https://api.openweathermap.org/data/2.5/weather?q=Berlin&appid=<key>
+```
+
+*What now? The assistant must decide whether to wait, retry, or fall back to a cached forecast.*
 
 [source,python]
 ----
@@ -90,8 +101,10 @@ class ApiClient:
             if resp.status_code in (429, 502, 503, 504):
                 retry_after = resp.headers.get("Retry-After")
                 delay = float(retry_after) if retry_after else backoff
-                logger.warning("Transient error %d on %s – retry %d after %.1f s",
-                               resp.status_code, url, attempt, delay)
+                logger.warning(
+                    "Transient error %d on %s – retry %d after %.1f s",
+                    resp.status_code, url, attempt, delay,
+                )
                 time.sleep(delay)
                 backoff *= 2  # exponential growth
                 continue
@@ -103,7 +116,7 @@ class ApiClient:
     def get_weather(self, city: str) -> Dict[str, Any]:
         return self._request("GET", "/weather", params={"q": city})
 ----
-*The client now respects rate limits, logs each attempt, and surfaces a clear exception hierarchy.*
+*The client now respects rate limits, logs each attempt, and surfaces a clear exception hierarchy. Notice how `Retry-After` is honored when present, and how the back‑off base is configurable per service.*
 
 [source,python]
 ----
@@ -129,21 +142,23 @@ def tool_get_weather(city: str):
 ===== Key Points
 
 * Naïve requests lack resilience; they fail on the first transient error.  
+* Show a concrete 429 traceback to illustrate the problem before fixing it.  
 * `ApiClient` centralizes authentication, back‑off, and error handling.  
 * Exponential back‑off doubles the delay after each failed attempt.  
 * Respect `Retry‑After` headers when present to avoid unnecessary throttling.  
 * Structured exceptions allow the planner to decide between retry, fallback, or abort.  
 * Expose the client through a tool‑server endpoint so higher‑level reasoning sees a uniform API.  
 * Log each attempt with request ID and latency for observability.  
-* Keep configuration (max retries, back‑off base) tunable per service.
+* Keep configuration (max retries, back‑off base) tunable per service.  
+* The orchestrator becomes the steward of all external seams.
 
 ==== Philosophical Reflection
 
 APIs are the seams that stitch together the fragmented digital ecosystem. By weaving through these seams, an autonomous agent extends its cognition beyond its own code, tapping into specialized knowledge and capabilities that would otherwise be inaccessible. This extension, however, is not a free lunch: each seam is a point of dependency, a potential vector for failure, and a locus of trust.
 
-Consider a real‑world case where a calendar provider announced the deprecation of the `sendUpdates` query parameter. The assistant, still using the old contract, silently failed to send meeting invitations, leaving users confused and the organization exposed to missed deadlines. The root cause was not a bug in the assistant’s reasoning but an untracked change in an external contract. Governance—through version pinning, automated contract tests, and a policy of “upgrade‑only‑after‑verification”—acts as the ethical backbone that safeguards the agent’s reliability and the user’s trust.
+Consider a real‑world incident that occurred at a midsize consultancy in 2023. The firm’s internal assistant routinely sent meeting invitations via Google Calendar. When Google announced the deprecation of the `sendUpdates` query parameter, the assistant’s hard‑coded request continued to include the now‑invalid flag. The API responded with a silent 200 but omitted the invitation emails, leaving clients unaware of scheduled workshops. The resulting missed meetings cost the firm several thousand dollars in billable hours and eroded client confidence. The root cause was not a flaw in the assistant’s reasoning engine but an untracked change in an external contract. Governance mechanisms—explicit version pinning, automated contract tests against a mock server, and a policy that any deprecation notice triggers a mandatory integration review—would have caught the drift before it broke production.
 
-Looking ahead, the orchestrator will become the steward of these seams, turning raw API calls into reusable, observable, and policy‑enforced tool‑server endpoints. By treating each integration as a first‑class citizen—complete with token lifecycle management, rate‑limit awareness, and audit trails—the agent can evolve from a brittle glue layer into a resilient, self‑healing cognitive architecture. Your upcoming Lab 3 will give you hands‑on experience in building that stewardship.
+Looking ahead, the orchestrator will become the steward of these seams, turning raw API calls into reusable, observable, and policy‑enforced tool‑server endpoints. By treating each integration as a first‑class citizen—complete with token lifecycle management, rate‑limit awareness, and audit trails—the agent can evolve from a brittle glue layer into a resilient, self‑healing cognitive architecture. Future designs may even embed automated contract‑drift detectors that poll provider changelogs and trigger safe‑mode fallbacks when a breaking change is detected. In the next lecture we will explore how such resilient tools can be composed into event‑driven workflows, giving the agent the ability to orchestrate complex, multi‑service pipelines without losing its composure.
 
 ===== Key Points
 
@@ -151,10 +166,12 @@ Looking ahead, the orchestrator will become the steward of these seams, turning 
 * Contract changes can silently break downstream reasoning, eroding user trust.  
 * Governance (version pinning, contract testing, least‑privilege scopes) mitigates brittleness.  
 * Observability (request IDs, latency, error codes) provides the feedback loop for self‑healing.  
+* Automated drift detection and safe‑mode fallbacks can turn brittle seams into resilient pathways.  
 * The orchestrator abstracts raw seams into reusable, policy‑enforced tool‑server endpoints.  
-* Lab 3 will cement the transition from ad‑hoc calls to governed, observable services.
+* Lab 3 will cement the transition from ad‑hoc calls to governed, observable services.  
+* Upcoming lecture will link these tools to event‑driven orchestration.
 
-.Figure 10.4‑A: OAuth 2.0 token acquisition flow
+.Figure 10.4‑A: OAuth 2.0 token acquisition and refresh flow
 [plantuml,ch10-l04-oauth,png,theme=sketchy-outline]
 ....
 @startuml
@@ -165,35 +182,53 @@ skinparam ComponentBorderColor DarkBlue
 actor User
 component "Assistant\n(Agent)" as Agent
 component "Orchestrator\n(Tool Server)" as Orchestrator
-component "Auth Server\n(OAuth 2.0)" as Auth
+cloud "Auth Server\n(OAuth 2.0)" as Auth
 
-User -> Agent : Initiates consent
-Agent -> Orchestrator : request token (auth code)
-Orchestrator -> Auth : exchange code for access token
+User -> Agent : Grants consent
+Agent -> Orchestrator : Request auth code
+Orchestrator -> Auth : Exchange code for access & refresh tokens
 Auth --> Orchestrator : access token + refresh token
-Orchestrator --> Agent : token (cached)
+Orchestrator --> Agent : token (cached, never leaves Orchestrator)
+
+note right of Orchestrator
+  Token stored securely;
+  Refresh performed here
+end note
+
+Orchestrator -> Auth : Refresh token (when access expires)
+Auth --> Orchestrator : new access token
 @enduml
 ....
 
-.Figure 10.4‑B: Observability and retry loop
+.Figure 10.4‑B: Observability and retry loop with request‑ID propagation
 [plantuml,ch10-l04-obs,png,theme=sketchy-outline]
 ....
 @startuml
 skinparam componentStyle rectangle
-skinparam ArrowColor DarkGray
+skinparam ArrowColor #0066CC
 skinparam ComponentBorderColor DarkBlue
 
 component "Orchestrator\n(Tool Server)" as Orchestrator
 component "External API\n[Auth, Rate‑limit]" as API
 component "Logging Service\n(ELK / OpenTelemetry)" as Logger
+component "Tracing Service\n(Distributed Tracing)" as Tracer
 
-Orchestrator -> API : GET /weather (Bearer token)
+Orchestrator -> API : GET /weather (Bearer token, requestId=abc123)
 API --> Orchestrator : 429 Retry‑After: 2
-Orchestrator -> Logger : log(requestId, 429, latency)
-Orchestrator -> Orchestrator : exponential back‑off (2 s)
-Orchestrator -> API : retry GET /weather
-API --> Orchestrator : 200 OK + JSON
-Orchestrator -> Logger : log(requestId, 200, latency)
+Orchestrator -> Logger : log(requestId=abc123, status=429, latency)
+Orchestrator -> Tracer : startSpan(requestId=abc123)
+
+alt Transient error?
+    Orchestrator -> Orchestrator : exponential back‑off (2 s)
+    Orchestrator -> API : retry GET /weather
+    API --> Orchestrator : 200 OK + JSON
+    Orchestrator -> Logger : log(requestId=abc123, status=200, latency)
+    Orchestrator -> Tracer : endSpan(success)
+else Permanent error
+    Orchestrator -> Logger : log(requestId=abc123, status=4xx, latency)
+    Orchestrator -> Tracer : endSpan(failure)
+end
+
 @enduml
 ....
 
@@ -218,7 +253,9 @@ In this lab you will extend the orchestrator with a concrete external API (choos
 * Apply exponential back‑off, respecting `Retry‑After` when present, and cap retries at a configurable limit.  
 * Log request identifiers, latency, and outcome to the observability service.  
 * Write a contract test (e.g., using `responses` or `pytest-httpserver`) that validates the JSON schema.  
-* Document token scopes, API version, and retry policy in a design memo for future reviewers.
+* Document token scopes, API version, and retry policy in a design memo for future reviewers.  
+* Verify that the orchestrator’s tool‑server endpoint returns a uniform JSON response even on failure.  
+* Reflect on how the governance memo would be reviewed in a CI/CD pipeline.
 
 ==== Reading
 

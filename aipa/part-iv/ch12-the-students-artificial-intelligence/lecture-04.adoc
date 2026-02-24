@@ -5,87 +5,317 @@
 "The interface is the boundary between human and system."
 — Norman, _The Design of Everyday Things_ <<Norman2013>> (adapted)
 
-*Expose the agent: CLI, API, chat UI.*
+==== Hook
+
+It is the night before final exams. The university has just released a brand‑new AI‑powered tutoring bot that promises instant, accurate answers to any course‑related question. At 8 am, a flood of students—first a few hundred, then several thousand—begins to hammer the system with queries: “What’s the derivative of \(e^{x}\)?”, “Explain the difference between *mitosis* and *meiosis*”, “How do I format a bibliography in LaTeX?”. Within minutes the bot starts to lag, responses become garbled, and the web‑chat UI freezes. The department’s reputation is on the line, and the developers must decide **how** to expose the agent so that it remains usable under massive load, while still being easy for students and staff to reach.
+
+*Which interface will keep the bot responsive when the campus is awake?* *How do we move from a prototype that runs on a laptop to a production service that can survive a tidal wave of requests?* These questions drive today’s discussion of interface design, deployment pipelines, and the ethical responsibilities that appear the moment we push code into the hands of thousands of learners.
 
 ==== Example Prompts
 
-* "Interact with the agent." — _Interface: CLI, API, chat_
-* "Deploy to production." — _Deployment; expose to users_
-* "How do users access the agent?" — _Interface design; deployment_
+* “Expose the agent to thousands of concurrent users.” — _Interface: CLI, API, chat UI_  
+* “Deploy the tutoring bot to the cloud for scalability.” — _Deployment; production readiness_  
+* “What security measures protect the bot from abuse?” — _Auth, rate‑limit, input validation_  
 
 ==== Conceptual Core
 
-The agent must be accessible. Interface options: CLI (terminal—`agent ask "question"`), REST API (programmatic—`POST /ask` with body), chat UI (web—conversational interface). Choose by audience and use case. Developers may prefer API; end users may prefer chat. CLI is useful for demos and scripting. Deployment: local (your machine—quick for development), cloud (AWS, GCP, Azure—scalable), containerized (Docker—portable). Docker and cloud are optional for the capstone but recommended for real deployment.
+**1. Audience‑driven interface selection.**  
+The first design decision is *who* will be talking to the bot. A command‑line interface (CLI) shines for power users—research assistants who need to batch‑process hundreds of questions, or automated grading scripts that query the model overnight. The CLI can be as terse as `tutor ask "Explain Bayes’ theorem"` and can be wrapped in shell loops. An HTTP‑based REST API, by contrast, is the lingua franca for integration: a learning‑management system (LMS) can POST a JSON payload to `/ask` and embed the answer directly into a course page. Finally, a conversational web UI (chat UI) offers the most familiar experience for the majority of students, mimicking a messenger app with typing indicators, emojis, and quick‑reply buttons. Choosing the right surface is not a matter of “best technology” but of matching *use‑case* to *user expectations*.
 
-Security: authentication (who can call the agent?), rate limits (prevent abuse), input validation (sanitize user input). The interface is the boundary—it mediates human-system interaction. It is where the agent meets the world. Bad interfaces hide good agents; good interfaces make agents usable. The agent in the wild: deployment puts the agent in real use. That is when we learn what works and what breaks.
+**2. Mapping use‑cases to deployment models.**  
+During early development the bot lives on a laptop (`python tutor.py`) because rapid iteration outweighs performance. As the code matures, containerization with Docker isolates the Python runtime, third‑party libraries, and model files into a reproducible image. This image can be pushed to any registry and then run on a cloud platform (AWS ECS, GCP Cloud Run, Azure Container Apps). The cloud adds horizontal scaling, health‑checks, and managed networking, turning a single‑process prototype into a multi‑instance service that can automatically spin up new containers when traffic spikes. A hybrid workflow—local Docker for unit testing, cloud for the live bot—covers the full lifecycle and keeps the feedback loop short.
+
+**3. Security as a first‑class concern.**  
+Every entry point—CLI, API, or chat UI—must verify *who* is calling. API‑key headers, OAuth2 flows, or session cookies provide identity. Rate limiting (e.g., 20 requests per minute per user) protects against accidental overload and deliberate denial‑of‑service attacks. Input validation sanitizes user‑supplied text, preventing prompt injection that could steer the model toward disallowed content. In practice these controls are layered: the reverse‑proxy enforces a global request quota, the FastAPI router checks per‑user tokens, and the model wrapper rejects queries that contain prohibited patterns.
+
+**4. The interface as a mediation layer.**  
+An interface does more than shuttle bytes; it *frames* the AI’s intelligence. Prompt design (pre‑pending “You are a helpful tutor”) influences answer style, while latency and error messages shape trust. A well‑designed UI can surface a confidence score, suggest follow‑up questions, or fall back to a human teaching assistant when the model’s uncertainty exceeds a threshold. Conversely, an opaque UI that hides errors encourages over‑reliance and makes it harder for students to diagnose why a response is nonsensical.
+
+**5. Deployment as a commitment to real‑world use.**  
+Launching the bot into production is the moment we expose it to noisy data, unpredictable workloads, and a diverse user base. Monitoring (request latency, error rates), structured logging (JSON logs with request IDs), and health endpoints (`/health`) become essential. They turn a static release into a *living service* that must be observed, patched, and iteratively improved. Auto‑scaling policies, circuit‑breaker patterns, and graceful degradation (e.g., “Please try again later or contact a TA”) are design choices that keep the system available even when the campus collectively decides to ask “What is the meaning of life?” at 2 am.
+
+**6. Design‑decision checklist (micro‑activity).**  
+*Take two minutes with a neighbor: list three concrete scenarios (e.g., “TA needs to grade 500 essays”, “Student uses mobile phone during a break”, “LMS wants to embed answers in a quiz”). For each, decide which interface (CLI, API, chat UI) best fits, and write a one‑sentence justification.* This exercise makes the abstract trade‑offs tangible and prepares you for the lab where you will implement one of those surfaces.
 
 ===== Key Points
 
-* Interfaces: CLI, API, chat UI
-* Choose by audience and use case
-* Deployment: local, cloud, container
-* Security: auth, rate limits, validation
-* Interface = boundary
-* Agent in the wild
-* Interface mediates human-system interaction
+* Audience‑driven interface: CLI for power users, API for integration, chat UI for students  
+* Deployment pipeline: local script → Docker image → cloud service with auto‑scale  
+* Security layers: authentication, per‑user rate‑limit, input sanitisation  
+* Interface as mediation: prompt framing, confidence display, graceful fallback  
+* Production commitment: monitoring, health checks, circuit‑breaker, scaling policies  
+* Design‑decision checklist to connect use‑case to interface  
 
 ==== Technical Example
 
-Build a CLI or API for the agent. CLI: `agent ask "question"` or `agent chat` for interactive mode. API: `POST /ask` with JSON body `{ "query": "..." }`, return `{ "response": "..." }`. Deploy: run locally with `python main.py` or similar; or containerize with Docker and run anywhere. Document: how to run, required environment variables, endpoints. Lab 2: Build the interface. Deploy (locally or cloud). Document. The capstone must be runnable by others—faculty, peers, stakeholders. See Lab 2 for requirements.
+**FastAPI service with rate‑limit and health‑check.**  
+The following `app.py` illustrates a minimal production‑ready service. It uses `slowapi` for token‑bucket rate limiting (20 req/min per API key) and provides a `/health` endpoint that returns `200 OK` when the model is loaded.
+
+```python
+# app.py
+from fastapi import FastAPI, Depends, HTTPException, Request
+from fastapi.security import APIKeyHeader
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from pydantic import BaseModel
+
+app = FastAPI()
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(429, _rate_limit_exceeded_handler)
+
+API_KEY_HEADER = APIKeyHeader(name="X-API-Key")
+VALID_KEY = "SECRET_KEY"
+
+class Question(BaseModel):
+    question: str
+
+def verify_key(key: str = Depends(API_KEY_HEADER)):
+    if key != VALID_KEY:
+        raise HTTPException(status_code=403, detail="Invalid API key")
+    return key
+
+@app.get("/health")
+def health():
+    # In a real system we would check model load, DB connections, etc.
+    return {"status": "ok"}
+
+@app.post("/ask")
+@limiter.limit("20/minute")
+def ask(payload: Question, _: str = Depends(verify_key)):
+    # Placeholder for model inference – replace with actual call
+    answer = f"Answer to: {payload.question}"
+    return {"response": answer, "confidence": 0.92}
+```
+
+**CLI wrapper that talks to the API.**  
+A thin Bash script (`tutor`) hides the HTTP details from the user. It reads the API key from an environment variable, sends the request with `curl`, and pretty‑prints the JSON response.
+
+```bash
+#!/usr/bin/env bash
+# tutor – simple CLI for the tutoring bot
+set -euo pipefail
+
+API_KEY="${TUTOR_API_KEY:-SECRET_KEY}"
+QUESTION="${1:-}"
+if [[ -z "$QUESTION" ]]; then
+  echo "Usage: tutor \"Your question\""
+  exit 1
+fi
+
+curl -s -X POST "http://localhost:8000/ask" \
+     -H "X-API-Key: $API_KEY" \
+     -H "Content-Type: application/json" \
+     -d "{\"question\": \"$QUESTION\"}" | jq .
+```
+
+**Dockerfile, Docker‑Compose, and CI/CD.**  
+The Dockerfile builds a slim image, installs `uvicorn` and `slowapi`, and exposes port 8000. `docker-compose.yml` adds an Nginx reverse‑proxy (for TLS termination) and wires a health‑check that the orchestrator can poll. The GitHub Actions workflow (`ci.yml`) builds the image on every push and pushes it to Docker Hub, ready for a cloud service to pull.
+
+```dockerfile
+# Dockerfile
+FROM python:3.11-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY . .
+EXPOSE 8000
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
+```
+
+```yaml
+# docker-compose.yml
+version: "3.8"
+services:
+  tutor:
+    build: .
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      tutor:
+        condition: service_healthy
+```
+
+```yaml
+# .github/workflows/ci.yml
+name: CI
+on: [push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USER }}
+          password: ${{ secrets.DOCKER_PASS }}
+      - name: Build and push
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          tags: ${{ secrets.DOCKER_USER }}/tutor-service:latest
+```
+
+**Observability hook (Prometheus exporter).**  
+Adding a tiny Prometheus endpoint (`/metrics`) costs only a few lines and gives the orchestrator the data it needs for auto‑scaling.
+
+```python
+# add to app.py
+from prometheus_client import Counter, generate_latest, CONTENT_TYPE_LATEST
+REQUESTS = Counter("tutor_requests_total", "Total number of /ask requests")
+
+@app.middleware("http")
+async def count_requests(request: Request, call_next):
+    if request.url.path == "/ask":
+        REQUESTS.inc()
+    response = await call_next(request)
+    return response
+
+@app.get("/metrics")
+def metrics():
+    return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
+```
+
+**Debugging checklist (lab‑ready).**  
+
+1. Verify `/health` returns `200 OK` (use `curl -v`).  
+2. Confirm rate‑limit works: send 25 rapid requests and watch for `429 Too Many Requests`.  
+3. Inspect logs (`docker logs <container>`) for stack traces or malformed payload warnings.  
+4. Query `/metrics` and ensure the `tutor_requests_total` counter increments.  
+5. Test the CLI wrapper with both a valid and an invalid API key to see proper error handling.
 
 ===== Key Points
 
-* CLI or API
-* Deploy locally or cloud
-* Document: run, env, endpoints
-* Lab 2: Build, deploy, document
-* Runnable by others
+* FastAPI service with API‑key auth, token‑bucket rate‑limit, and `/health` probe  
+* CLI wrapper that hides HTTP details and uses `jq` for pretty output  
+* Dockerfile builds a reproducible image; Docker‑Compose adds health‑check and Nginx TLS  
+* GitHub Actions CI/CD pipeline pushes the image to a registry on every commit  
+* Prometheus exporter (`/metrics`) supplies observability data for auto‑scaling  
+* Debugging checklist: health, rate‑limit, logs, metrics, CLI auth  
 
 ==== Philosophical Reflection
 
-Interface as mediation: the interface shapes how humans encounter the agent. A CLI presupposes technical users; a chat UI presupposes conversation. The interface is not transparent—it frames the interaction. What the user sees and does is filtered through the interface. Design choices—prompts, layouts, feedback—affect the user's experience and the agent's perceived intelligence.
+**Interface as a moral lens.**  
+When a student types “Is plagiarism ever acceptable?” into a chat UI, the interface decides whether to show the raw model output, to prepend a disclaimer, or to refuse the query outright. Displaying a confidence score (e.g., “I’m 92 % sure”) can encourage critical evaluation, but it also risks giving a false sense of authority if the underlying model is biased. An opaque UI that hides uncertainty may lead students to accept answers without question, reinforcing over‑reliance on the system. Thus, the UI is a *moral artifact*: its design choices directly affect how learners perceive authority, uncertainty, and responsibility.
 
-The agent in the wild: deployment is not the end—it is the beginning of real use. In the lab, we control inputs and environment. In the wild, users ask unexpected questions, systems fail, data drifts. The interface is where the agent meets the world. Deployment is an act of commitment: we expose the agent to use, critique, and failure. That exposure is how we learn.
+**Deployment as an ethical contract.**  
+Launching the tutoring bot commits the university to a service that will influence thousands of learning trajectories. In the wild, the model will inevitably produce hallucinations, outdated facts, or culturally insensitive phrasing. By embedding monitoring, logging, and a *fallback* to a human teaching assistant, developers honor a duty of care: the system must degrade gracefully rather than silently mislead. Moreover, the deployment pipeline should include a post‑mortem process—collecting user‑reported errors, auditing bias, and iterating on the prompt or training data. This continuous loop transforms a one‑off release into an ethical stewardship of educational technology.
+
+**Designing for equity under load.**  
+During a sudden surge—say, a campus‑wide exam where every student asks “What is the solution to problem 3?”—the system may need to throttle or shed load. The way throttling is communicated matters: a polite “You have exceeded the per‑minute limit; please wait a few seconds or ask a human TA” respects the learner’s dignity, whereas a terse “429 Too Many Requests” can feel punitive. Moreover, equitable design demands that rate‑limit policies do not disproportionately affect students with slower internet connections or those who rely on the bot as their primary study aid. Embedding *fairness* into scaling policies (e.g., per‑user quotas rather than per‑IP) is a concrete step toward inclusive technology.
+
+**What‑if scenario (class discussion).**  
+Imagine the bot mistakenly tells a student that “Copying code from Stack Overflow without attribution is acceptable.” The UI had displayed a high confidence score, and the student used the advice in an assignment, resulting in academic misconduct. Who is responsible? The interface that amplified the model’s certainty? The deployment team that failed to add a content‑filter layer? Or the institution that relied on an unvetted AI? This dilemma illustrates how interface design, deployment choices, and governance intertwine to shape real‑world outcomes.
 
 ===== Key Points
 
-* Interface shapes encounter
-* Deployment = beginning of real use
-* Where agent meets world
-* Deployment = commitment
+* UI design shapes perceived AI competence and ethical responsibility  
+* Transparency (confidence scores, error messages) encourages critical use  
+* Over‑reliance is mitigated by graceful degradation and human fallback  
+* Deployment commits developers to ongoing monitoring, bias audits, and incident response  
+* Fair rate‑limit and throttling policies promote equity under load  
+* Real‑world error (misleading answer) highlights shared responsibility across design, deployment, and institutional oversight  
+* Continuous evaluation aligns technology with educational values  
 
-.Figure 12.4: Deployment architecture
+.Figure 12.4: Deployment architecture with scaling and observability
 [plantuml,ch12-l04,png,theme=sketchy-outline]
 ....
 @startuml
-start
-:Agent;
-:CLI;
-:API;
-:Chat UI;
-:Deploy;
-stop
+!define AWSPUML https://raw.githubusercontent.com/awslabs/aws-icons-for-plantuml/v14.0/LATEST/AWSPUML
+skinparam backgroundColor #FDF6E3
+skinparam defaultFontSize 12
+skinparam componentStyle rectangle
+
+package "Student Front‑end" <<Rectangle>> {
+  [CLI] as cli
+  [Chat UI] as chat
+  [API Client] as apiClient
+}
+
+package "Auth & Rate‑Limiter" <<Rectangle>> {
+  [Security Gateway] as security
+}
+
+package "Load Balancer" <<Rectangle>> {
+  [LB] as lb
+}
+
+package "Tutor Service" <<Rectangle>> {
+  [Tutor Agent] as agent
+  [Health / Metrics] as health
+}
+
+package "Deployment Runtime" <<Rectangle>> {
+  [Docker Container] as container <<local>>
+  [Auto‑Scaler] as autoscale
+  [Cloud Service\n(AWS/ECS, GCP/Run)] as cloud <<cloud>>
+}
+
+package "Observability" <<Rectangle>> {
+  [Monitoring & Logs] as monitor
+}
+
+' User traffic
+cli --> security : auth / rate‑limit
+chat --> security : auth / rate‑limit
+apiClient --> security : auth / rate‑limit
+
+security --> lb : forward request
+lb --> container : round‑robin
+container --> agent : run
+agent --> health : expose /health & /metrics
+agent --> cli : response
+agent --> chat : response
+agent --> apiClient : JSON response
+
+' Health probing
+monitor --> health : scrape /metrics
+monitor --> container : probe /health
+
+' Auto‑scaling feedback
+monitor --> autoscale : trigger scale‑up/down
+autoscale --> container : add/remove instances
+
+container --> cloud : deployed to
 @enduml
 ....
 
 ==== Discussion Prompts
 
-* Which interface suits your use case? Why?
-* What security is "enough" for the capstone?
-* How do we document for deployability? What does a user need to know?
-* What happens when the interface fails? How do we handle errors?
-* How does the interface affect the user's trust in the agent?
-* What are the tradeoffs between CLI, API, and chat UI?
+* In the tutoring‑bot scenario, which interface (CLI, API, or chat UI) would you prioritize for the *first* release and why?  
+* How can we enforce strong authentication (e.g., OAuth) while keeping the login experience frictionless for students who just want a quick answer?  
+* What concrete UI elements (confidence bars, “Did you mean…?” suggestions, error explanations) best convey the bot’s uncertainty without overwhelming the learner?  
+* Imagine a sudden surge of 10 000 requests per minute. Which rate‑limit strategy (token bucket, leaky bucket, per‑user quota) would you adopt, and how would you communicate throttling to users in a respectful way?  
+* How can monitoring data (latency spikes, error patterns) be turned into actionable improvements for the agent’s answers and for the underlying infrastructure?  
+* What trade‑offs arise when choosing a local Docker deployment versus a fully managed cloud service for scalability, cost, and data‑privacy concerns?  
 
 ==== Lab Prep
 
-Lab 2: Build an interface (CLI or API). Deploy (locally or cloud). Document how to run and use. The capstone should be runnable by faculty and peers. Include setup instructions and a quickstart. See Lab 2 for requirements.
+*Lab 2 – Interface, Deployment, and Documentation*  
+In this lab you will take the minimal FastAPI service from the Technical Example, choose **one** of the three front‑ends (CLI, API client, or web chat), containerize the whole stack with Docker, and deploy the image to a cloud platform of your choice (AWS ECS, GCP Cloud Run, or Azure Container Apps). You will also write a concise README that includes a five‑step quick‑start, environment‑variable definitions (e.g., `TUTOR_API_KEY`), a health‑check command (`curl /health`), and usage examples for the selected interface.
 
 ===== Key Points
 
-* Lab 2: Interface, deploy, document
-* Runnable by others
-
+* Implement **one** front‑end (CLI, API client, or chat UI) for the tutoring agent  
+* Dockerize the service, push the image to a container registry, and deploy with auto‑scale  
+* Add authentication, rate‑limit, and basic logging as demonstrated in the example  
+* Write a README with quick‑start, env‑vars, health‑check, and usage snippets  
+* Verify observability: expose `/metrics`, check scaling behavior, and document the debugging checklist  
 
 ==== Reading
-For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch12,Chapter 12>>).
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch12,Chapter 12>>).

@@ -18,80 +18,166 @@
 
 ==== Conceptual Core
 
-Problem definition requires clarity on three dimensions. Scope: what is in and what is out? What will the agent do? What will it not do? Users: who is this for? A specific team, a customer segment, an internal workflow? Value proposition: why does this matter? What pain does it address? What outcome do we expect? The problem is not discovered—it is constructed with stakeholders. You negotiate scope, users, and value with the people who will use or benefit from the system.
+Imagine a municipal government that commissions an AI system to predict “high‑risk neighborhoods” for future crime‑prevention patrols. Six months later the police chief discovers that the model is flagging affluent districts that already have low crime rates, while the neighborhoods that truly need resources are absent from the alerts. The code runs flawlessly; the failure lies not in the algorithm but in the *problem* that was asked of it. The question “Where should we deploy patrols?” was never examined, and the stakeholders who defined it—city planners, community activists, and the police department—were never brought into a shared conversation. This tension sets the stage for every AI project: before any line of code is written, we must agree on *what* we are trying to solve.
 
-User research: interviews, surveys, observation. Ask: what do you need? What hurts? What would success look like? Validation: does the problem matter? Will they use the solution? Problem-solution fit means the solution addresses a problem users actually have and will adopt. Scope creep: the capstone has limits. Define them clearly. A bounded, well-defined problem is better than an ambitious, fuzzy one. Problems as social constructs: the "problem" is agreed upon. Different stakeholders may have different views; your job is to synthesize and bound.
+The first dimension of a well‑crafted problem is **Scope**. Scope answers three practical questions: *What will the system do?* *What will it not do?* and *What constraints bound it?* A narrow scope—“predict the probability of a burglary at a residential address in the next 24 hours” —is easier to evaluate than a vague one—“improve public safety.” Below is a concrete illustration for our municipal case:
 
-The politics of "solution": whose problem gets solved? Whose problem is deferred? When we build an AI system, we make choices that favor certain users, workflows, or outcomes. Validation is a form of accountability—we check with stakeholders before building. It is not a formality; it is evidence.
+[options="header"]
+|===
+| In‑Scope | Out‑of‑Scope
+
+| Predict burglary risk for residential addresses  
+| Predict overall “crime hot‑spots” without temporal granularity
+
+| Use only police‑report data (no social‑media scraping)  
+| Incorporate private surveillance footage
+
+| Output a geospatial heat‑map that can be exported to the city’s GIS tool  
+| Provide real‑time alerts to individual officers on their handheld devices
+|===
+
+By spelling out in‑scope and out‑of‑scope items, the team creates a contract that later stakeholders can audit. Scope also encodes resource limits—data availability, compute budget, and regulatory compliance. When scope is left implicit, teams often fall prey to “scope creep,” expanding the problem until it becomes unmanageable.
+
+The second dimension is **Users**. Users are not a monolithic group; they are a constellation of personas, each with distinct goals, expertise, and power. In our example, primary users might be patrol supervisors, secondary users could include community liaison officers, city council members, and the residents themselves. Mapping these personas—through stakeholder‑analysis matrices or simple persona cards—helps the team ask targeted research questions: “What decision does a patrol supervisor need to make each morning?” versus “What accountability does a council member require?” A quick *power‑map* (high‑influence/low‑influence vs. high‑interest/low‑interest) makes explicit which voices can shape the problem and which may be marginalized.
+
+The third dimension is **Value Proposition**. Why does solving this problem matter? Value can be expressed in quantitative terms (e.g., “reduce average response time by 15 %”) or qualitative terms (e.g., “increase community trust in policing”). Articulating a clear metric forces the team to confront trade‑offs early: a model that improves detection accuracy by 2 % may not be worth the additional privacy risk it introduces. Moreover, a well‑stated value proposition provides a yardstick for later **problem‑solution fit** checks: does the proposed AI actually deliver the promised benefit, or does it merely shift effort elsewhere?
+
+All three dimensions—Scope, Users, and Value—must be negotiated *with* stakeholders, not imposed *on* them. This negotiation is a form of **political design**: choosing which users’ needs are prioritized, which constraints are accepted, and which outcomes are deemed valuable. Validation is the mechanism that makes this negotiation visible and accountable. By presenting a draft problem definition to a stakeholder panel, the team *asks* stakeholders to sign off, turning alignment into a concrete commitment. The resulting **validation log**, interview transcripts, and a one‑page problem‑definition brief become traceable artifacts that can be referenced in future audits, impact assessments, or post‑mortems.
+
+When the artifact is in place, the team can answer the hard question: “Did we solve the right problem?” If the answer is “no,” the artifact points directly to the dimensions that need revision—scope, users, or value. In this way, a disciplined problem‑definition process turns an ambiguous, politically charged question into a concrete, testable contract that guides the entire AI lifecycle. Moreover, a well‑scoped problem can yield tangible success: a neighboring city that applied the same three‑dimension framework reduced its average emergency‑response time from 12 minutes to 9 minutes within six months, while also reporting a measurable rise in resident‑perceived safety.
 
 ===== Key Points
 
-* Scope (in/out), users (who?), value proposition (why?)
-* Problem constructed with stakeholders—not discovered
-* User research: interviews, surveys
-* Validation: does it matter? Will they use it? Problem-solution fit
-* Scope creep: stay bounded
-* Problems as social constructs—negotiated
-* Politics: whose problem? Whose solution?
-* Validation = accountability
+* Scope: explicit in‑scope / out‑of‑scope list, constraints, and guard against scope creep  
+* Users: persona mapping, stakeholder power‑map, primary vs. secondary users, research methods  
+* Value Proposition: quantitative / qualitative metrics, success criteria, early trade‑off analysis  
+* Problem definition is a negotiated, political act—not a neutral discovery  
+* Validation turns alignment into a signed commitment and creates an audit‑ready artifact  
+* Validation artifacts (brief, transcripts, log) support future accountability and remediation  
+* Early agreement on problem reduces downstream technical waste and ethical risk  
+* Success vignette: a city that used the framework cut response time by 15 % and boosted trust  
 
 ==== Technical Example
 
-Document the problem definition. One page: scope (bullet points for in/out), users (personas or roles), value proposition (one paragraph). Conduct 2–3 user interviews. Structure: open questions about pain points, current workarounds, desired outcomes. Synthesize: what did they say? What do they need? What surprised you? Lab 1: Finalize the problem. Get user validation. Validation is evidence—not assumption. The thesis will cite this; the implementation will be judged against it. See Lab 1 for requirements.
+*Gather & Structure Requirements (Steps 1 & 2)*  
+Start with the one‑page template shown below. In the left column list **Scope** items as bullet points (e.g., “Predict burglary risk for residential addresses — exclude commercial properties”). In the right column sketch **User Personas** (e.g., “Patrol Supervisor — needs daily risk heat‑maps”). Below the table write a concise **Value Proposition** paragraph (≈ 80 words) that names a measurable outcome (“reduce average response time from 12 minutes to 9 minutes within six months”). Save the document as `ProblemDefinition.pdf`.
+
+[options="header"]
+|===
+| Scope | Users
+
+| *Predict burglary risk for residential addresses*  
+| *Patrol Supervisor* – needs daily risk heat‑maps  
+
+| *Exclude commercial properties and incidents without police reports*  
+| *Community Liaison* – wants transparent risk explanations  
+
+| *Exportable to city GIS*  
+| *City Planner* – requires budget‑justification data
+|===
+
+*Synthesise Findings and Validate (Steps 3 & 4)*  
+Conduct three semi‑structured interviews (one primary user, two secondary users). Record audio, take notes, and perform a quick coding pass: label each excerpt as “pain point,” “work‑around,” or “desired outcome.” Populate a three‑row table—**Pain Point**, **Current Work‑around**, **Desired Outcome**—with the coded data. For example, a supervisor may say, “I spend 30 minutes each morning reconciling spreadsheets,” which you code as a *pain point* (time‑consuming manual reconciliation).  
+
+Next, host a 30‑minute validation session with all interviewees plus a senior city official. Present the drafted one‑page problem definition and the pain‑point table. Ask two concrete questions:  
+
+1. “Does this capture the problem you experience?”  
+2. “If we built a system that meets these criteria, would you adopt it?”  
+
+Capture each response in a **validation log** (simple spreadsheet with columns: *Stakeholder*, *Question*, *Response*, *Commitment*). If any stakeholder objects or raises a new concern, iterate: adjust scope, refine personas, or revise the value metric, then repeat the validation step until at least 80 % of participants affirm the definition.
+
+By the end of this three‑day sprint the team will have a **validated problem brief** that serves both as a design contract and an audit trail. The brief, interview transcripts, synthesis table, and validation log will be submitted as Lab 1 deliverables.
 
 ===== Key Points
 
-* Document: scope, users, value (one page)
-* 2–3 user interviews
-* Synthesize findings
-* Lab 1: Finalize, validate
-* Validation = evidence
+* One‑page template (Scope | Users) plus concise Value Proposition  
+* Conduct 2–3 semi‑structured interviews (audio + notes)  
+* Code excerpts into Pain‑Point / Work‑around / Desired‑Outcome table  
+* Synthesize findings to revise scope and personas  
+* Run a 30‑minute validation session with a senior decision‑maker  
+* Record answers in a validation log (Stakeholder, Question, Response, Commitment)  
+* Iterate until ≥ 80 % stakeholder affirmation  
+* Submit brief, transcripts, synthesis table, and log for Lab 1 grading  
 
 ==== Philosophical Reflection
 
-Problems as social constructs: the problem is not "out there" waiting to be found. It is agreed upon. Stakeholders have different views; the problem definition is a negotiation. When we say "the problem is X," we are making a claim that others can accept or reject. Validation is the process of checking that claim. We ask users: is this your problem? Would this solution help? Their answers are data—but also performative. Saying "yes" can commit them; saying "no" can redirect us. The problem is constructed in dialogue.
+The claim that “problems are social constructs” reframes problem definition from a neutral discovery to an epistemic act. When a team declares “the problem is X,” it is making a claim about reality that must be justified to a community of interlocutors. This claim is performative: it allocates resources, distributes risk, and sets the linguistic frame for all future discussions. In our municipal AI case, the initial framing—“identify high‑risk neighborhoods”—privileged a policing‑centric view of safety and sidelined community‑led notions of well‑being. By foregrounding stakeholder negotiation, we expose the *contingent* nature of the problem and open space for alternative framings such as “support community‑driven safety initiatives.”
 
-The politics of "solution": whose problem gets solved? When we build for "users," we often mean a particular subset. Internal workflows, power users, edge cases—choices about scope are political. Pynchon's line—if they can get you asking the wrong questions, they don't have to worry about answers—applies to problem definition: who gets to set the question shapes what gets built. Validation does not remove politics; it makes them explicit. We document who we talked to, what they said, and what we decided. That documentation is accountability.
+Power asymmetries sharpen the ethical stakes. Front‑line officers, minority residents, and budget‑constrained planners rarely have equal voice in the definition phase. If the problem is framed solely around operational efficiency for patrol supervisors, the resulting AI may reinforce existing surveillance practices and exacerbate inequities. Conversely, explicitly elevating community liaison officers to primary users can shift the value proposition toward transparency and trust‑building, even if it reduces short‑term efficiency gains. Recognizing these trade‑offs forces designers to confront ethical dilemmas early, rather than retroactively after deployment.
+
+Documentation of validation is more than bureaucratic record‑keeping; it is a *political safeguard*. By logging who was consulted, what questions were asked, and what commitments were made, the team creates a public ledger that can be audited by regulators, journalists, or affected citizens. This ledger makes it harder for later stakeholders to claim that the problem was “objectively” defined without human input. Moreover, it provides a mechanism for *responsible withdrawal*: if post‑deployment evidence shows that the original framing caused harm, the same documentation guides a systematic re‑definition process. In this way, validation becomes a living contract that persists throughout the AI system’s lifecycle, embodying the post‑modern principle that knowledge—and the problems it produces—are always provisional and contestable.
 
 ===== Key Points
 
-* Problems negotiated
-* Validation = checking the claim
-* Whose problem? Political dimension
-* Documentation = accountability
+* Problems are epistemic claims that require community justification  
+* Framing shapes resource allocation, risk distribution, and future discourse  
+* Power asymmetries determine whose needs are encoded in the problem definition  
+* Including marginalized voices can shift value toward equity and trust  
+* Validation logs act as political safeguards and audit trails  
+* Documentation enables systematic re‑definition and responsible withdrawal  
+* Treating problem construction as provisional aligns with post‑modern AI ethics  
 
-.Figure 12.2: Problem definition framework
+.Figure 12.2: Iterative problem‑definition framework
 [plantuml,ch12-l02,png,theme=sketchy-outline]
 ....
 @startuml
+skinparam backgroundColor #FDF6E3
+skinparam ArrowColor #555555
+skinparam DecisionBackgroundColor #E8F5E9
+skinparam ActivityBackgroundColor #E3F2FD
+
 start
-:Scope;
-:Users;
-:Value Prop;
-:Validate;
+:Identify Stakeholders;
+:Define Initial Scope;
+if (Scope agreed?) then (yes)
+  :Define Users (personas);
+  :Articulate Value Proposition;
+else (no)
+  :Iterate Scope with Stakeholders;
+  back to :Define Initial Scope
+endif
+if (Value acceptable?) then (yes)
+  :Conduct User Research;
+else (no)
+  :Revise Value Proposition;
+  back to :Articulate Value Proposition
+endif
+:Validate Problem‑Solution Fit;
+if (Fit?) then (yes)
+  :Lock Problem Definition;
+  :Archive Validation Log;
+else (no)
+  :Revise Scope/Users/Value;
+  back to :Define Initial Scope
+endif
 stop
 @enduml
 ....
 
 ==== Discussion Prompts
 
-* How do we know a problem is "real"?
-* What if users say one thing and do another?
-* How do we handle scope creep? When is it appropriate?
-* Who counts as a "stakeholder" for validation?
-* What are the risks of building without validation?
-* How do we balance stakeholder views when they conflict?
+* In what ways can a seemingly “technical” AI project become a political act simply through its problem definition?  
+* How would you handle a situation where a primary user’s stated needs conflict with the interests of a marginalized stakeholder group?  
+* What criteria would you use to decide when scope creep is acceptable versus when it threatens project viability?  
+* How can validation logs be designed to remain useful for future audits without overwhelming the team with paperwork?  
+* If users verbally endorse a problem but their later behavior contradicts that endorsement, how should the team respond?  
+* To what extent should external regulators be involved in the problem‑definition and validation phases of a student capstone project?  
 
 ==== Lab Prep
 
-Lab 1: Finalize problem definition. Get user validation. Document scope, users, value proposition. Conduct 2–3 interviews. Synthesize findings. The validated problem is the foundation for the rest of the capstone. See Lab 1 for requirements.
+*Lab 1 – Finalize Problem Definition*  
+In this lab you will produce a **validated problem brief** that will serve as the foundation for the remainder of your capstone. Begin by completing the one‑page template (Scope, Users, Value) and then schedule three stakeholder interviews (minimum one primary user). Use the interview script provided in the lab handout, record each session, and code the transcripts into a Pain‑Point/Work‑around/Desired‑Outcome table.  
+
+After synthesising the findings, hold a 30‑minute validation meeting with all interviewees plus a senior decision‑maker. Capture the outcomes in the supplied **validation log** template. Iterate on the brief until at least 80 % of stakeholders affirm the problem statement and commit to using the eventual system. Submit the final brief, interview transcripts, synthesis table, and validation log as your Lab 1 deliverable.
 
 ===== Key Points
 
-* Lab 1: Finalize problem
-* User validation
-* Document, synthesize
-
+* Complete the one‑page problem‑definition template (Scope, Users, Value)  
+* Conduct and record three stakeholder interviews (audio + notes)  
+* Code transcripts into a Pain‑Point/Work‑around/Desired‑Outcome table  
+* Run a validation session and fill out the validation log template  
+* Achieve ≥ 80 % stakeholder affirmation before moving to design  
+* Submit brief, transcripts, synthesis table, and log for Lab 1 grading  
 
 ==== Reading
-For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch12,Chapter 12>>).
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch12,Chapter 12>>).

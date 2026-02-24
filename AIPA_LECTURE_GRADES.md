@@ -14,207 +14,207 @@
 
 ## Chapter 1: Intelligence as Process
 
-**Chapter grade: D.** (From lecture grades: B, C, C, B, B, B, C, A)
+**Chapter grade: D.** (From lecture grades: B, B, A, C, B, D, B, D)
 
 | Lecture | Title | Grade | Notes |
 |---------|--------|-------|------|
-| 1.1 | Definitions of Intelligence — Stored vs. Flowing | **B** | Minor excess in philosophical paragraph count |
-| 1.2 | History of AI — Symbolic, Connectionist, Hybrid | **C** |  |
-| 1.3 | The Cognitive Turn — Minds as Information Processors | **C** |  |
-| 1.4 | Intelligence as Metabolism — The Book's Thesis | **B** | Minor shortfall in conceptual core density |
-| 1.5 | Epistemic Machines — AI as Knowledge Producers | **B** |  |
-| 1.6 | Infrastructural Intelligence — Systems in Context | **B** | solid but needs stronger hook |
-| 1.7 | Institutional Participation — AI in Organizations | **C** |  |
-| 1.8 | The Student's AI — Capstone Vision | **A** | Meets density and narrative arc, only minor diagram improvement needed |
+| 1.1 | Definitions of Intelligence — Stored vs. Flowing | **B** | Meets structural targets but lacks a fully compelling hook and tighter narrative cohesion. |
+| 1.2 | History of AI — Symbolic, Connectionist, Hybrid | **B** | Over‑segmented paragraphs affect pacing |
+| 1.3 | The Cognitive Turn — Minds as Information Processors | **A** | Meets narrative arc, density, and engagement targets with minor tweaks. |
+| 1.4 | Intelligence as Metabolism — The Book's Thesis | **C** |  |
+| 1.5 | Epistemic Machines — AI as Knowledge Producers | **B** | Slightly under target word count |
+| 1.6 | ch01-lecture-06 | **D** | Only YAML, no narrative or pedagogical content |
+| 1.7 | Institutional Participation — AI in Organizations | **B** | Solid structure, meets targets but needs minor depth trimming |
+| 1.8 | ch01-lecture-08 | **D** | No narrative, sections, or depth provided |
 
 ---
 
 ## Chapter 2: AI in Practice
 
-**Chapter grade: D.** (From lecture grades: B, B, B, C, C, B, C, B, C)
+**Chapter grade: D.** (From lecture grades: B, D, D, D, D, C, B, D, B)
 
 | Lecture | Title | Grade | Notes |
 |---------|--------|-------|------|
-| 2.1 | Real-World AI Deployments | **B** | Minor hook and density tweaks needed |
-| 2.3 | Data Pipelines and Knowledge Flow | **B** | Conceptual core slightly thin, needs a paragraph or two more. |
-| 2.4 | Model Lifecycle — Training, Deployment, Drift | **B** | Solid structure, minor improvements needed |
-| 2.5 | Observability and Accountability | **C** |  |
-| 2.6 | Failure Modes and Brittleness | **C** |  |
-| 2.7 | Human-AI Collaboration | **B** | Minor density and diagram refinements needed |
-| 2.8 | AI System Audits | **C** |  |
-| 2.9 | Lab Integration — Audit Tool and Capstone | **B** | Technical example under‑dense |
-| 2.2 | Capstone Use Cases — Choose Your Domain | **C** |  |
+| 2.1 | Real-World AI Deployments | **B** | Slightly under the required word count |
+| 2.2 | ch02-lecture-02 | **D** | Missing narrative, depth, and required lecture sections |
+| 2.3 | ch02-lecture-03 | **D** | No narrative, insufficient depth, missing core sections. |
+| 2.4 | ch02-lecture-04 | **D** | Lacks narrative, depth, and required lecture components. |
+| 2.5 | ch02-lecture-05 | **D** | No |
+| 2.6 | Human-AI Collaboration | **C** |  |
+| 2.7 | AI System Audits | **B** | Solid content, but uneven structure and some redundancy. |
+| 2.8 | ch02-lecture-08 | **D** | Lacks all required sections and narrative depth. |
+| 2.2 | Capstone Use Cases — Choose Your Domain | **B** | Slightly under target word count |
 
 ---
 
 ## Chapter 3: Search and Planning
 
-**Chapter grade: D.** (From lecture grades: C, C, C, B, C, B, B, B, B)
+**Chapter grade: D.** (From lecture grades: D, B, B, D, B, D, D, D, D)
 
 | Lecture | Title | Grade | Notes |
 |---------|--------|-------|------|
-| 3.1 | Problem Spaces and State Representation | **C** | key‑point lists too thin, needs instructor expansion. |
-| 3.2 | Uninformed Search — BFS, DFS, Iterative Deepening | **C** |  |
-| 3.2a | Lisp and the Symbolic Search Tradition | **C** |  |
-| 3.3 | Informed Search — A* and Heuristics | **B** | Minor shortfall in philosophical reflection density |
-| 3.4 | Adversarial Search — Game Trees | **C** |  |
-| 3.5 | Planning as Search — STRIPS, PDDL | **B** | Weak hook, needs tighter flow |
-| 3.6 | Partial Observability and Belief States | **B** | Minor density shortfall in technical and reflection sections |
-| 3.7 | Meta-Reasoning and Search Control | **B** | Minor key‑point shortfalls, otherwise solid structure and density |
-| 3.8 | Search in Agent Architectures | **B** | Slightly thin key‑point density in technical and philosophical sections. |
+| 3.1 | ch03-lecture-01 | **D** | Missing all required sections and depth |
+| 3.2 | ch03-lecture-02 | **B** | Meets structure but concept core too definition‑heavy |
+| 3.2a | Lisp for Search & Planning | **B** | Conceptual core under‑developed |
+| 3.3 | ch03-lecture-03 | **D** | No narrative or required sections present |
+| 3.4 | Adversarial Search — Game Trees | **B** | Meets structural requirements but falls short on word‑density targets |
+| 3.5 | ch03-lecture-05 | **D** | Lacks narrative, depth, and required sections. |
+| 3.6 | ch03-lecture-06 | **D** | Only a single equation, missing all required sections. |
+| 3.7 | ch03-lecture-07 | **D** | Insufficient depth and missing required sections |
+| 3.8 | ch03-lecture-08 | **D** | No substantive lecture content provided. |
 
 ---
 
 ## Chapter 4: Learning from Data
 
-**Chapter grade: D.** (From lecture grades: C, B, B, C, C, C, D, C)
+**Chapter grade: D.** (From lecture grades: C, D, B, B, B, C, C, D)
 
 | Lecture | Title | Grade | Notes |
 |---------|--------|-------|------|
-| 4.1 | Statistical Learning — Risk and Generalization | **C** |  |
-| 4.2 | Linear Models and Gradient Descent | **B** | solid structure with minor hook and density gaps |
-| 4.3 | Regularization and Model Selection | **B** | Insufficient paragraph density |
-| 4.4 | Trees, Ensembles, and Boosting | **C** |  |
-| 4.5 | Evaluation Metrics and Comparison | **C** |  |
-| 4.6 | Experiment Tracking and Reproducibility | **C** | Insufficient density and under‑ |
-| 4.7 | ML in the Agent — The ml_trainer Tool | **D** | Insufficient density and weak narrative arc |
-| 4.8 | Lab Integration — ML Model Trainer | **C** |  |
+| 4.1 | Splitting Data for Reliable Machine Learning | **C** | under‑dense, thin conceptual core |
+| 4.2 | ch04-lecture-02 | **D** | No narrative arc, insufficient depth and missing required sections. |
+| 4.3 | Regularization and Model Selection | **B** | Solid structure with slight over‑length in sections |
+| 4.4 | ch04-lecture-04 | **B** | solid structure, reflection needs tightening |
+| 4.5 | ch04-lecture-05 | **B** | Conceptual core and reflection under‑developed |
+| 4.6 | Experiment Tracking with MLflow | **C** |  |
+| 4.7 | ch04-lecture-07 | **C** | Insufficient depth and word count for 90‑minute lecture |
+| 4.8 | ch04-lecture-08 | **D** | Bare‑bones code listing lacking narrative and depth |
 
 ---
 
 ## Chapter 5: Neural Systems and Representation
 
-**Chapter grade: D.** (From lecture grades: C, B, C, C, D, D, D, D)
+**Chapter grade: D.** (From lecture grades: D, C, D, D, B, C, B, C)
 
 | Lecture | Title | Grade | Notes |
 |---------|--------|-------|------|
-| 5.1 | Perceptrons and the Linear Boundary | **C** |  |
-| 5.2 | Multilayer Networks and Backpropagation | **B** | Slightly under density targets |
-| 5.3 | Training Dynamics — Vanishing Gradients and Initialization | **C** | Key‑point density insufficient, needs instructor |
-| 5.4 | Convolutional Networks — Structure and Translation | **C** |  |
-| 5.5 | Regularization — Dropout, Data Augmentation | **D** | Missing hook and insufficient paragraph/key‑point density |
-| 5.6 | GPU Acceleration — Training at Scale | **D** | insufficient narrative and density |
-| 5.7 | Neural Classifier as Tool | **D** |  |
-| 5.8 | Lab Integration — Neural Classifier | **D** | Insufficient density and missing hook |
+| 5.1 | ch05-lecture-01 | **D** | Insufficient content |
+| 5.2 | Multilayer Networks and Backpropagation | **C** |  |
+| 5.3 | ch05-lecture-03 | **D** | Lacks narrative arc, depth, and required sections. |
+| 5.4 | ch05-lecture-04 | **D** | Code‑only listing lacks narrative, depth, and required sections. |
+| 5.5 | Regularization — Dropout, Data Augmentation | **B** | Conceptual core and reflection sections are under‑worded. |
+| 5.6 | Device Management and Model Placement in PyTorch | **C** | Insufficient word count and missing key‑point bullets |
+| 5.7 | ch05-lecture-07 | **B** | Solid structure but Conceptual Core under‑developed and Technical Example over‑expanded. |
+| 5.8 | From Spam to Insight – Building a Tiny Transformer Email Classifier | **C** | Insufficient depth and density across core sections |
 
 ---
 
 ## Chapter 6: Language and Models
 
-**Chapter grade: D.** (From lecture grades: C, C, C, C, C, C, C, D)
+**Chapter grade: D.** (From lecture grades: B, D, C, C, C, B, B, B)
 
 | Lecture | Title | Grade | Notes |
 |---------|--------|-------|------|
-| 6.1 | Word Embeddings — From One-Hot to Vectors | **C** | Insufficient paragraph density, needs expansion. |
-| 6.2 | Attention and the Transformer | **C** | Missing strong hook and under‑developed technical/philosophical sections, key‑point count low. |
-| 6.3 | Large Language Models — Pretraining and Fine-Tuning | **C** | Insufficient density and under‑specified sections require expansion. |
-| 6.4 | Prompting — Zero-Shot, Few-Shot, Chain-of-Thought | **C** | Lacks hook and falls short of target density, needing instructor expansion. |
+| 6.1 | Word‑Vector Foundations | **B** | Solid but slightly thin narrative depth |
+| 6.2 | ch06-lecture-02 | **D** | Insufficient depth and missing sections |
+| 6.3 | Meta‑Llama‑3‑8B: From Prompt to Output | **C** | Falls short of required depth and word count |
+| 6.4 | ch06-lecture-04 | **C** | Missing lecture content prevents full assessment. |
 | 6.5 | Knowledge Engineering and AI-Mediated Communication | **C** |  |
-| 6.6 | Caching, Rate Limits, and Cost | **C** | Under‑developed density and key‑point coverage |
-| 6.7 | The llm Tool — Embed, Generate, Cache | **C** |  |
-| 6.8 | Lab Integration — Prompt/LLM Pipeline | **D** | Insufficient density and weak hook |
+| 6.6 | Caching LLM Calls – Why It Matters | **B** | Conceptual core under‑worded, reflection and lab prep need tightening. |
+| 6.7 | The llm Tool — Embed, Generate, Cache | **B** | Minor density and paragraph issues prevent full exemplary status |
+| 6.8 | ch06-lecture-08 | **B** | Meets density but core is over‑fragmented, reducing narrative flow. |
 
 ---
 
 ## Chapter 7: Memory Systems
 
-**Chapter grade: D.** (From lecture grades: C, B, A, C, C, B, D, C)
+**Chapter grade: D.** (From lecture grades: D, B, B, B, C, B, C, D)
 
 | Lecture | Title | Grade | Notes |
 |---------|--------|-------|------|
-| 7.1 | Memory in AI — The Need for External Storage | **C** |  |
-| 7.2 | Vector Stores and Similarity Search | **B** | Minor hook and diagram tweaks needed |
-| 7.3 | RAG — Retrieval-Augmented Generation | **A** | Strong narrative, meets density |
-| 7.4 | Symbolic Memory — Graphs and Knowledge Bases | **C** |  |
-| 7.5 | Memory Updates, Eviction, and Consistency | **C** |  |
-| 7.6 | Memory in the Agent Loop | **B** | solid content but weak hook and abrupt transitions |
-| 7.7 | The memory Tool | **D** | Missing hook and low density |
-| 7.8 | Lab Integration — Vector Memory System | **C** |  |
+| 7.1 | ch07-lecture-01 | **D** | missing narrative, depth, and required sections |
+| 7.2 | Vector Stores and Similarity Search | **B** | Minor depth shortfall in philosophical reflection |
+| 7.3 | RAG — Retrieval‑Augmented Generation | **B** | Solid structure but insufficient conceptual depth and word count. |
+| 7.4 | Symbolic Memory — Graphs and Knowledge Bases | **B** | Minor density/key‑point excess and one too many discussion prompts |
+| 7.5 | Updating Documents in Vector‑Based Memory Systems | **C** |  |
+| 7.6 | Memory‑Augmented Conversational Agents | **B** | Solid structure with minor density gaps. |
+| 7.7 | Memory Systems | **C** | Insufficient depth and word count |
+| 7.8 | ch07-lecture-08 | **D** |  |
 
 ---
 
 ## Chapter 8: Reasoning and Inference
 
-**Chapter grade: D.** (From lecture grades: C, C, C, C, B, C, D, C)
+**Chapter grade: D.** (From lecture grades: D, D, C, D, D, C, D, B)
 
 | Lecture | Title | Grade | Notes |
 |---------|--------|-------|------|
-| 8.1 | Propositional Logic — Syntax and Semantics | **C** | Density below target |
-| 8.2 | First-Order Logic — Quantifiers and Unification | **C** |  |
-| 8.3 | Probabilistic Reasoning — Bayesian Networks | **C** |  |
-| 8.4 | Sampling and Approximate Inference | **C** |  |
-| 8.5 | LLMs and Structured Reasoning | **B** | Weak hook and under‑populated key‑point lists |
-| 8.6 | Reasoning with Tools — Retrieval and Computation | **C** | Insufficient density and weak opening hook |
-| 8.7 | The reasoning Tool | **D** | missing hook and insufficient density |
-| 8.8 | Lab Integration — Inference Engine | **C** | density too low, needs expansion |
+| 8.1 | ch08-lecture-01 | **D** | Lacks any substantive lecture structure or depth |
+| 8.2 | ch08-lecture-02 | **D** | Lacks narrative, depth, and required sections. |
+| 8.3 | Probabilistic Reasoning and Inference – Updating Beliefs | **C** |  |
+| 8.4 | ch08-lecture-04 | **D** | Lacks narrative, conceptual depth, and required lecture components. |
+| 8.5 | ch08-lecture-05 | **D** | Too short, lacks required sections and narrative arc |
+| 8.6 | ch08-lecture-06 | **C** | Insufficient depth and length |
+| 8.7 | ch08-lecture-07 | **D** | insufficient depth and missing required sections |
+| 8.8 | Lab Integration — Inference Engine | **B** | Minor structural issues |
 
 ---
 
 ## Chapter 9: Acting in the World
 
-**Chapter grade: D.** (From lecture grades: C, D, C, D, D, C, C, D)
+**Chapter grade: D.** (From lecture grades: B, C, B, B, C, C, B, D)
 
 | Lecture | Title | Grade | Notes |
 |---------|--------|-------|------|
-| 9.1 | Agents — Perception, Reasoning, Action | **C** |  |
-| 9.2 | Tool Use — Schemas and Registration | **D** | Insufficient paragraph count and weak narrative structure |
-| 9.3 | Tool Execution and Feedback | **C** |  |
-| 9.4 | ReAct — Reasoning and Acting in Interleaved Steps | **D** |  |
-| 9.5 | Planning with Tools — Decomposition and Execution | **D** | Too thin, lacks required depth and structure |
-| 9.6 | Control Flow — Max Steps, Safety, Guardrails | **C** | Under‑developed sections need expansion. |
-| 9.7 | The Tool-Calling Agent — Integration | **C** | Density below textbook guidelines, needs expansion. |
-| 9.8 | Lab Integration — Tool-Calling Agent | **D** | Insufficient narrative and density |
+| 9.1 | Agents — Perception, Reasoning, Action | **B** | Slightly over‑segmented conceptual core and definition‑heavy sections. |
+| 9.2 | The Search Tool – From Prompt to Web Results | **C** |  |
+| 9.3 | Uniform Result Schema & Observation Feedback | **B** | Below target word count and several sections are under‑developed. |
+| 9.4 | The Thought‑Action‑Observation Loop | **B** | Slight |
+| 9.5 | ch09-lecture-05 | **C** | Insufficient depth and narrative |
+| 9.6 | Control Flow — Max Steps, Safety, Guardrails | **C** |  |
+| 9.7 | The Tool-Calling Agent — Integration | **B** | Over‑segmented technical sections |
+| 9.8 | ch09-lecture-08 | **D** | No lecture content provided |
 
 ---
 
 ## Chapter 10: Agent Architectures
 
-**Chapter grade: D.** (From lecture grades: C, C, D, C, D, C, D, D)
+**Chapter grade: D.** (From lecture grades: B, D, D, B, D, B, C, B)
 
 | Lecture | Title | Grade | Notes |
 |---------|--------|-------|------|
-| 10.1 | Agent Architectures — Pipelines and Loops | **C** |  |
-| 10.2 | Multi-Agent Systems — Specialists and Coordination | **C** |  |
-| 10.3 | Orchestration — The Tool Client | **D** | Insufficient density and missing narrative arc |
-| 10.4 | API Integration — REST, Authentication | **C** |  |
-| 10.5 | Monitoring and Debugging Agent Behavior | **D** | Insufficient density and weak opening |
-| 10.6 | Scaling — Throughput and Latency | **C** | Density short in technical example and reflection sections. |
-| 10.7 | The Orchestrator — End-to-End Stack | **D** | Thin narrative and under‑dense content requiring major expansion. |
-| 10.8 | Lab Integration — Agent Orchestrator | **D** | Thin narrative arc and below‑target density. |
+| 10.1 | From Retrieval to Generation – Building a Three‑Stage AI Pipeline | **B** | Meets structural and density targets but bullet overload hinders an exemplary rating. |
+| 10.2 | ch10-lecture-02 | **D** | Bare‑bones code lacks narrative and lecture structure |
+| 10.3 | ch10-lecture-03 | **D** | Missing lecture content. |
+| 10.4 | API Integration — REST, Authentication | **B** | Below target word count and overly definition‑heavy sections |
+| 10.5 | ch10-lecture-05 | **D** | Lacks narrative, depth, and required sections |
+| 10.6 | Scaling — Throughput and Latency | **B** | Slightly under target density and definition‑heavy sections |
+| 10.7 | ch10-lecture-07 | **C** |  |
+| 10.8 | Lab Integration — Agent Orchestrator | **B** | Below required word count/density. |
 
 ---
 
 ## Chapter 11: AI in Institutions (Governance)
 
-**Chapter grade: D.** (From lecture grades: C, B, B, C, A, B, B, C)
+**Chapter grade: C.** (From lecture grades: B, C, B, B, A, C, A, C)
 
 | Lecture | Title | Grade | Notes |
 |---------|--------|-------|------|
-| 11.1 | Governance — Policies and Constraints | **C** | insufficient key‑points in technical & philosophical sections |
-| 11.2 | Cost Control and Rate Limiting | **B** | Solid structure, needs minor enhancements |
-| 11.3 | Responsible AI — Fairness, Bias, Transparency | **B** | Solid structure, minor gaps |
-| 11.4 | Experimental AI — A/B Testing and Statistical Rigor | **C** | Insufficient density and thin narrative arc requiring instructor expansion |
-| 11.5 | GPU-Backed Evaluation — Latency, Cost, Quantization | **A** | Meets narrative arc and density with minor tweaks. |
-| 11.6 | Epistemology and Infrastructure | **B** | solid but minor gaps |
-| 11.7 | The governance Tool | **B** | Needs stronger hook and fuller key‑point sections |
-| 11.8 | Lab Integration — AI Governance Simulator | **C** | Slightly under density, needs expansion. |
+| 11.1 | Governance — Policies and Constraints | **B** | Reflection section slightly thin, needs tighter problem‑dilemma‑implication flow. |
+| 11.2 | Cost Control and Rate Limiting | **C** | Insufficient depth and word count for 90‑minute lecture. |
+| 11.3 | Responsible AI — Fairness, Bias, Transparency | **B** | Solid structure with narrative gaps |
+| 11.4 | Experimental AI — A/B Testing and Statistical Rigor | **B** | Insufficient total word count |
+| 11.5 | GPU-Backed Evaluation — Latency, Cost, Quantization | **A** | Minor refinements, otherwise exemplary lecture design |
+| 11.6 | Epistemology and Infrastructure | **C** |  |
+| 11.7 | The governance Tool | **A** | Meets density, narrative arc, and depth with only minor refinements needed. |
+| 11.8 | Lab Integration — AI Governance Simulator | **C** |  |
 
 ---
 
 ## Chapter 12: The Student's Artificial Intelligence (Capstone)
 
-**Chapter grade: D.** (From lecture grades: C, B, C, C, C, B, C, D)
+**Chapter grade: D.** (From lecture grades: C, B, B, C, B, C, B, C)
 
 | Lecture | Title | Grade | Notes |
 |---------|--------|-------|------|
-| 12.1 | Capstone Overview — The Student's AI | **C** |  |
-| 12.2 | Problem Definition and User Validation | **B** | Hook and depth need improvement |
-| 12.3 | Implementation — Customizing the Agent | **C** |  |
-| 12.4 | Interface and Deployment | **C** |  |
-| 12.5 | Evaluation and Benchmarking | **C** |  |
-| 12.6 | The Written Thesis | **B** | Hook weak and sections need more |
-| 12.7 | The Formal Presentation | **C** |  |
-| 12.8 | A Lecture Delivered by a Machine That Participates in the Metabolism of Knowledge | **D** | Missing narrative arc and required density |
+| 12.1 | Capstone Overview — The Student's AI | **C** | Insufficient narrative density and depth |
+| 12.2 | Problem Definition and User Validation | **B** | Solid structure with minor thin sections |
+| 12.3 | Implementation — Customizing the Agent | **B** | Solid structure but conceptual core too checklist‑like |
+| 12.4 | Interface and Deployment | **C** | Insufficient depth and narrative development |
+| 12.5 | Evaluation and Benchmarking | **B** | Conceptual core too thin, needs more depth. |
+| 12.6 | The Written Thesis | **C** |  |
+| 12.7 | The Formal Presentation | **B** | Conceptual Core under‑worded, sections slightly over length. |
+| 12.8 | A Lecture Delivered by a Machine That Participates in the Metabolism of Knowledge | **C** |  |
 
 ---
 
@@ -223,8 +223,8 @@
 | Grade | Count | %  |
 |-------|-------|-----|
 | A | 3 | 3 |
-| B | 26 | 27 |
-| C | 52 | 53 |
-| D | 17 | 17 |
+| B | 39 | 40 |
+| C | 26 | 27 |
+| D | 30 | 31 |
 
 *Total 98 lectures. Generated from llm-reviews by grade-lectures-with-llm.mjs.*

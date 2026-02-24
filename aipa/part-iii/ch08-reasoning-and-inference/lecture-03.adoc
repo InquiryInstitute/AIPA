@@ -1,3 +1,294 @@
-f1(R) = P(R)
-f2(S,R) = P(S|R)
-f3(W,R,S) = P(W|R,S)   (evidence: W = true → restrict to rows where W=true)
+=== 8.3: Probabilistic Reasoning and Inference – Updating Beliefs
+
+[.epigraph]
+____
+“Probability is the logic of science.” – *Karl Popper*
+____
+
+==== Hook: A Diagnosis in the Dark
+
+Imagine a busy emergency department. Dr. Lena has just examined a patient who presents with a persistent cough and fever. She suspects **R** – a respiratory infection – but the symptoms are ambiguous. The patient’s lab test **W** (a rapid antigen assay) returns *positive*, and a secondary questionnaire **S** (patient‑reported shortness of breath) is also recorded. Dr. Lena now faces a concrete question:
+
+*Given the observed test result and symptom report, how confident should she be that the patient truly has the infection?*  
+
+This scenario forces us to confront the core of probabilistic inference: **how to update prior beliefs in light of new evidence**. It also introduces the three functions that will structure today’s lecture:
+
+* `f₁(R) = P(R)` – the prior probability of the disease.  
+* `f₂(S,R) = P(S | R)` – the likelihood of the symptom given the disease.  
+* `f₃(W,R,S) = P(W | R,S)` – the likelihood of the test result given disease and symptom.
+
+These functions are not abstract symbols; they are the building blocks of a **Bayesian network** that captures causal relationships among variables. By the end of the session you will be able to compute a posterior belief `P(R | W=true)` and to interpret what that belief means for decision‑making.
+
+*Key Points*
+
+* A real‑world problem creates tension and motivates the mathematics.  
+* The three functions correspond to nodes and conditional probability tables (CPTs) in a Bayesian network.  
+* The goal is belief updating: turning a prior `P(R)` into a posterior `P(R | evidence)`.
+
+==== Conceptual Core: From Joint Distribution to Belief Updating
+
+*Paragraph 1 – Joint Distribution and Factorisation*  
+A Bayesian network encodes a joint probability distribution over all variables by factorising it according to the graph’s directed edges. For the network `{R, S, W}` the factorisation is  
+
+```
+P(R,S,W) = P(R)·P(S|R)·P(W|R,S)   (1)
+```  
+
+Equation (1) is precisely the product of our three functions `f₁`, `f₂`, and `f₃`. The graph (see Diagram 1) shows arrows `R → S`, `R → W`, and `S → W`, reflecting the causal assumptions that the disease influences both symptom and test, and that the symptom may also affect the test outcome (e.g., a borderline result).  
+
+*Key Points*  
+
+* The joint distribution is the starting point for any inference task.  
+* Factorisation reduces the number of parameters needed: instead of a full table with |R|·|S|·|W| entries we need only the CPTs for each node.  
+* The factorised form makes marginalisation and conditioning tractable.
+
+*Paragraph 2 – Prior, Likelihood, and Evidence*  
+`f₁(R)` is the **prior** – our belief about the disease before seeing any data. `f₂(S,R)` and `f₃(W,R,S)` are **likelihoods** that describe how likely we are to observe a symptom or a test result given a particular disease state. When evidence arrives (e.g., `W = true`), we treat it as a constraint that selects only those rows of the joint table consistent with the observation. This operation is called **evidence restriction**.  
+
+*Key Points*  
+
+* Prior and likelihood are distinct concepts; the prior is unconditional, the likelihood is conditional.  
+* Evidence restriction is a logical filter applied to the joint distribution.  
+* The result of restriction is a *partial* joint distribution that still needs normalisation.
+
+*Paragraph 3 – Marginalisation over Hidden Variables*  
+In most realistic settings some variables are unobserved. In our medical example the symptom **S** may not be recorded for every patient. To obtain the posterior `P(R | W=true)` we must **marginalise** over the hidden variable `S`:
+
+```
+P(R,W) = Σ_S P(R,S,W) = Σ_S f₁(R)·f₂(S,R)·f₃(W,R,S)   (2)
+```  
+
+Equation (2) collapses the three‑dimensional joint into a two‑dimensional table that still respects the observed evidence `W`.  
+
+*Key Points*  
+
+* Marginalisation sums out hidden variables, preserving the probability mass of the remaining variables.  
+* The operation is linear and can be performed analytically for small networks or algorithmically (e.g., variable elimination) for larger ones.  
+* Correct marginalisation is essential; forgetting to sum over a hidden node yields a biased posterior.
+
+*Paragraph 4 – Bayes’ Rule and Normalisation*  
+Having restricted and marginalised, we obtain an *unnormalised* posterior `P̃(R) = P(R,W=true)`. To convert this into a proper probability distribution we apply **Bayes’ rule**, which in this context is simply a normalisation step:
+
+```
+P(R | W=true) = P̃(R) / Σ_R P̃(R)   (3)
+```  
+
+The denominator is the **evidence probability** `P(W=true)`, ensuring that the posterior sums to one.  
+
+*Key Points*  
+
+* Normalisation guarantees a valid probability distribution.  
+* The evidence probability tells us how likely a positive test is overall, given disease prevalence and symptom distribution.  
+* Bayes’ rule is the mathematical embodiment of “learning from data”.
+
+*Paragraph 5 – Computational Perspective*  
+From a computational standpoint, the three‑step pipeline—*restriction → marginalisation → normalisation*—maps directly onto inference algorithms used in modern AI systems. Exact inference (as we have done) is feasible for small networks, but scales poorly: the number of terms grows exponentially with the number of hidden variables. Approximate methods (e.g., loopy belief propagation, Monte Carlo sampling) trade accuracy for tractability. Understanding the exact case, however, provides the conceptual foundation for all approximations.  
+
+*Key Points*  
+
+* Exact inference is exponential in the treewidth of the graph.  
+* Approximate inference methods are built on the same algebraic principles.  
+* Mastery of the exact case equips students to diagnose failures of approximate algorithms.
+
+*Paragraph 6 – Summary of the Core Process*  
+Putting the pieces together, the belief‑updating workflow for our network is:
+
+1. **Specify** the prior `f₁(R)` and CPTs `f₂`, `f₃`.  
+2. **Observe** evidence (`W = true`).  
+3. **Restrict** the joint distribution to rows consistent with the evidence.  
+4. **Marginalise** over hidden variables (`S`).  
+5. **Normalise** to obtain the posterior `P(R | W=true)`.  
+
+Each step corresponds to a concrete mathematical operation and a clear conceptual move from ignorance to knowledge.  
+
+*Key Points*  
+
+* The workflow is linear and repeatable for any new piece of evidence.  
+* Understanding each algebraic step demystifies the “black‑box” nature of many AI systems.  
+* The process exemplifies the scientific method: hypothesis (prior) → experiment (evidence) → revised belief (posterior).
+
+[plantuml, BayesianNetwork, png]
+....
+@startuml
+skinparam backgroundColor #F9F9F9
+skinparam node {
+  BackgroundColor<<Disease>> #FFCCCC
+  BackgroundColor<<Symptom>> #CCFFCC
+  BackgroundColor<<Test>> #CCCCFF
+}
+node "R\nDisease\n{0,1}" as R <<Disease>>
+node "S\nSymptom\n{0,1}" as S <<Symptom>>
+node "W\nTest\n{0,1}" as W <<Test>>
+R --> S : P(S|R)
+R --> W : P(W|R,‑)
+S --> W : P(W|S,‑)
+legend right
+  |#FFCCCC| Disease
+  |#CCFFCC| Symptom
+  |#CCCCFF| Test
+endlegend
+@enduml
+....
+*Diagram 1:* Bayesian network for the medical diagnosis problem. Nodes are coloured by semantic role; arrows are annotated with the conditional probabilities that justify the factorisation (1).
+
+==== Technical Example: Numerical Belief Updating
+
+*Paragraph 1 – CPT Specification*  
+Consider the following conditional probability tables (CPTs), derived from clinical studies:
+
+```
+P(R) = { R=true: 0.02, R=false: 0.98 }
+
+P(S|R) = {
+  R=true  → { S=true: 0.85, S=false: 0.15 }
+  R=false → { S=true: 0.10, S=false: 0.90 }
+}
+
+P(W|R,S) = {
+  R=true, S=true  → { W=true: 0.95, W=false: 0.05 }
+  R=true, S=false → { W=true: 0.80, W=false: 0.20 }
+  R=false, S=true → { W=true: 0.30, W=false: 0.70 }
+  R=false, S=false→ { W=true: 0.05, W=false: 0.95 }
+}
+```  
+
+These numbers encode the intuition that the disease strongly raises both symptom and test positivity, while the test remains imperfect.  
+
+*Key Points*  
+
+* CPTs are the concrete instantiation of `f₁`, `f₂`, `f₃`.  
+* Each conditional distribution must sum to one.  
+* Real‑world CPTs often come from epidemiological studies or expert elicitation.
+
+*Paragraph 2 – Evidence Restriction (W = true)*  
+We observe `W = true`. Evidence restriction means we keep only the entries of `P(W|R,S)` where `W=true`. The restricted joint distribution becomes:
+
+```
+P(R,S,W=true) = P(R)·P(S|R)·P(W=true|R,S)
+```
+
+Computing each term:
+
+| R | S | P(R) | P(S|R) | P(W=true|R,S) | Product |
+|---|---|------|--------|----------------|---------|
+| T | T | 0.02 | 0.85   | 0.95           | 0.01615 |
+| T | F | 0.02 | 0.15   | 0.80           | 0.00240 |
+| F | T | 0.98 | 0.10   | 0.30           | 0.02940 |
+| F | F | 0.98 | 0.90   | 0.05           | 0.04410 |
+
+*Key Points*  
+
+* Multiplication follows the factorised joint (1).  
+* The table now contains only rows compatible with the observed test result.  
+* The raw numbers are *unnormalised* contributions to the posterior.
+
+*Paragraph 3 – Marginalisation over S*  
+Sum over the hidden symptom `S` to obtain `P(R,W=true)`:
+
+```
+P(R=true, W=true)  = 0.01615 + 0.00240 = 0.01855
+P(R=false, W=true) = 0.02940 + 0.04410 = 0.07350
+```  
+
+*Key Points*  
+
+* Marginalisation collapses the two rows for each disease state into a single value.  
+* The result reflects how much total probability mass each disease state assigns to the observed test.
+
+*Paragraph 4 – Normalisation (Posterior)*  
+Normalise to get the posterior probability of disease given the positive test:
+
+```
+Z = 0.01855 + 0.07350 = 0.09205
+P(R=true | W=true)  = 0.01855 / Z ≈ 0.201
+P(R=false| W=true)  = 0.07350 / Z ≈ 0.799
+```  
+
+Thus, despite the low prior prevalence (2 %), a positive test raises the clinician’s belief to roughly 20 % that the patient is infected.  
+
+*Key Points*  
+
+* The posterior is still far from certainty because the test is not perfectly specific.  
+* The calculation illustrates the *learning* effect of evidence.  
+* Decision thresholds (e.g., start treatment if posterior > 0.5) can now be applied.
+
+[plantuml, EvidencePropagation, png]
+....
+@startuml
+skinparam backgroundColor #F9F9F9
+title Evidence Restriction → Marginalisation → Normalisation
+!define RECTANGLE class
+RECTANGLE Joint {
+  +R  S  W
+}
+RECTANGLE Restricted {
+  +R  S  W=true
+}
+RECTANGLE Marginalised {
+  +R  W=true
+}
+RECTANGLE Posterior {
+  +R | W=true (normalised)
+}
+Joint --> Restricted : restrict to W=true
+Restricted --> Marginalised : Σ over S
+Marginalised --> Posterior : normalise
+@enduml
+....
+*Diagram 2:* Flow of inference from the full joint distribution to the posterior after observing `W=true`. The coloured arrows highlight the three algebraic steps introduced in the Conceptual Core.
+
+==== Philosophical Reflection: Limits and Possibilities of Bayesian Inference
+
+*Paragraph 1 – When a Correct Update Becomes Misleading*  
+Imagine that, unbeknownst to us, a third factor **M** – a medication the patient is taking – reduces the likelihood of a positive test while also alleviating the symptom. If we omit **M** from the network, the CPT `P(W|R,S)` will be systematically biased: the test will appear more indicative of disease than it truly is. Running the exact update we just performed would then produce a posterior that *over‑estimates* the chance of infection, potentially leading Dr. Lena to prescribe unnecessary antibiotics. This illustrates the philosophical tension: **mathematical correctness does not guarantee epistemic reliability** when the model’s structure misrepresents the world.  
+
+*Key Points*  
+
+* Model adequacy, not just algorithmic precision, determines the quality of inference.  
+* Hidden confounders can invert the direction of evidence, turning a benign test into a misleading signal.  
+* Critical model validation is a core responsibility of any AI practitioner.
+
+*Paragraph 2 – Bounded Rationality and Approximation*  
+Exact inference, as we have demonstrated, quickly becomes infeasible for networks with dozens of variables. Real‑time systems—autonomous vehicles, emergency triage tools, or financial trading bots—must deliver decisions within milliseconds. They therefore rely on approximate methods such as loopy belief propagation or Monte Carlo sampling, which sacrifice guarantees of convergence or exactness for speed. This trade‑off embodies the philosophical notion of **bounded rationality**: agents make the best possible decision given limited computational resources. The stochastic error introduced by approximation becomes a new source of epistemic uncertainty that must be acknowledged alongside the usual statistical uncertainty.  
+
+*Key Points*  
+
+* Bounded rationality acknowledges that agents cannot compute exact posteriors in real time.  
+* Approximation introduces additional uncertainty that should be quantified (e.g., confidence intervals).  
+* Understanding the exact case provides a benchmark for evaluating the quality of approximations.
+
+*Paragraph 3 – Ethical Stakes of Probabilistic Decisions*  
+When posterior probabilities drive high‑stakes actions—administering a drug, granting a loan, or flagging harmful content—the probabilistic nature of the decision must be transparent to stakeholders. A patient should hear not only “your test is positive with a 20 % chance of disease” but also why that number arises: the prior prevalence, the test’s sensitivity, and the assumptions about symptom‑test interactions. This aligns with emerging AI ethics frameworks that demand *explainability* and *accountability*. Moreover, designers must decide where to place the decision threshold (e.g., treat if posterior > 0.5) and be prepared to justify that choice in terms of risk tolerance, societal values, and possible harms of false positives or false negatives.  
+
+*Key Points*  
+
+* Probabilistic reasoning encodes value judgments about risk and benefit.  
+* Transparency about the inference pipeline supports ethical AI deployment.  
+* Philosophical reflection bridges technical work with societal impact.
+
+Having examined the limits of perfect Bayesian updating, we now turn to implementing the same reasoning in code, where the same philosophical concerns—model misspecification, computational constraints, and ethical transparency—must be kept in mind.
+
+==== Discussion Prompts
+
+* How would the posterior change if the test were perfectly specific (i.e., `P(W=true|R=false)=0`) but less sensitive?
+* In what ways might hidden confounders invalidate the factorisation `P(R,S,W)=P(R)P(S|R)P(W|R,S)`?
+* Compare exact variable elimination with loopy belief propagation on this three‑node network. What trade‑offs emerge?
+* Discuss how the choice of prior `P(R)` influences decisions in low‑prevalence settings such as rare disease screening.
+* Reflect on the ethical responsibilities of a practitioner who must explain a posterior probability to a non‑technical patient.
+* How does the concept of *evidence propagation* relate to the legal principle of *burden of proof*?
+
+==== Lab Preparation: Implementing Belief Updating
+
+In the upcoming lab you will translate the three‑step belief‑updating pipeline into executable code and explore its behaviour under different assumptions.
+
+*Key Points for the Lab*  
+
+1. **Model Specification** – Encode the CPTs for `R`, `S`, and `W` as dictionaries, NumPy arrays, or tensors. Verify that each conditional distribution sums to one.  
+2. **Inference Engine** – Implement three functions: (a) *restrict* the joint distribution given arbitrary evidence, (b) *marginalise* over a user‑specified set of hidden variables, and (c) *normalise* to obtain a posterior. Test your engine on the medical example presented above.  
+3. **Experimentation** – Systematically vary the prior prevalence, test sensitivity, and symptom likelihoods. Record how the posterior `P(R|evidence)` responds. Produce a plot of posterior probability versus test sensitivity and write a brief analysis of any non‑intuitive patterns you discover.  
+4. **Approximation Exploration** – Extend your engine with an approximate method (e.g., Gibbs sampling or loopy belief propagation) and compare its results to the exact enumeration.  
+5. **Documentation** – Include a short README that lists all assumptions, explains the data sources for the CPTs, and discusses the runtime and memory characteristics of both exact and approximate inference.
+
+<<<Pearl1988>>>, <<KollerFriedman2009>>>
+
+=== End of Lecture ===

@@ -7,75 +7,317 @@
 
 *The orchestrator is the spine of the student's AI—everything connects through it.*
 
-==== Example Prompts
+==== Hook: A Failure Without a Spine
 
-* "Run the full agent pipeline." — _Orchestrator completes the stack_
-* "What theory does our architecture encode?" — _Design choices; metabolism_
-* "Deploy with governance." — _Orchestrator + governance; capstone_
+Imagine a travel‑assistant that can book flights, reserve hotels, and order ground transportation. The user asks, “Get me a round‑trip ticket from New York to Tokyo, then book a hotel near Shinjuku, and finally schedule a taxi for arrival.” Behind the scenes the assistant must invoke three distinct tools: a flight‑search API, a hotel‑reservation service, and a ride‑hailing platform. In a naïve implementation each tool is called directly from the main agent loop. When the flight‑search service experiences a temporary outage, the whole conversation collapses; the agent throws an exception, the user sees a cryptic error, and the system logs are a tangled mess of partial requests. The root cause is obvious: there is no *orchestrator* to mediate, retry, log, and enforce policy across heterogeneous components. This failure scenario raises a series of questions that will drive today’s lecture:
 
-==== Conceptual Core
+* How can we guarantee that a multi‑tool pipeline continues to make progress even when individual services misbehave?
+* What mechanisms do we need to observe, audit, and adapt the behavior of a distributed agent stack?
+* In what way does a central orchestration layer embody our theoretical commitments about intelligence—memory, reasoning, language, and action?
 
-Recap: pipeline, multi-agent, tool client, APIs, monitoring, scaling. Orchestrator in student-ai/orchestration/. Connection to Ch11: governance constrains the orchestrator—policies, audits, compliance. Connection to Ch12: capstone deploys the full stack. The integrated agent as epistemic machine: it knows (memory), reasons (reasoning), speaks (llm), acts (tools). From modules to system: we have built a complete AI agent. The architecture is the theory made concrete—our beliefs about intelligence are encoded in the design.
+The answers to these questions are the conceptual heart of the *Agent Orchestrator* and the practical bridge to the governance and capstone work that follows in Chapters 11 and 12.
+
+===== Conceptual Core
+
+**Paragraph 1 – From Pipelines to Spines**  
+In the first nine lectures we assembled a pipeline of independent agents, each exposing a thin API and a set of tools. While this modularity gave us flexibility, it also introduced duplication: every notebook re‑implemented authentication, error handling, and telemetry. The orchestrator replaces the ad‑hoc glue code with a *service‑mesh‑inspired spine*. It presents a uniform `run_pipeline` entry point, abstracts away the details of individual tool clients, and injects cross‑cutting concerns such as logging, rate‑limiting, and policy enforcement. By treating the entire stack as a single *epistemic machine*—one that knows (memory), reasons (LLM), speaks (natural language), and acts (tools)—the orchestrator makes the architecture itself a concrete embodiment of our theory of intelligence.
+
+**Paragraph 2 – Core Components in Action**  
+When the user’s request arrives, the **Pipeline Manager** parses the intent, consults the **Tool Registry** to resolve the symbolic names `flight_api`, `hotel_api`, and `taxi_api` into concrete service URLs, and then walks the ordered list of steps. Before each step, it builds a *request context* (correlation ID, user intent, timestamp) and forwards it to the **Policy Engine**. The Policy Engine evaluates declarative rules such as `max_latency: 2s` or `requires_consent: true`. If the rule set returns `ALLOW`, the Pipeline Manager invokes the tool client; otherwise it records a `DENY` event, optionally substitutes a cached response, and continues. The following Python‑style pseudocode illustrates the loop:
+
+```python
+for step in pipeline.steps:
+    ctx = make_context(step, user_intent)
+    decision = policy_engine.evaluate(ctx, step.tool)
+    if decision == "ALLOW":
+        resp = tool_client.call(step.tool, ctx)
+    else:
+        resp = fallback(step)
+    telemetry_hub.emit(ctx, resp)
+```
+
+Because each component talks only via lightweight JSON‑over‑HTTP contracts, the system remains language‑agnostic and can be redeployed in any cloud environment.
+
+**Paragraph 3 – Metadata, Observability, and Scaling**  
+Every request and response is wrapped in an envelope that carries both operational and provenance metadata. A typical envelope emitted by the Pipeline Manager looks like this:
+
+```json
+{
+  "correlation_id": "c7f9a1e4-3b2d-41f9-9a5e",
+  "step": "flight_search",
+  "request_timestamp": "2026-02-22T14:03:10Z",
+  "response_timestamp": "2026-02-22T14:03:12Z",
+  "latency_ms": 1850,
+  "status": "SUCCESS",
+  "originating_intent": "book_trip_ny_tokyo",
+  "provenance": {
+    "llm_prompt": "Find cheapest round‑trip NY→Tokyo for next month",
+    "model": "gpt‑4o"
+  }
+}
+```
+
+The **Telemetry Hub** aggregates these envelopes into a time‑series store (e.g., Prometheus) and feeds a Grafana dashboard that visualizes per‑tool latency, error rates, and policy violations. Autoscaling policies are expressed directly on these metrics: if the 95th‑percentile latency for `flight_api` exceeds the `max_latency` rule for more than two minutes, the service mesh (Istio or Linkerd) automatically spins up additional replicas of the `pipeline_manager`. This feedback loop ensures that a sudden surge in user requests does not overwhelm any single tool, and that the system can gracefully degrade (e.g., by serving stale cache entries) when resources are scarce.
+
+**Paragraph 4 – Policy Injection Points and Governance Prelude**  
+Governance, the focus of Chapter 11, is baked into the orchestrator through *policy injection points*. Before any external call, the Policy Engine evaluates a rule set that may be expressed in YAML, Prolog, or a domain‑specific language. Consider the following rule fragment (`rules.yaml`):
+
+```yaml
+- name: latency_limit
+  tool: "*"
+  condition: latency_ms > 2000
+  action: deny
+  fallback: cached_response
+- name: personal_data_consent
+  tool: "taxi_api"
+  condition: user_consent == false
+  action: deny
+  reason: "User must opt‑in to share location"
+```
+
+If the flight‑search service exceeds 2 seconds, the Policy Engine returns `DENY` and the Pipeline Manager automatically falls back to a cached itinerary. Every denial is logged with a `reason` field, creating an immutable audit trail that the **Governance** component can later query for compliance reporting. By centralizing these checks, we avoid scattering policy logic across individual agents, reducing the risk of inconsistent enforcement and making the audit process far more tractable.
+
+**Paragraph 5 – From Theory to Concrete Artifact**  
+The statement “architecture is the theory made concrete” reaches its climax in the orchestrator. Our theoretical stance—that intelligence is a loop of perception, inference, language, and action—is instantiated as a concrete software loop: perception (incoming user request) → inference (LLM reasoning) → language (natural‑language generation) → action (tool invocation). Each loop iteration is mediated by the orchestrator, which records the state transition, enforces policy, and emits telemetry. This makes the architecture *self‑describing*: a future researcher can reconstruct the agent’s decision‑making process simply by replaying the logged events. The orchestrator thus serves both as an execution engine and as a living documentation of our epistemic theory.
 
 ===== Key Points
 
-* Recap: pipeline, multi-agent, client, APIs, monitoring, scaling
-* student-ai/orchestration/
-* Ch11: governance
-* Ch12: capstone
-* Architecture = theory
+* The spine replaces duplicated glue code with a single `run_pipeline` entry point.
+* Four core components—Pipeline Manager, Tool Registry, Policy Engine, Telemetry Hub—communicate via JSON‑over‑HTTP.
+* Request/response envelopes carry correlation IDs, timestamps, latency, and provenance.
+* Policy Engine evaluates declarative rules before every tool call; violations trigger fallbacks or hard aborts.
+* Telemetry Hub aggregates metrics, feeds Grafana dashboards, and drives autoscaling via the service mesh.
+* Horizontal scaling is achieved by containerizing each component and sharing a common registry and telemetry store.
+* Audit logs become the primary evidence base for the governance audit in Chapter 11.
+* The orchestrator enacts the perception‑inference‑language‑action loop, turning theory into a self‑describing artifact.
 
 ==== Technical Example
 
-Deploy the orchestrator with all tools. Document the architecture: diagram of components, data flow, deployment. Prepare for Ch11 governance: the audit tool will assess the system. Lab 3: Complete Labs 1–3. Submit orchestrator. Integrate into student-ai. Prepare for Ch11.
+**Paragraph 1 – Deploying a Minimal Orchestrator with Docker‑Compose**  
+We will walk through a reproducible deployment using Docker‑Compose. The repository `student-ai/orchestration/` contains four services: `pipeline_manager`, `tool_registry`, `policy_engine`, and `telemetry_hub`. Each service is defined in `docker-compose.yml` with a shared network `orchestrator_net`. The `pipeline_manager` reads a YAML file `pipeline.yaml` that lists the ordered steps and the corresponding tool identifiers. Below is an excerpt of the compose file and the pipeline definition:
+
+```yaml
+# docker-compose.yml
+version: "3.8"
+services:
+  pipeline_manager:
+    build: ./pipeline_manager
+    ports: ["8000:8000"]
+    environment:
+      - TOOL_REGISTRY_URL=http://tool_registry:8001
+      - POLICY_ENGINE_URL=http://policy_engine:8002
+      - TELEMETRY_URL=http://telemetry_hub:8003
+    networks: [orchestrator_net]
+
+  tool_registry:
+    build: ./tool_registry
+    ports: ["8001:8001"]
+    networks: [orchestrator_net]
+
+  policy_engine:
+    build: ./policy_engine
+    ports: ["8002:8002"]
+    volumes:
+      - ./rules.yaml:/app/rules.yaml
+    networks: [orchestrator_net]
+
+  telemetry_hub:
+    build: ./telemetry_hub
+    ports: ["8003:8003"]
+    networks: [orchestrator_net]
+
+networks:
+  orchestrator_net:
+```
+
+```yaml
+# pipeline.yaml
+steps:
+  - name: flight_search
+    tool: flight_api
+    timeout: 5
+  - name: hotel_reservation
+    tool: hotel_api
+    timeout: 4
+  - name: taxi_booking
+    tool: taxi_api
+    timeout: 3
+```
+
+Running `docker compose up -d` spins up the four core services. The `pipeline_manager` exposes a REST endpoint `/run` that accepts a user intent payload. When invoked, it iterates over `steps`, asks the Policy Engine whether the call is permissible, forwards the request to the appropriate tool client (registered in `tool_registry`), and finally posts the response envelope to the Telemetry Hub.
+
+**Paragraph 2 – Instrumenting Telemetry, Observing Policy Enforcement, and a Code Walk‑through**  
+The Telemetry Hub ships with a built‑in Grafana dashboard. After the orchestrator processes a request, the dashboard shows a time‑series panel titled “Tool Latency (ms)” and a table “Policy Violations”. To see the policy engine in action, start the `policy_engine` with the following minimal Flask handler (saved as `app.py`):
+
+```python
+from flask import Flask, request, jsonify
+import yaml
+
+app = Flask(__name__)
+with open("rules.yaml") as f:
+    RULES = yaml.safe_load(f)
+
+def evaluate(ctx, tool):
+    for rule in RULES:
+        if rule["tool"] in ("*", tool):
+            if ctx["latency_ms"] > rule.get("condition_value", 2000):
+                return {"decision": "DENY", "action": rule["action"], "fallback": rule.get("fallback")}
+    return {"decision": "ALLOW"}
+
+@app.route("/evaluate", methods=["POST"])
+def evaluate_endpoint():
+    ctx = request.json
+    result = evaluate(ctx, ctx["tool"])
+    return jsonify(result)
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=8002)
+```
+
+When the `pipeline_manager` sends a request context for the `flight_search` step, the Policy Engine returns `{"decision":"DENY","action":"deny","fallback":"cached_response"}` if the latency exceeds 2 seconds. The Pipeline Manager then logs a telemetry envelope such as:
+
+```json
+{
+  "correlation_id": "c7f9a1e4-3b2d-41f9-9a5e",
+  "step": "flight_search",
+  "status": "DENIED",
+  "reason": "latency_exceeded",
+  "timestamp": "2026-02-22T14:03:12Z"
+}
+```
+
+The Grafana “Policy Violations” table instantly reflects this entry, and the autoscaler (configured via Prometheus alerts) may spin up an additional `pipeline_manager` replica if the violation rate crosses a threshold. Students can query the `/audit` endpoint of the Telemetry Hub to retrieve the full trace of a conversation, replaying each step in order and verifying that the fallback behaved as expected.
+
+**Paragraph 3 – Preparing for the Capstone Hand‑off**  
+Once the orchestrator passes internal unit tests, we package it as a Helm chart (`student-ai/orchestration/chart/`). The chart’s `values.yaml` lets students configure:
+
+* `policy.rulesFile` – path to `rules.yaml`
+* `telemetry.storage` – `prometheus` or `cloudwatch`
+* `replicaCount` – initial number of Pipeline Manager pods
+* `autoscaling.enabled` – true/false with CPU/latency thresholds
+
+Deploying the chart into the Kubernetes cluster used for the capstone project (Chapter 12) yields a production‑grade orchestrator that can be monitored, scaled, and audited in real time. By the end of Lab 3, each student will have:
+
+* a running orchestrator stack on their local machine,
+* a reproducible `pipeline.yaml` that encodes a complete end‑to‑end agent,
+* a set of policy rules (`rules.yaml`) that will be validated during the governance audit,
+* a Helm chart ready for the capstone deployment,
+* and an optional circuit‑breaker implementation (see Lab Prep) that automatically disables any tool whose error rate exceeds 5 % over a rolling 10‑minute window.
 
 ===== Key Points
 
-* Deploy
-* Document architecture
-* Lab 3: Complete, submit, prepare Ch11
+* Docker‑Compose defines four core services: Pipeline Manager, Tool Registry, Policy Engine, Telemetry Hub.
+* `pipeline.yaml` declaratively lists tool steps, identifiers, and timeouts.
+* Policy Engine evaluates `rules.yaml` before each tool call and returns `ALLOW` or `DENY`.
+* Telemetry Hub records correlation IDs, latency, status, and provenance in JSON envelopes.
+* Grafana dashboard visualizes real‑time latency, error rates, and policy violations.
+* Autoscaling reacts to telemetry metrics, ensuring graceful degradation under load.
+* Helm chart packages the orchestrator for capstone deployment with configurable policy and telemetry back‑ends.
+* Lab 3 deliverables: running stack, pipeline definition, policy file, Helm chart, optional circuit‑breaker.
 
 ==== Philosophical Reflection
 
-The integrated agent as epistemic machine: it produces knowledge (summaries, recommendations), reasons (logic, CoT), and acts (tools). From modules to system: the whole exceeds the parts when orchestration works. The architecture is the theory—we have built our understanding of intelligence into the system.
+**Paragraph 1 – The Orchestrator as an Epistemic Machine**  
+When we speak of an *epistemic machine*, we refer to a system that not only processes data but also generates, validates, and acts upon knowledge. The orchestrator elevates the collection of isolated agents into a single epistemic entity: it *knows* which tools are available, *reasons* about policy constraints, *communicates* via natural‑language intents, and *acts* by invoking external services. This unification blurs the line between “software architecture” and “cognitive theory”. By encoding our assumptions about intelligence—modularity, feedback, and accountability—directly into the orchestrator’s design, we make those assumptions testable. If a policy rule consistently blocks a useful tool, the failure is not a bug in a downstream API but a falsifiable hypothesis about what constitutes responsible behavior.
+
+**Paragraph 2 – Metabolism Thesis Revisited with Quantitative Feedback**  
+Chapter 1 introduced the *metabolism thesis*: intelligent systems must continuously ingest, transform, and excrete information, much like a living organism. The orchestrator embodies this metabolic cycle. Ingestion occurs when the Pipeline Manager receives a user intent; transformation is performed by the LLM reasoning engine and the Policy Engine’s rule evaluation; excretion happens when the orchestrator dispatches a tool request and returns a response to the user. The Telemetry Hub provides the *excretory* function of waste removal—collecting logs, pruning stale metrics, and feeding back health signals that trigger self‑regulation (e.g., scaling up replicas). Crucially, the feedback loop is *quantitative*: a latency‑driven autoscaling rule (“if 95th‑percentile latency > 1.5 × policy limit, add a replica”) turns metabolic pressure into concrete resource allocation, mirroring how organisms allocate blood flow to stressed tissues.
+
+**Paragraph 3 – Agency, Responsibility, and the Externalized Spine**  
+By externalizing orchestration, we also externalize *agency*. The orchestrator becomes a decision‑making authority that can veto or reroute actions on behalf of the underlying agents. This raises philosophical questions: Who is responsible when the orchestrator denies a tool call that leads to a user’s inconvenience? How do we as designers ensure that the orchestrator’s policies reflect the values of its stakeholders? The answer lies in the governance loop that Chapter 11 will flesh out—policy rules become a democratic artifact, auditable and amendable. Moreover, the orchestrator’s audit trail (the immutable JSON envelopes) serves as evidence in compliance reviews such as GDPR’s “right to be forgotten”: a rule like `personal_data_consent` can be traced to the exact moment a user’s location data was shared, and the corresponding envelope can be erased on request. Thus the orchestrator provides a concrete arena where the abstract debate about machine agency, accountability, and ethical design plays out.
 
 ===== Key Points
 
-* Epistemic machine
-* Whole exceeds parts
-* Theory made concrete
+* Orchestrator unifies knowledge acquisition, reasoning, communication, and action into a single epistemic machine.
+* Declarative policy rules make theoretical assumptions about responsible behavior testable.
+* Metabolism thesis is realized through a quantitative feedback loop: telemetry → autoscaling → resource adaptation.
+* Externalized spine creates a clear locus of agency, making responsibility traceable.
+* Audit logs enable compliance with real‑world regulations (e.g., GDPR, HIPAA).
+* Governance policies become the ethical substrate that can be democratically amended.
+* Future work (Chapter 11) will formalize stakeholder participation in rule authoring and audit verification.
 
-.Figure 10.8: Orchestrator and Ch11/Ch12
+.Figure 10.8: Orchestrator Core Architecture
 [plantuml,ch10-l08,png,theme=sketchy-outline]
 ....
 @startuml
-start
-:Orchestrator;
-:Ch11 Governance;
-:Ch12 Capstone;
-stop
+!define COMPONENT component
+skinparam componentStyle rectangle
+
+COMPONENT Orchestrator {
+  +run_pipeline()
+  +apply_policy()
+}
+COMPONENT PipelineManager {
+  +sequence_steps()
+}
+COMPONENT ToolRegistry {
+  +discover()
+  +validate()
+}
+COMPONENT PolicyEngine {
+  +evaluate()
+}
+COMPONENT TelemetryHub {
+  +collect()
+  +expose_metrics()
+}
+COMPONENT Governance {
+  +audit()
+  +enforce()
+}
+COMPONENT Autoscaler {
+  +scale()
+}
+COMPONENT Capstone {
+  +deploy()
+  +monitor()
+}
+
+PipelineManager --> Orchestrator : invoke
+Orchestrator --> ToolRegistry : lookup(tool)
+Orchestrator --> PolicyEngine : evaluate(request_context)
+PolicyEngine --> Orchestrator : decision (ALLOW/DENY)
+Orchestrator --> ToolRegistry : call(tool)
+Orchestrator --> TelemetryHub : emit(envelope)
+TelemetryHub --> Autoscaler : metrics
+Autoscaler --> Orchestrator : scale_signal
+TelemetryHub --> Governance : audit_log
+Governance --> Orchestrator : policy_update (loop)
+
 @enduml
 ....
 
 ==== Discussion Prompts
 
-* What theory of intelligence does our architecture encode?
-* How does governance (Ch11) change the orchestrator?
-* What is the capstone (Ch12) delivering?
-* How does the orchestrator complete the agent stack?
-* How does the architecture reflect the metabolism thesis (Ch1)?
-* What would the student-ai/ system look like without the orchestrator?
+* In the failure scenario at the start of the lecture, which component of the orchestrator would have prevented the crash, and how?
+* How do policy injection points change the relationship between *tool autonomy* and *system responsibility*?
+* What trade‑offs arise when we treat the orchestrator as a *single point of failure* versus a *scalable service mesh*?
+* How does the telemetry data collected by the orchestrator enable the governance audit described in Chapter 11?
+* In what ways does the orchestrator’s design reflect the metabolism thesis introduced in Chapter 1?
+* Imagine a world where the orchestrator is replaced by a peer‑to‑peer negotiation protocol among agents. What new challenges would arise for governance and capstone deployment?
 
 ==== Lab Prep
 
-Complete Labs 1–3 for Chapter 10. Submit the orchestrator. Integrate into student-ai. Prepare for Ch11 governance—the audit tool will assess the system; governance policies will constrain it. See Lab 3 for requirements.
+Complete Labs 1–3 for Chapter 10. Submit the orchestrator as a Docker‑Compose stack, a `pipeline.yaml` definition, and a set of policy rules (`rules.yaml`). Package the entire stack into the provided Helm chart and verify that it deploys to the capstone Kubernetes cluster without errors. As a *stretch goal*, implement a circuit‑breaker pattern in the Policy Engine that automatically disables any tool whose error rate exceeds 5 % over a rolling 10‑minute window. Document your implementation in the lab report and be prepared to discuss how the circuit‑breaker interacts with the governance audit.
 
 ===== Key Points
 
-* Complete Labs 1–3
-* Submit orchestrator
-* Prepare Ch11 governance
+* Run Labs 1–3 and produce a working Docker‑Compose orchestrator.
+* Provide `pipeline.yaml` and `rules.yaml` as deliverables.
+* Package the stack as a Helm chart for capstone deployment.
+* Optional: circuit‑breaker implementation for fault tolerance.
+* Prepare a short report linking the orchestrator to governance audit expectations.
+* Verify that the Helm chart installs cleanly and that Grafana dashboards display live telemetry.
 
+==== Timing Guide for a 90‑Minute Session
+
+| Segment | Approx. Minutes | Activity |
+|---------|----------------|----------|
+| Hook & Motivation | 10 | Walk through the travel‑assistant failure story. |
+| Conceptual Core | 30 | Explain spine idea, components, metadata, scaling, policy, and theory‑artifact link. |
+| Technical Example | 20 | Live demo of Docker‑Compose start‑up, policy rule edit, and Grafana observation. |
+| Philosophical Reflection | 20 | Discuss epistemic machine, metabolism thesis, agency & responsibility. |
+| Q&A / Wrap‑up | 10 | Field questions, preview Chapter 11 governance lab. |
 
 ==== Reading
-For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch10,Chapter 10>>).
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch10,Chapter 10>>).

@@ -28,6 +28,19 @@ AIPA can use the **Supabase llm-gateway** (from the [Inquiry.Institute](https://
 - **Supabase Edge Function duration:** Wall-clock limit is **150s** (free) or **400s** (paid plan); it is not configurable per function. Long lecture revisions can hit this and return **504 Gateway Timeout**. Use a paid plan if you need up to 400s.
 - **Retries:** All gateway-calling scripts retry on **502, 503, 504** up to **2 times** with a **5s** delay. If you still see 504 after retries, the request is likely exceeding the plan limit; try shorter prompts or a faster model.
 
+### Using AWS Bedrock instead of the gateway
+
+You can run **review** and **grade** with AWS Bedrock so they do not use the Supabase/OpenRouter gateway (e.g. when you hit 402 Insufficient credits):
+
+- **Review:** `node scripts/review-lectures-with-llm.mjs --bedrock [--model openai.gpt-oss-120b-1:0] [--bedrock-region us-east-1] [--output-dir llm-reviews-ch01] [--limit 8]`
+- **Grade:** `node scripts/grade-lectures-with-llm.mjs --bedrock [--model openai.gpt-oss-120b-1:0] [--reviews-dir llm-reviews-ch01] [--output ../AIPA_LECTURE_GRADES_CH01.md]`
+
+Install once: `npm install @aws-sdk/client-bedrock-runtime` (from repo root or `aipa`). Set `AWS_REGION` (or `--bedrock-region`) and AWS credentials (env or profile). With `--bedrock`, `SUPABASE_URL` and `SUPABASE_ANON_KEY` are not required.
+
+### Generated file naming
+
+All generated files (reviews, revisions, elevated, populated, compare) use the convention **chXX-lecture-YY** only—no titles in filenames. Examples: `ch01-lecture-01.md`, `ch02-lecture-use-cases.adoc`, `ch06-lecture-03.adoc`. Scripts derive the slug from the source lecture path and write to `llm-reviews/`, `llm-elevated/`, etc. using that slug.
+
 ## Usage
 
 From the **aipa** directory:
@@ -122,7 +135,11 @@ With these changes, both the gateway default model and gpt-oss-120b on Bedrock p
 
 **revise-lectures-with-llm.mjs** reads each `llm-reviews/<slug>.md` and the corresponding lecture `.adoc`, sends both to the gateway with a faculty-author system prompt (revise to A quality, 90 min, interesting; apply critic recommendations; preserve AsciiDoc/PlantUML), and writes `llm-revisions/<slug>.adoc`. Use `--skip-existing` to resume.
 
-**apply-revisions.mjs** copies `llm-revisions/*.adoc` into the source lecture paths. Run after revising. Use `--backup` to save originals to `aipa/backup-lectures/` first; `--dry-run` to list only. Use `--from-dir llm-elevated` to apply elevated revisions; `--backup-dir backup-lectures-pre-elevate` to use a separate backup dir.
+**apply-revisions.mjs** copies `llm-revisions/*.adoc` into the source lecture paths. Run after revising. Use `--backup` to save originals to `aipa/backup-lectures/` first; `--dry-run` to list only. Use `--from-dir llm-elevated` to apply elevated revisions; `--from-dir llm-populated` to apply populated scaffolds; `--backup-dir backup-lectures-pre-elevate` to use a separate backup dir.
+
+**populate-lectures-from-scaffold.mjs** expands scaffold (template) lectures into full lectures via the gateway. Detects files containing placeholder text (e.g. "Main idea one.") and sends each to the LLM with instructions to produce a complete 2,500–3,500 word lecture. Writes to `aipa/llm-populated/<slug>.adoc`. Use `--dry-run` to list candidates; `--skip-existing` to resume; `--limit N` to process only the first N.
+
+**review-and-grade-after-populate.mjs** runs after populate has finished. It (1) applies `llm-populated/*.adoc` to source (with backup), (2) runs review on all lectures (output to `llm-reviews-round4` by default), (3) runs grade and writes `AIPA_LECTURE_GRADES.md`. Run once `llm-populated/` has the expected number of files (e.g. 23). Options: `--dry-run`, `--reviews-dir DIR`, `--grades-output PATH`.
 
 ### Elevate all lectures to A
 
@@ -147,6 +164,8 @@ To bring every lecture to grade A after you have round-2 reviews and a grades fi
 5. If any lecture is still B/C/D, run `elevate-to-a.mjs` again with the round-3 grades and reviews, or edit the remaining lectures by hand using the round-3 review notes.
 
 **review-revise-review.mjs** runs the full cycle: (1) critical review, (2) revise, (3) apply to source (with backup), (4) review again to `llm-reviews-round2/`. Options: `--limit N`, `--no-apply`, `--no-round2`.
+
+**improve-lectures.mjs** runs the improvement cycle: (1) review to `llm-reviews-roundN/`, (2) grade to `AIPA_LECTURE_GRADES.md`, (3) elevate sub-A to `llm-elevated/`, (4) optionally apply with backup. Options: `--round N`, `--no-apply`, `--limit N`, `--model ID`. Run from `aipa`: `node scripts/improve-lectures.mjs --round 6`
 
 The review script’s `--revise` flag is unused; use `revise-lectures-with-llm.mjs` for faculty-author revisions.
 

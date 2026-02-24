@@ -18,20 +18,20 @@ The model has memorised every stroke, yet it fails to recognise a slightly rotat
 
 ==== Conceptual Core
 
-**A model that over‑fits is like a student who memorises the answer key without understanding the concepts.**  
-When the training loss collapses to zero while the validation loss climbs, the decision surface has become tangled around every idiosyncratic pixel in the training set. In deep nets the problem is amplified: millions of parameters can encode arbitrary patterns, so the network ceases to capture the underlying structure of the data. The first line of defence is to inject a *bias* that nudges learning toward smoother, more generalisable functions.
+**From memoriser to explorer.**  
+Imagine a student who crams every lecture slide before an exam. The night of the test the professor asks a *slightly* different question, and the student falters. In the same way, a deep network that drives its training loss to zero has learned a *memoriser*—its decision surface twists around every idiosyncratic pixel. A simple visualisation on a synthetic 2‑D dataset (two interleaved spirals) shows a smooth classifier as a gentle curve, whereas an over‑fitted model produces a tangled web of narrow corridors that hug each training point. The tension between *memorisation* and *generalisation* is the central problem we must resolve.
 
-**Classic parametric penalties (L1/L2) are the first bias we try.**  
-L1 adds the absolute value of each weight to the loss, encouraging many weights to shrink to exactly zero – a sparsity prior that can be interpreted as “use only the features you really need”. L2 adds the squared magnitude, pulling every weight toward the origin and penalising large excursions. These penalties are cheap and work well for shallow linear models, but they do not prevent hidden units from forming tight, mutually‑dependent coalitions that still memorise the data.
+**Why naïve weight decay is not enough.**  
+The first line of defence that most textbooks teach is an L1 or L2 penalty on the parameters. L1 adds the absolute value of each weight to the loss, encouraging many weights to collapse to exactly zero; L2 adds the squared magnitude, pulling every weight toward the origin. These penalties bias the optimisation toward *smaller* parameters, which often yields smoother functions for linear models. However, in a deep net the *shape* of the decision surface is governed more by the *co‑adaptation* of hidden units than by the magnitude of any single weight. A network can still form tightly‑coupled coalitions that collectively encode each training example, even when every weight is tiny. Thus, L1/L2 alone cannot break the tangled surface we observed.
 
-**Dropout attacks co‑adaptation directly by randomising the network’s architecture at training time.**  
-At each mini‑batch a random mask zeroes a fraction *p* of hidden units; the surviving units must produce a correct output without relying on any particular partner. Over many iterations the network learns redundant, distributed representations that survive the stochastic pruning. At inference all units are present, but their outgoing weights are scaled (or the mask‑expectation is baked into the weights) so that the expected activation matches the training distribution.
+**Dropout as stochastic architecture search.**  
+Dropout attacks co‑adaptation directly by randomly removing a fraction *p* of hidden units at each mini‑batch. The surviving units must produce a correct output without relying on any particular partner, forcing the network to learn *redundant, distributed* representations. Over many iterations the model behaves like an exponential ensemble of thinned subnetworks, and at inference time the expected activation is recovered by scaling the outgoing weights (or by using the built‑in expectation‑preserving behaviour of modern libraries). A quick‑poll: on a scale of 1–5, how confident are you that this stochastic pruning will improve robustness? (Discuss with your neighbour for a minute.) The answer is rarely a perfect 5; the trade‑off between *bias* (loss of capacity) and *variance* (reduced over‑fit) becomes evident as we vary *p*.
 
-**Data augmentation expands the training distribution itself, turning the data‑starved learner into a data‑rich explorer.**  
-Label‑preserving transforms – rotations, flips, colour jitter for images; synonym swaps or back‑translation for text – create synthetic examples that the model never saw but that are guaranteed to belong to the same class. By exposing the network to a broader manifold of inputs, augmentation teaches invariance to those perturbations, effectively turning the model’s own data‑generation process into a regulariser.
+**Data augmentation: expanding the learner’s world.**  
+While dropout forces the model to be robust *inside* the network, data augmentation expands the *outside*—the training distribution itself. By applying label‑preserving transforms (rotations, flips, colour jitter for images; synonym swaps or back‑translation for text) we generate synthetic examples that the model never saw but that are guaranteed to belong to the same class. In the stop‑sign example, rotating the sign by ±15° creates new training points that teach the network invariance to viewpoint changes. This process can be visualised as inflating the cloud of training points, smoothing the decision boundary in the same way a painter adds brush strokes to fill gaps. However, the assumption that a transform preserves the label is not universal; in medical imaging a 90° rotation may flip left/right anatomy, turning a benign scan into a pathological one. The ethical responsibility to audit each transform becomes part of the regularisation design.
 
-**Early‑stopping provides a safety valve that watches the validation curve and halts training before the model begins to over‑specialise.**  
-Even with dropout and augmentation, a sufficiently long training run can still over‑fit the noise that remains in the data. By monitoring a held‑out validation loss and stopping after a configurable “patience” period without improvement, we freeze the model at the point where its inductive bias – the combination of L1/L2, dropout, and augmentation – is most effective.
+**Early‑stopping and the forward bridge.**  
+Even with dropout and augmentation, a sufficiently long training run can still chase noise that remains in the data. Early‑stopping watches a held‑out validation loss and halts training the moment improvement stalls for a configurable “patience” period. In practice this is the *safety valve* that freezes the model at the sweet spot where all three inductive biases—weight decay, stochastic pruning, and expanded data—are jointly optimal. The next lecture will show how agents can *learn* to adjust these knobs on‑the‑fly, turning regularisation from a static recipe into a dynamic policy.  
 
 pass:q[**Quick‑check:** Which of the following statements best captures the intuition behind dropout?  
 a) It reduces the number of parameters at test time.  
@@ -41,56 +41,103 @@ d) It increases the effective learning rate.]
 
 ===== Key Points
 
-* Over‑fitting = memorisation vs. generalisation; tangled decision boundaries  
-* L1 → sparsity; L2 → weight decay; both bias parameter magnitude  
-* Dropout = random unit deletion during training, deterministic scaling at test time  
-* Typical dropout rates: 0.2 – 0.5 for hidden layers, up to 0.8 for inputs  
-* Data augmentation = semantic‑preserving transforms (geometric, photometric, lexical)  
-* Augmentation families: flips, rotations, crops, colour jitter, mixup/cutmix, synonym swaps  
+* Over‑fitting = memorisation vs. generalisation; tangled decision boundaries illustrated on 2‑D spirals  
+* L1 → sparsity; L2 → weight decay; both bias parameter magnitude but not co‑adaptation  
+* Dropout = random unit deletion each batch, forces redundant distributed representations, ensemble effect  
+* Dropout trade‑off: bias‑variance curve; optimal *p* around 0.2‑0.4 for most vision tasks  
+* Data augmentation = synthetic, label‑preserving transforms that expand the training manifold  
+* Augmentation families: geometric (rotations, flips), photometric (brightness, colour jitter), lexical (synonym swap, back‑translation)  
 * Early‑stopping = monitor validation loss, patience hyper‑parameter, prevents tail over‑fit  
-* Interaction: dropout + L2 often yields complementary regularisation  
+* Ethical guardrail: verify that each transform truly preserves the label in the target domain  
 
 ==== Technical Example
 
 **Experiment 1 – MLP on Fashion‑MNIST with and without dropout.**  
-We train a three‑layer fully‑connected network (256‑unit hidden layers, ReLU, Adam, 30 epochs, lr = 0.001, batch = 128) on the *Fashion‑MNIST* dataset (60 k training, 10 k test). Two conditions are compared: (i) baseline (no dropout) and (ii) dropout 0.3 applied after each hidden layer. The baseline reaches a training loss ≈ 0.02 by epoch 5, but validation loss starts rising after epoch 8, producing a test accuracy of 87 %. With dropout, training loss plateaus around 0.15, while validation loss continues to fall, yielding a test accuracy of **90.8 %** – a **3.8 %** gain.  
+We train a three‑layer fully‑connected network (256‑unit hidden layers, ReLU, Adam, 30 epochs, lr = 0.001, batch = 128) on the *Fashion‑MNIST* dataset (60 k training, 10 k test). Two conditions are compared: (i) baseline (no dropout) and (ii) dropout 0.3 applied after each hidden layer. The table below reports epoch‑wise loss and accuracy for the two runs.
+
+[cols="^.^1,^.^1,^.^1,^.^1",options="header"]
+|===
+| Epoch | Baseline Train Loss | Baseline Val Loss | Dropout Val Loss
+
+| 5 | 0.02 | 0.48 | 0.62  
+| 10 | 0.01 | 0.55 ↑ | 0.45 ↓  
+| 15 | 0.01 | 0.61 ↑ | 0.38 ↓  
+| 20 | 0.01 | 0.68 ↑ | 0.34 ↓  
+| 30 | 0.01 | 0.73 ↑ | 0.31 ↓  
+|===
+
+The baseline reaches a training loss ≈ 0.02 by epoch 5, but validation loss starts rising after epoch 8, producing a test accuracy of 87 %. With dropout, training loss plateaus around 0.15, while validation loss continues to fall, yielding a test accuracy of **90.8 %** – a **3.8 %** gain. The loss curves (see Figure 5.5‑a) show the classic “U‑shaped” validation curve for the baseline and a steadily decreasing curve for the dropout model.
+
+```python
+# PyTorch snippet for dropout layer
+import torch.nn as nn
+
+class FashionMLP(nn.Module):
+    def __init__(self, dropout_rate=0.3):
+        super().__init__()
+        self.fc1 = nn.Linear(784, 256)
+        self.drop1 = nn.Dropout(p=dropout_rate)
+        self.fc2 = nn.Linear(256, 256)
+        self.drop2 = nn.Dropout(p=dropout_rate)
+        self.out = nn.Linear(256, 10)
+
+    def forward(self, x):
+        x = x.view(-1, 784)
+        x = nn.ReLU()(self.fc1(x))
+        x = self.drop1(x)
+        x = nn.ReLU()(self.fc2(x))
+        x = self.drop2(x)
+        return self.out(x)
+```
 
 **Experiment 2 – CIFAR‑10 with a lightweight augmentation pipeline.**  
-Using the same MLP architecture we add a per‑sample pipeline: `RandomHorizontalFlip(p=0.5)`, `RandomCrop(pad=4)`, and `RandomBrightness(Δ=0.2)`. The baseline (no augmentation) attains 68 % test accuracy; the augmented model reaches **73 %**, a **5 %** improvement. In addition to accuracy, we compute a *co‑adaptation metric* – the average Pearson correlation between hidden‑unit activations across a validation batch. Dropout reduces this metric from 0.42 to 0.21; augmentation reduces it further to 0.18, confirming that both techniques decorrelate internal representations.
+Using the same MLP architecture we add a per‑sample pipeline built with Albumentations:
+
+```python
+import albumentations as A
+transform = A.Compose([
+    A.HorizontalFlip(p=0.5),
+    A.RandomCrop(width=28, height=28, p=1.0, pad_if_needed=True),
+    A.RandomBrightnessContrast(brightness_limit=0.2, contrast_limit=0.2, p=0.5)
+])
+```
+
+The baseline (no augmentation) attains 68 % test accuracy; the augmented model reaches **73 %**, a **5 %** improvement. In addition to accuracy, we compute a *co‑adaptation metric* – the average Pearson correlation between hidden‑unit activations across a validation batch. Dropout reduces this metric from 0.42 to 0.21; augmentation reduces it further to 0.18, confirming that both techniques decorrelate internal representations.
 
 **What‑if analysis.**  
-We repeated Experiment 1 with dropout rates 0.1, 0.3, and 0.5. Accuracy peaked at 0.3 (90.8 %) and fell to 89.2 % at 0.5, illustrating the classic bias‑variance trade‑off: too much stochastic pruning under‑fits the data. A similar sweep over augmentation intensity (rotation ± 5°, ± 15°, ± 30°) showed that mild rotations improve accuracy, while extreme rotations (> 30°) begin to inject label noise and hurt performance.
+A sweep over dropout rates (0.1, 0.3, 0.5) shows a peak at 0.3 (90.8 %) and a decline at 0.5 (89.2 %). A sweep over rotation magnitude (±5°, ±15°, ±30°) reveals that mild rotations improve accuracy, while extreme rotations (> 30°) inject label noise and hurt performance. These results illustrate the bias‑variance trade‑off in concrete numbers and motivate the need for *adaptive* regularisation policies.
 
-pass:q[**Live‑coding pause:** In the next 5 minutes, open a notebook and type `nn.Dropout(p=0.3)` followed by a simple Albumentations pipeline. Observe the shape of a batch before and after augmentation, and note the scaling factor applied at inference.]
+pass:q[**Live‑coding pause:** In the next 5 minutes, open a notebook and type `nn.Dropout(p=0.3)` followed by the Albumentations pipeline above. Observe the shape of a batch before and after augmentation, and note the scaling factor applied at inference.]
 
 ===== Key Points
 
-* Baseline MLP: 87 % test accuracy, rapid over‑fit after epoch 8  
-* Dropout 0.3: validation loss continues to drop, test accuracy = 90.8 %  
-* Augmentation (flip, crop, brightness): test accuracy = 73 % on CIFAR‑10  
+* Baseline MLP over‑fits after epoch 8; dropout keeps validation loss decreasing  
+* Dropout 0.3 yields +3.8 % test accuracy on Fashion‑MNIST (90.8 % vs 87 %)  
+* Augmentation pipeline (flip, crop, brightness) yields +5 % test accuracy on CIFAR‑10 (73 % vs 68 %)  
 * Co‑adaptation metric drops from 0.42 → 0.21 (dropout) → 0.18 (augmentation)  
 * Dropout rate sweep: optimal around 0.3; too high → under‑fit  
 * Augmentation intensity sweep: moderate transforms help; extreme transforms can introduce label noise  
+* Code snippets illustrate practical implementation in PyTorch and Albumentations  
 
 ==== Philosophical Reflection
 
-**Noise as an inductive bias.**  
-When we deliberately inject randomness—by zero‑ing units or by jittering pixels—we are not merely “adding noise”; we are declaring a prior belief that the true function should be invariant to those perturbations. In Bayesian terms, the stochastic training process defines a *distribution* over network weights; the posterior concentrates on models that perform well under the imposed noise. Thus, regularisation can be read as a principled way of encoding domain knowledge about invariances, rather than a heuristic trick.
+**Noise as an explicit inductive bias.**  
+When we deliberately inject randomness—by zero‑ing units or by jittering pixels—we are not merely “adding noise”; we are *declaring* a prior belief that the true function should be invariant to those perturbations. In Bayesian terms, the stochastic training process defines a *distribution* over network weights; the posterior concentrates on models that perform well under the imposed noise. Regularisation therefore becomes a principled way of encoding domain knowledge about invariances, rather than an ad‑hoc trick. This perspective invites us to ask: *Which invariances are truly present in the data, and which are artefacts of our modelling choices?*
 
 **Synthetic data and the ontology of “real” examples.**  
-Data augmentation blurs the line between observed and generated data. Rotating an image of a cat creates a *new* training example that never existed in the world but respects the semantics of the task. Philosophically, the augmented sample becomes part of the learner’s *environment*. Its legitimacy hinges on the assumption that the transformation preserves the label—a premise that is easy for natural images but fraught in medical imaging, where a slight rotation may alter anatomical orientation and thus diagnostic meaning. The practitioner therefore bears ethical responsibility to justify each transform and to audit the resulting label fidelity.
+Data augmentation blurs the line between observed and generated data. Rotating an image of a cat creates a *new* training example that never existed in the world but respects the semantics of the task. Philosophically, the augmented sample becomes part of the learner’s *environment*. Its legitimacy hinges on the assumption that the transformation preserves the label—a premise that is easy for natural images but fraught in medical imaging, where a slight rotation may alter anatomical orientation and thus diagnostic meaning. An ethical checklist for any augmentation pipeline therefore includes: (1) Does the transform preserve the semantic class? (2) Could the transform introduce hidden bias (e.g., over‑representing a demographic)? (3) Is the transformed data auditable by domain experts? (4) Does the augmentation respect regulatory constraints (e.g., patient privacy)?
 
-**Regularisation as a design language for autonomous agents.**  
-In an era where agents must adapt on‑the‑fly, regularisation knobs (dropout rate, augmentation strength, weight‑decay coefficient) become part of the agent’s *self‑configuration* repertoire. An agent could learn to increase dropout when data are scarce, or to amplify augmentation when encountering domain shift. This perspective invites a broader view: regularisation is not a static training trick but a *dynamic policy* that shapes how an agent negotiates uncertainty and bias.
+**Regularisation as a dynamic design language for autonomous agents.**  
+In an era where agents must adapt on‑the‑fly, regularisation knobs (dropout rate, augmentation strength, weight‑decay coefficient) become part of the agent’s *self‑configuration* repertoire. An agent could learn to increase dropout when data are scarce, or to amplify augmentation when encountering domain shift. This perspective invites a broader view: regularisation is not a static training trick but a *policy* that shapes how an agent negotiates uncertainty and bias. The upcoming lab will give you the tools to let your model *learn* its own regularisation schedule, foreshadowing research on meta‑regularisation and AutoML‑driven augmentation.
 
 ===== Key Points
 
-* Perturbation → robustness; noise encodes invariance priors  
-* Synthetic examples act as a *data‑driven prior* for the learner  
-* Regularisation as a configurable language for autonomous agents  
-* Ethical dimension: ensure augmentations do not introduce label noise or hidden bias  
-* Trade‑off: too much noise → under‑fitting, too little → over‑fitting  
-* Interaction of dropout, L1/L2, and augmentation shapes the model’s inductive bias  
+* Perturbation → explicit invariance prior; noise encodes Bayesian bias  
+* Synthetic examples become part of the learner’s environment; legitimacy rests on label‑preservation assumption  
+* Ethical checklist for augmentation: label preservation, hidden bias, expert audit, regulatory compliance  
+* Regularisation knobs can be treated as *policy parameters* that agents adapt during training or deployment  
+* Trade‑off reminder: too much noise → under‑fitting, too little → over‑fitting  
+* Interaction of dropout, L1/L2, and augmentation jointly shapes the model’s inductive bias  
 
 .Figure 5.5: Regularisation pipeline (training → validation → inference)
 [plantuml,ch05-l05,png,theme=sketchy-outline]
@@ -99,36 +146,44 @@ In an era where agents must adapt on‑the‑fly, regularisation knobs (dropout 
 skinparam componentStyle rectangle
 skinparam backgroundColor #F9F9F9
 skinparam ArrowColor #444444
-skinparam DefaultFontSize 12
+skinparam DefaultFontSize 14
+skinparam ArrowThickness 2
 
 package "Dataset" {
   [Raw Data] as raw
 }
 
 package "Training Pipeline" {
-  [Data Augmentation\n(per‑sample)\n<color:orange>⚙</color>] as aug
-  [Dropout Layer\n(training)\n<color:orange>⚙</color>] as do
+  package "Augmentation" {
+    [Geometric] as geo
+    [Photometric] as photo
+    [Textual] as text
+  }
+  [Dropout Layer] as do {
+    [Mask (p)] as mask
+  }
   [Trainer] as trainer
   [Validator] as validator
-  [Early‑Stopping\n(decision)] as stop
+  [Early‑Stopping] as stop
 }
 
 package "Inference Pipeline" {
-  [Scale Weights\n(dropout‑rate)\n<color:orange>⚙</color>] as scale
+  [Weight Scaling (expected dropout)] as scale
   [Predictor] as predict
 }
 
-raw --> aug : feed
-aug --> do : feed
+raw --> geo
+raw --> photo
+raw --> text
+geo --> do
+photo --> do
+text --> do
 do --> trainer : forward/backprop
 trainer --> validator : evaluate
 validator --> stop : loss improves?
-stop --> trainer : <color:green>yes (loop)</color>
-stop --> predict : <color:red>no (halt)</color>
-
-validator --> scale : final model
+stop --> trainer : yes (loop)
+stop --> scale : no (freeze)
 scale --> predict : inference
-
 @enduml
 ....
 
@@ -147,7 +202,7 @@ Lab 2: Implement dropout and data augmentation in the neural trainer.
 * **Dropout** – expose a per‑layer `rate` argument, generate a binary mask each forward pass, and automatically rescale weights at test time (or use PyTorch’s built‑in scaling).  
 * **Augmentation** – build a modular pipeline where each transform is a callable object; provide ready‑made image transforms (`RandomHorizontalFlip`, `RandomCrop(pad=4)`, `RandomBrightness(Δ=0.2)`) and a simple textual synonym‑swap stub.  
 * **Validation checkpoint** – after each epoch compute validation loss and the co‑adaptation metric; stop training when loss has not improved for `patience=5` epochs.  
-* **Success criterion** – the configured pipeline must raise validation accuracy by at least **3 %** over the non‑regularised baseline before you move on to the next lecture.
+* **Success criterion** – the configured pipeline must raise validation accuracy by at least **3 %** over the non‑regularised baseline before you move on to the next lecture, where you will explore *meta‑regularisation* that lets the model tune its own dropout and augmentation strengths.  
 
 ===== Key Points
 

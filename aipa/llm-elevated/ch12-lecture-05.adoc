@@ -15,65 +15,128 @@
 
 Imagine a medical‑diagnosis chatbot that scores **99 % accuracy** on a public benchmark, yet in a pilot ward it misclassifies a life‑threatening case. The headline‑grabbing number looks impressive, but clinicians and regulators will not accept it without *evidence that the system works under realistic conditions*. This tension—between a dazzling benchmark and real‑world risk—drives every evaluation design.
 
-The first step is to decide **what to measure**. Metrics must reflect the domain’s priorities: for a diagnostic system we might track *clinical accuracy*, *false‑negative rate*, *latency* (time to answer), and *user trust* (survey scores). Selecting a metric is itself a hypothesis about what matters; the metric becomes the lens through which success is judged.
+Why does evaluation matter at all? In the scientific tradition, a claim is only as strong as the argument that backs it. For an AI system the argument is a collection of measurements, comparisons, and observations that together answer the question: *Does the system achieve the promised benefit without unacceptable harm?* If the answer is “yes” only on a narrow test set, the claim collapses when the system meets the messier world outside the lab. Thus, evaluation is not a decorative appendix; it is the proof that the thesis stands up to scrutiny.
 
-Next we must choose **baselines**. A baseline can be a naïve rule‑based system, a prior state‑of‑the‑art model, or even a human expert. By comparing the capstone agent to these reference points we answer the question “does the new system *actually* improve on what already exists?” without a baseline, any number is meaningless.
+The evaluation argument can be organized around five interlocking pillars:
 
-A robust **benchmark suite** then operationalises the metrics. Benchmarks should be *representative* of the tasks users will face, diverse enough to expose hidden failure modes, and resistant to over‑fitting. For a chatbot this might include triage conversations, medication‑lookup queries, and edge‑case symptom descriptions drawn from real patient logs.
+1. **Domain‑specific metrics** – Choose numbers that reflect what truly matters (clinical accuracy, false‑negative rate, response latency, and user‑trust scores). Each metric encodes a hypothesis about the system’s value.
+2. **Baselines** – Identify reference points (human experts, prior‑state‑of‑the‑art models, or simple rule‑based systems). Without a baseline, any raw number is meaningless.
+3. **Representative benchmark suite** – Build a set of tasks that mirrors the diversity of real use (triage conversations, medication‑lookup queries, edge‑case symptom descriptions). Diversity exposes hidden failure modes and guards against over‑fitting.
+4. **User‑study** – Complement quantitative scores with qualitative insights from a purposeful sample of target users (2–4 participants for a pilot study). Interviews, think‑aloud protocols, and satisfaction surveys reveal usability gaps that numbers hide.
+5. **Honest reporting** – Assemble the full picture in a transparent report: metric tables, baseline comparisons, thematic analysis, and a candid “Limitations & Failure Modes” section. Openness enables reviewers to assess the strength of the evidence and to replicate or extend the work.
 
-Quantitative results alone are insufficient; we complement them with a **user‑study**. Structured interviews or think‑aloud protocols with a small, purposeful sample (2–4 participants representing target users) reveal usability issues, trust gaps, and contextual factors that raw numbers hide. The study should be designed to elicit both *what works* and *what frustrates*.
+*In‑class activity (2 min):* Write down one metric you consider essential for your own capstone project and a one‑sentence justification. Pair up and share your choice; notice how different priorities surface across domains.
 
-Finally, **honest reporting** ties the whole argument together. The evaluation section of the thesis must present the full picture: metric tables, baseline comparisons, qualitative themes, and—crucially—identified failure modes and limitations. Transparency lets reviewers assess the strength of the evidence and, if needed, replicate or extend the study.
+**Take‑away:** The five pillars together form a logical chain that moves from hypothesis (what we care about) to evidence (how we measure) to judgment (does the evidence support the claim?). In Lab 3 you will apply each pillar step‑by‑step, and in the next lecture we will explore how the evaluation report feeds directly into a monitoring dashboard for continuous deployment.
 
 ===== Key Points
 
-* Define domain‑specific metrics (accuracy, latency, trust, etc.)  
-* Select meaningful baselines (human, prior model, random)  
-* Build representative benchmark tasks that mirror real use  
-* Design a user‑study that captures qualitative feedback  
-* Analyse results quantitatively *and* qualitatively  
-* Document failure modes and limitations openly  
-* Treat the evaluation as a logical argument supporting the thesis  
-* Ensure reproducibility by sharing data, scripts, and protocols  
+* Define domain‑specific metrics that align with real‑world priorities (accuracy, latency, trust, etc.)  
+* Treat metric selection as a hypothesis about value  
+* Choose meaningful baselines (human, prior model, rule‑based)  
+* Build a benchmark suite that is diverse, realistic, and resistant to over‑fitting  
+* Design a small, purposeful user‑study to capture qualitative feedback  
+* Combine quantitative and qualitative evidence into a single logical argument  
+* Document failure modes, limitations, and reproducibility details openly  
+* Use the five‑pillar checklist as a bridge to Lab 3 and future monitoring  
 
 ==== Technical Example
 
-Below is a concrete workflow you will implement in Lab 3. First, create a **benchmark manifest** (JSON or CSV) listing 8 realistic dialogue scenarios drawn from anonymised patient transcripts. For each scenario run the capstone chatbot, capture the system’s response, and compute *clinical accuracy* (via a rubric) and *response latency*. Store the results in a table like:
+You have just finished training your capstone chatbot and now must convince the hospital ethics board that it is safe for patient interaction. Below is a concrete, end‑to‑end workflow that turns the abstract five‑pillar framework into a reproducible evidence package.
 
+```python
+# benchmark_runner.py
+import json, csv, time, random
+from my_chatbot import Chatbot   # your model wrapper
+
+# 1. Load manifest of realistic scenarios
+with open('benchmark_manifest.json') as f:
+    scenarios = json.load(f)   # list of {"id": "...", "prompt": "...", "gold": "..."} 
+
+results = []
+bot = Chatbot()
+
+for sc in scenarios:
+    start = time.time()
+    response = bot.generate(sc['prompt'])
+    latency = (time.time() - start) * 1000   # ms
+
+    # 2. Compute clinical accuracy against gold label
+    # (simple exact‑match rubric for illustration)
+    accuracy = 1.0 if response.strip().lower() == sc['gold'].strip().lower() else 0.0
+
+    results.append({
+        "scenario_id": sc['id'],
+        "accuracy": accuracy,
+        "latency_ms": round(latency, 1)
+    })
+
+# 3. Persist raw results
+with open('raw_results.csv', 'w', newline='') as f:
+    writer = csv.DictWriter(f, fieldnames=["scenario_id","accuracy","latency_ms"])
+    writer.writeheader()
+    writer.writerows(results)
 ```
-| Scenario | Accuracy | Latency (ms) |
-|----------|----------|--------------|
-| Triage‑01| 0.92     | 145          |
-| Med‑Lookup‑03| 0.88 | 210          |
-... (remaining rows)
+
+The manifest contains eight carefully curated dialogues drawn from anonymised patient transcripts. After running the script you obtain a CSV that looks like:
+
+| scenario_id | accuracy | latency_ms |
+|-------------|----------|------------|
+| triage‑01   | 0.92     | 145        |
+| med‑lookup‑03| 0.88    | 210        |
+| …           | …        | …          |
+
+Next, a short analysis notebook aggregates the numbers and visualises latency distribution:
+
+```python
+# analysis.ipynb (excerpt)
+import pandas as pd
+import matplotlib.pyplot as plt
+
+df = pd.read_csv('raw_results.csv')
+print("Mean accuracy:", df['accuracy'].mean())
+print("95th‑percentile latency:", df['latency_ms'].quantile(0.95))
+
+df['latency_ms'].hist(bins=10)
+plt.title('Latency Distribution')
+plt.xlabel('ms')
+plt.show()
 ```
 
-Next, recruit three nursing students to act as end‑users. After they complete the same scenarios, conduct brief semi‑structured interviews and code the transcripts for recurring themes (e.g., “unclear phrasing”, “slow response”). Summarise the qualitative findings in a bullet list and juxtapose them with the quantitative scores to highlight gaps.
+If the 95th‑percentile latency exceeds the clinical threshold of 300 ms, the “failure‑mode” branch in the evaluation diagram will be triggered, prompting you to revisit the benchmark tasks (e.g., simplify prompts) or optimise the model serving pipeline.
 
-Finally, compile a **single Evaluation Report** that includes: (1) metric tables, (2) baseline comparisons (e.g., rule‑based triage system scores 0.78 accuracy), (3) user‑study themes, and (4) a “Limitations & Failure Modes” section. This report will become the evidence chapter of your thesis.
+Finally, you run a **mini user‑study** with three nursing students. Each participant completes the same eight scenarios while thinking aloud. Their interview transcripts are coded for recurring themes such as “unclear phrasing”, “slow response”, and “over‑confidence in answer”. The thematic summary is added to the evaluation report alongside the quantitative tables, producing a unified evidence chapter ready for submission.
 
 ===== Key Points
 
-* Create a benchmark manifest with 8–10 realistic scenarios  
-* Run the agent, record output, compute accuracy & latency  
-* Recruit 2–4 target users for a short qualitative study  
-* Code interview data for themes and map to quantitative gaps  
-* Produce a unified Evaluation Report (metrics, baselines, user insights, limitations)  
+* Create a JSON manifest with 8–10 realistic dialogue scenarios  
+* Run the chatbot, record response, compute accuracy & latency per scenario  
+* Persist raw results to CSV for reproducibility  
+* Use a short notebook to aggregate metrics and visualise latency distribution  
+* Define a quantitative success criterion (e.g., mean accuracy ≥ 0.90, 95th‑pct latency ≤ 300 ms)  
+* Recruit 2–4 target users for a brief think‑aloud study  
+* Code interview data for themes and map them to quantitative gaps  
+* Produce a single Evaluation Report that merges metrics, baselines, user insights, and limitations  
 
 ==== Philosophical Reflection
 
-Evaluation is not a decorative appendix; it is the *proof* of your claim that “the agent solves problem X”. In the philosophy of science, a claim is only as strong as the *argument* that backs it. Here the argument consists of carefully chosen metrics, transparent baselines, representative benchmarks, and candid user feedback. A skeptical reviewer will ask, “What would falsify this claim?”—your evaluation must be designed to expose precisely those failure cases.
+Evaluation is the *proof* of the claim “the agent solves problem X”. In the philosophy of science, a claim survives only if it can be falsified—if the evidence can, in principle, show it to be wrong. Designing an evaluation that *exposes* falsifying cases, rather than merely confirming expectations, is therefore an ethical imperative.
 
-Beyond falsification, evaluation carries ethical weight. Over‑claiming based on a single benchmark can mislead stakeholders, waste resources, and even endanger lives. By reporting limitations and failure modes, you respect the principle of *epistemic humility* and provide a roadmap for future improvement. Moreover, sharing data and scripts invites reproducibility, turning your evaluation from a private claim into a communal piece of knowledge.
+Consider the infamous **Google Flu Trends** project. Early papers celebrated its ability to predict influenza outbreaks weeks ahead of official health reports, based on a single benchmark: correlation with CDC data. When the system later missed the 2012–2013 flu season, the failure was traced to a lack of diverse benchmark data (search‑term drift, media hype) and an over‑reliance on a single quantitative metric. A more robust evaluation—incorporating multiple baselines (hospital reports, sentinel clinics), user‑level error analysis, and scenario diversity—could have revealed the fragility before the public rollout.
+
+Our five‑pillar framework embodies this falsification mindset. By selecting *multiple* metrics, we guard against a single‑metric illusion. By comparing to *human* and *rule‑based* baselines, we ensure the system truly adds value. By building a *representative* benchmark suite, we surface hidden failure modes. By conducting a *user‑study*, we capture contextual factors that raw numbers cannot express. And by *honestly reporting* limitations, we practice epistemic humility: acknowledging that evidence is provisional, not final.
+
+Ethically, this humility matters because AI systems increasingly mediate high‑stakes decisions—diagnosis, sentencing, hiring. Over‑claiming based on a narrow benchmark can mislead stakeholders, waste public resources, and even endanger lives. Transparent, reproducible evaluation turns a private claim into a communal knowledge artifact, inviting scrutiny, replication, and improvement.
 
 ===== Key Points
 
-* Evaluation = logical argument for the thesis claim  
-* Design to expose falsifying evidence, not just confirmatory data  
-* Report limitations and failure modes as valuable knowledge  
-* Align evaluation with ethical responsibility to stakeholders  
-* Ensure reproducibility through open data and scripts  
-* Reflect on epistemic humility: evidence is never final  
+* Evaluation is a logical argument that must be falsifiable, not merely confirmatory  
+* Multi‑metric designs prevent single‑metric illusion (e.g., Google Flu Trends)  
+* Baseline comparisons expose whether the system truly improves on existing practice  
+* Representative benchmarks reveal hidden failure modes before deployment  
+* User‑studies surface contextual, ethical, and usability concerns that numbers miss  
+* Honest reporting of limitations embodies epistemic humility and ethical responsibility  
+* Open data and scripts enable reproducibility and communal verification  
 
 .Figure 12.5: Evaluation framework for capstone
 [plantuml,ch12-l05,png,theme=sketchy-outline]
@@ -81,23 +144,27 @@ Beyond falsification, evaluation carries ethical weight. Over‑claiming based o
 @startuml
 skinparam backgroundColor #F9F9F9
 skinparam handwritten true
+skinparam defaultFontSize 12
 
 start
 :Define **Benchmark Tasks**\n(5‑10 realistic scenarios);
-:Select **Baselines**\n(Human, prior model, random);
+:Select **Baselines**\n(Human, prior model, rule‑based);
 partition Quantitative {
     :Run agent on tasks;
-    :Collect **Metrics**\n(accuracy, latency, success rate);
+    :Collect **Metrics**\n(accuracy, latency, trust);
+    :Compare to Baselines;
 }
 partition Qualitative {
-    :Conduct **User Study**\n(2‑4 participants, interviews);
+    :Conduct **User Study**\n(2‑4 participants, think‑aloud);
     :Extract **Themes**\n(satisfaction, pain points);
 }
-:Aggregate Results;
-if (Results meet success criteria?) then (yes)
+:Merge & Weight Results;
+if (Results meet success criteria?\nAccuracy ≥ 0.90 &\nLatency ≤ 300 ms) then (yes)
   :Write **Evaluation Report**\n(metrics, baselines, user insights, limitations);
 else (no)
-  :Identify **Failure Modes**\n(and iterate);
+  :Identify **Failure Modes**;
+  :Refine Benchmark Tasks / Baselines;
+  back to Define Benchmark Tasks
 endif
 stop
 @enduml
@@ -110,18 +177,19 @@ stop
 * If your evaluation uncovers a serious failure, what is the most responsible way to present it in your thesis?  
 * What criteria make a benchmark task truly “representative” of real‑world use?  
 * How do you guard against “gaming” the evaluation—optimising for the benchmark at the expense of generalisation?  
-* Which kinds of evidence would most convincingly falsify your central thesis claim?
+* Which kinds of evidence would most convincingly falsify your central thesis claim?  
 
 ==== Lab Prep
 
 In Lab 3 you will turn the abstract framework into a concrete evaluation of your own capstone project.
 
-* **Prepare benchmark tasks** – curate 5–10 realistic scenarios and encode them in a manifest file.  
-* **Select baselines** – implement or obtain a simple rule‑based version and, if possible, a human‑performed baseline.  
-* **Run the evaluation harness** – execute the agent on each scenario, record outputs, and compute the agreed‑upon metrics.  
-* **Conduct a short user study** – recruit 2–4 target users, run the tasks, and collect interview data.  
+* **Prepare benchmark tasks** – curate 5–10 realistic scenarios from anonymised logs and encode them in a JSON manifest.  
+* **Select baselines** – implement a simple rule‑based version and, if possible, obtain a human‑performed baseline for at least one scenario.  
+* **Run the evaluation harness** – execute the agent on each scenario, record outputs, compute accuracy, latency, and trust scores, and store results in CSV.  
+* **Conduct a short user study** – recruit 2–4 target users, have them complete the scenarios, and collect think‑aloud transcripts.  
 * **Analyse and document** – produce a combined report containing metric tables, baseline comparisons, thematic analysis, and a clear “Limitations & Failure Modes” section.  
-* **Prepare for the thesis** – format the report according to the evaluation chapter template and upload scripts/data to the shared repository for reproducibility.
+* **Common pitfalls to avoid** – do not hard‑code timestamps in the manifest, ensure all patient data are fully anonymised, verify that latency measurements include only model inference time, double‑check that the gold‑standard labels are consistent, and keep scripts version‑controlled for reproducibility.  
+* **Prepare for the thesis** – format the report according to the evaluation chapter template and upload all data, scripts, and the manifest to the shared repository.
 
 ==== Reading
 For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch12,Chapter 12>>).

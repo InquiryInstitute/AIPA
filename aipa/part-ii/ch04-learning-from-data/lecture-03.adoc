@@ -14,70 +14,109 @@
 ==== Conceptual Core
 
 *Hook – a story of a spam filter*  
-Imagine you are building a spam filter that classifies 10 000 emails. On the training set it achieves **100 % accuracy**—every single message is correctly labelled. Yet, when you deploy the model to a fresh inbox, it misclassifies half of the new messages. The culprit is **over‑fitting**: the model has memorised idiosyncrasies of the training data (typos, specific header ordering) that do not generalise. The central question becomes: **how can we force the learner to ignore noise and capture only the underlying signal?**
+Imagine you are building a spam filter that classifies 10 000 incoming emails. On the training set it achieves **100 % accuracy**—every single message is correctly labelled. Yet, when you deploy the model to a fresh inbox, it misclassifies half of the new messages. A quick inspection of the mis‑classifications shows that the model has latched onto quirks such as a particular ordering of the “X‑Mail‑ID” header and a rare misspelling of the word “discount”. Those quirks are **noise**, not the underlying signal that distinguishes spam from legitimate mail. The central question becomes: **how can we force the learner to ignore noise and capture only the true, generalisable pattern?**
 
 *Regularization as a penalty on complexity*  
-The answer lies in adding a **penalty term** to the loss function. By augmenting the empirical risk  
+The most direct answer is to augment the empirical risk with a **penalty term** that discourages overly complex weight vectors:
 
 ```
-L̂(w) = 1/n Σℓ(y_i, f_w(x_i)) + Ω(w)
-```  
+L̂(w) = 1/n Σ_i ℓ(y_i, f_w(x_i)) + Ω(w)
+```
 
-we ask the optimiser to prefer weight vectors that are “small” or “sparse” in a quantifiable sense. Three families dominate practice:
+Here `Ω(w)` is a function of the parameter vector that grows when the model becomes “large”. Three families dominate practice:
 
-* **L1 (Lasso)** – `Ω(w)=λ∑|w_i|`. The absolute‑value penalty drives many coefficients exactly to zero, yielding an automatically sparse model.
-* **L2 (Ridge)** – `Ω(w)=λ∑w_i²`. Squaring each weight shrinks them toward zero but rarely eliminates them, preserving every feature with reduced magnitude.
-* **Elastic Net** – `Ω(w)=α·λ∑|w_i| + (1‑α)·λ∑w_i²`. By mixing the two, we can balance sparsity against uniform shrinkage.
+1. **L1 (Lasso)** – `Ω(w)=λ∑|w_i|`. The absolute‑value penalty pushes many coefficients exactly to zero, yielding an automatically sparse model.
+2. **L2 (Ridge)** – `Ω(w)=λ∑w_i²`. Squaring each weight shrinks them toward zero but rarely eliminates them, preserving every feature with reduced magnitude.
+3. **Elastic Net** – `Ω(w)=α·λ∑|w_i| + (1‑α)·λ∑w_i²`. By mixing the two, we can balance sparsity against uniform shrinkage.
+
+A concrete toy example helps. Suppose a linear classifier for spam uses three handcrafted features: `f₁` = number of exclamation marks, `f₂` = presence of the word “free”, and `f₃` = length of the subject line. After fitting without regularisation we obtain `w = [2.3, ‑0.1, 5.7]`. If we set `λ = 0.5` and use L1, the penalty term adds `0.5·(|2.3|+|‑0.1|+|5.7|)=4.0` to the loss, and the optimiser will favour a solution where the tiny coefficient `‑0.1` is driven to exactly zero, leaving `w = [2.1, 0, 5.4]`. The model is now simpler and easier to interpret.
 
 *Bias‑variance trade‑off visualised*  
-From a statistical viewpoint, regularisation implements a **bias‑variance trade‑off**. As λ grows, **bias** increases (the model is forced to be simpler) while **variance** falls (the model becomes less sensitive to fluctuations in the training set). The classic U‑shaped curve of validation error versus λ illustrates this: a small λ under‑regularises (high variance), a very large λ over‑regularises (high bias), and an intermediate λ minimises out‑of‑sample error.
+From a statistical viewpoint, regularisation implements a **bias‑variance trade‑off**. As the regularisation strength `λ` grows, the model is forced to be simpler, which raises **bias** (the expected error due to under‑fitting) but reduces **variance** (the sensitivity to fluctuations in the training set). The classic U‑shaped curve of validation error versus `λ` illustrates this balance: a tiny `λ` leaves the model highly flexible (low bias, high variance), while an enormous `λ` collapses the model to a constant predictor (high bias, low variance). The sweet spot—where the validation error is minimal—represents the optimal compromise between the two forces.
 
 *Cross‑validation as a data‑driven compass*  
-Choosing the “right” λ (and the regulariser type) requires a principled search. **k‑fold cross‑validation** splits the data into *k* equally sized folds, iteratively training on *k‑1* folds and validating on the held‑out fold. The mean validation metric across folds provides a low‑variance estimate of generalisation performance. Variants such as **leave‑one‑out** (k = n) or **nested CV** (an outer loop for model selection, an inner loop for hyper‑parameter tuning) further guard against optimistic bias when the validation set is small.
+Choosing the “right” `λ` (and, when relevant, the mixing parameter `α`) cannot be done by intuition alone. **k‑fold cross‑validation** provides a principled, data‑driven estimate of out‑of‑sample performance. The procedure partitions the data into *k* equally sized folds, iteratively trains on *k‑1* folds and validates on the held‑out fold. The mean validation metric across folds is a low‑variance estimator of the true generalisation error. When the dataset is very small, two refinements become important:
 
-*Model selection workflow*  
-Putting the pieces together yields a systematic pipeline:
+* **Leave‑one‑out CV** (`k = n`) yields an almost unbiased estimate but can have high variance.
+* **Nested CV** adds an outer loop for model selection and an inner loop for hyper‑parameter tuning, protecting against the optimistic bias that arises when the same data are used both to choose `λ` and to evaluate it.
 
-1. Define a **grid** (or random/Bayesian search space) over regularisation strength λ, mixing parameter α (for Elastic Net), and regulariser type (L1, L2, none).  
-2. For each candidate, run **k‑fold CV** and record the mean validation score.  
-3. Select the candidate with the highest score, then **re‑train on the full training set** using the chosen hyper‑parameters.  
+*Hyper‑parameter search strategies*  
+The regularisation strength and mixing parameter live in a continuous space, so we must decide how to explore it. The most common approaches are:
 
-The `ml_trainer` API mirrors this workflow: it accepts a regulariser specification, a λ value, and a `cv_folds` argument, runs the CV loop internally, and returns the best‑scoring model together with the selected hyper‑parameters.
+1. **Grid search** – a deterministic Cartesian product of a set of `λ` values (often log‑spaced) and `α` values (e.g., `[0, 0.25, 0.5, 0.75, 1]`).
+2. **Random search** – draws a fixed number of samples from a predefined distribution; often more efficient when only a few dimensions matter.
+3. **Bayesian optimisation** – builds a surrogate model of the validation surface and selects promising points adaptively.
+
+Regardless of the method, each candidate configuration is evaluated with the same k‑fold CV pipeline, and the configuration with the highest mean validation score is retained.
+
+*Model selection workflow and bridge to the lab*  
+Putting the pieces together yields a systematic pipeline that can be expressed in just a few lines of code:
+
+1. **Define a search space** over `λ`, `α`, and regulariser type (`'l1'`, `'l2'`, `'elastic'`).
+2. **Run k‑fold CV** for every candidate, recording the mean validation metric.
+3. **Select the best candidate** (highest mean score) and **re‑train on the full training set** using those hyper‑parameters.
+4. **Deploy** the final model and monitor its performance on a held‑out test set.
+
+The `ml_trainer` API mirrors this workflow: it accepts a regulariser specification, a `lambda_` value, an optional `alpha`, and a `cv_folds` argument, runs the CV loop internally, and returns the best‑scoring model together with the selected hyper‑parameters. In the next section we will see this pipeline in action on a synthetic regression problem, and later you will implement it yourself in Lab 2.
 
 ===== Key Points
 
 * Over‑fitting manifests as perfect training accuracy but poor test performance.  
 * Regularisation adds a penalty `Ω(w)` that encourages simplicity.  
-* L1 → sparsity (exact zeros); L2 → uniform shrinkage; Elastic Net → blend.  
-* Bias‑variance trade‑off: λ ↑ ⇒ bias ↑, variance ↓; optimal λ balances the two.  
-* k‑fold CV estimates out‑of‑sample error; nested CV mitigates selection bias.  
-* Hyper‑parameter grid (λ, α, regulariser) + CV → systematic model selection.  
-* `ml_trainer` encapsulates: `regularizer`, `lambda`, `alpha`, `cv_folds`.  
+* L1 → sparsity (exact zeros); L2 → uniform shrinkage; Elastic Net → blend of both.  
+* Bias‑variance trade‑off: increasing `λ` raises bias, lowers variance; optimal `λ` balances the two.  
+* k‑fold CV provides a low‑variance estimate of out‑of‑sample error; nested CV guards against selection bias.  
+* Hyper‑parameter search can be grid, random, or Bayesian; log‑spacing of `λ` is a practical default.  
+* The model‑selection pipeline: define search space → CV evaluation → pick best → retrain on all data.  
+* `ml_trainer` encapsulates: `regularizer`, `lambda_`, `alpha`, `cv_folds`, and returns the chosen model.  
 
 ==== Technical Example
 
-We now walk through a **live‑coding notebook** that demonstrates the full pipeline on a synthetic regression problem. First we generate data with 20 features, of which only 5 are truly predictive. Then we explore a log‑spaced λ grid, visualise the **coefficient paths**, and watch the validation score curve shape the final choice.
+We now walk through a **live‑coding notebook** that demonstrates the full pipeline on a synthetic regression problem. The example is deliberately verbose so that every line can be discussed in class.
+
+First we generate data with 20 features, of which only 5 are truly predictive. The `make_regression` helper lets us control the signal‑to‑noise ratio and the random seed, guaranteeing reproducibility:
 
 [source,python]
 ----
 from ml_trainer import Trainer
+from sklearn.datasets import make_regression
 import numpy as np
 import matplotlib.pyplot as plt
 
-# synthetic data: 200 samples, 20 features, 5 informative
-X, y = make_regression(n_samples=200, n_features=20,
-                       n_informative=5, noise=0.5, random_state=42)
+# synthetic data: 200 samples, 20 features, 5 informative, modest noise
+X, y, coef_true = make_regression(
+    n_samples=200,
+    n_features=20,
+    n_informative=5,
+    noise=0.5,
+    coef=True,
+    random_state=42
+)
 
-lambdas = np.logspace(-3, 1, 10)          # 0.001 … 10
+# Show the first three rows so students can see the raw numbers
+print("First three rows of X:")
+print(np.round(X[:3], 2))
+print("\nTrue coefficients (non‑zero entries):")
+print(coef_true[coef_true != 0])
+----
+
+The printed preview reveals a dense matrix of floating‑point values, while the true coefficient vector contains exactly five non‑zero entries (e.g., `[12.3, ‑8.7, 5.4, 3.2, ‑1.1]`). This ground truth will let us judge whether regularisation succeeds at discarding the irrelevant 15 features.
+
+Next we define a **log‑spaced grid** of regularisation strengths, run a 5‑fold CV for each, and collect both the validation R² score and the learned coefficient vector. The loop also records the coefficient path so that we can visualise how each weight shrinks as `λ` grows:
+
+[source,python]
+----
+lambdas = np.logspace(-3, 1, 12)   # 0.001 … 10 (12 points)
 best_score = -np.inf
 best_cfg = None
-coeff_paths = []
+coeff_paths = []   # will become a 12 × 20 matrix
 
 for lam in lambdas:
     trainer = Trainer(
-        regularizer='l1',                 # L1 (Lasso) for sparsity
+        regularizer='l1',          # L1 (Lasso) for sparsity
         lambda_=lam,
-        cv_folds=5
+        cv_folds=5,
+        random_state=0
     )
     cv_score, coef = trainer.fit(X, y)
     coeff_paths.append(coef)
@@ -85,58 +124,78 @@ for lam in lambdas:
     if cv_score > best_score:
         best_score, best_cfg = cv_score, (lam, coef)
 
-# Plot coefficient magnitude vs. λ
-plt.figure(figsize=(8,4))
-plt.semilogx(lambdas, np.abs(coeff_paths))
+coeff_paths = np.array(coeff_paths)   # shape (12, 20)
+print("\\nBest λ:", best_cfg[0])
+print("Corresponding non‑zero coefficients:")
+print(best_cfg[1][best_cfg[1] != 0])
+----
+
+The console output shows a table like:
+
+```
+λ=0.001 → CV R²=0.8421
+λ=0.003 → CV R²=0.8614
+...
+λ=0.100 → CV R²=0.8752   ← highest
+λ=0.316 → CV R²=0.8629
+...
+λ=10.000 → CV R²=0.7215
+```
+
+Notice the **U‑shaped curve**: performance improves as we move from no regularisation to a modest `λ`, then degrades once the penalty becomes too strong and the model under‑fits.
+
+Finally we visualise the **coefficient paths**. Each column corresponds to a feature; the colour distinguishes L1 (blue) from a reference L2 run (orange) that we compute in a second, identical loop (omitted for brevity). The plot makes the sparsity transition obvious:
+
+[source,python]
+----
+plt.figure(figsize=(9,5))
+for i in range(coeff_paths.shape[1]):
+    plt.semilogx(lambdas, np.abs(coeff_paths[:, i]), 
+                 label=f'Feature {i+1}' if i < 5 else "", 
+                 linewidth=2 if i < 5 else 1, 
+                 alpha=0.8 if i < 5 else 0.4)
 plt.xlabel('λ (regularisation strength)')
-plt.ylabel('Coefficient magnitude')
-plt.title('L1 coefficient paths')
+plt.ylabel('Absolute coefficient magnitude')
+plt.title('L1 coefficient paths on synthetic data')
+plt.grid(True, which='both', ls='--', alpha=0.5)
 plt.show()
 ----
 
-The loop prints a table of **CV R² scores** and stores the coefficient vectors for later visualisation. The plot reveals the classic **sparsity transition**: as λ exceeds ≈ 0.01 many coefficients collapse to zero, while the truly informative features retain non‑zero weight.
+The five informative features retain noticeable magnitude even at `λ = 0.1`, while the remaining fifteen collapse to zero. This visual confirmation ties directly back to the spam‑filter story: the regulariser has forced the model to ignore the “noise” features, leaving a compact, interpretable set of predictors.
 
-Below is a concise summary table that a student might copy into a lab notebook:
-
-[cols="1,1,1", options="header"]
-|===
-| λ (regularisation strength) | CV R² score | Coefficient pattern
-
-| 0.001 | 0.84 | All 20 non‑zero, modest shrinkage
-| 0.01  | 0.87 | 5 strong, 3 weak, rest near zero
-| 0.1   | 0.85 | 5 strong, 15 exact zeros (sparse)
-| 1.0   | 0.78 | Over‑shrinkage, under‑fitting
-|===
-
-**What‑if scenario** – suppose the validation set is tiny (e.g., 5 % of the data). The CV curve may appear noisy and the algorithm could mistakenly select λ = 1.0. In that case we would switch to **nested cross‑validation** or reserve a separate hold‑out set to confirm the choice, illustrating the importance of robust evaluation.
+*What‑if scenario* – suppose the validation set is tiny (e.g., only 5 % of the data). The CV curve becomes noisy, and the algorithm might mistakenly select `λ = 1.0`, which under‑fits. In that case we would **switch to nested cross‑validation**: an outer 5‑fold CV loop selects the best `λ`, while an inner 5‑fold CV loop evaluates each candidate without contaminating the outer validation folds. This extra layer of guarding is essential when data are scarce or when the cost of a bad model is high (e.g., medical diagnosis).
 
 ===== Key Points
 
-* Live notebook: generate data, define log‑spaced λ grid, run CV.  
-* `Trainer(regularizer='l1', lambda_=lam, cv_folds=5)` encapsulates L1 CV.  
-* Plotting coefficient magnitude vs. λ visualises sparsity emergence.  
-* Table summarises λ → CV R² → coefficient pattern (sparse vs. dense).  
-* Practical tip: start with a log‑spaced λ grid (10⁻³ … 10¹).  
-* If validation data are scarce, consider nested CV to avoid over‑optimistic selection.  
+* Live notebook: generate data, preview a few rows, and expose the true sparse coefficient vector.  
+* `Trainer(regularizer='l1', lambda_=lam, cv_folds=5)` encapsulates L1 CV; `fit` returns mean CV R² and the learned coefficients.  
+* Log‑spaced `λ` grid (0.001 → 10) lets us trace the bias‑variance curve; the highest CV score marks the optimal regularisation strength.  
+* Plotting absolute coefficient magnitude versus `λ` visualises the sparsity transition and helps students connect theory to practice.  
+* The table of “best λ → non‑zero coefficients” serves as a concrete audit trail for model interpretability.  
+* Practical tip: start with a coarse grid, then refine around the peak (e.g., 0.05 → 0.2) for higher precision.  
+* When validation data are scarce, employ nested CV or reserve a separate hold‑out set to avoid over‑optimistic selection.  
 
 ==== Philosophical Reflection
 
-Occam’s razor in machine learning is not a vague aesthetic; it is **encoded as a prior** over the hypothesis space. An L1 penalty corresponds to a **Laplace prior** that places most probability mass at zero, encouraging many weights to vanish. An L2 penalty corresponds to a **Gaussian prior** that prefers small but non‑zero weights. Elastic Net mixes the two priors, letting the practitioner express a belief that “most features are irrelevant, but a few may have modest effects”.
+Occam’s razor in machine learning is not a vague aesthetic; it is **encoded as a prior** over the hypothesis space. An L1 penalty corresponds to a **Laplace prior** that places most probability mass at zero, encouraging many weights to vanish. An L2 penalty corresponds to a **Gaussian prior** that prefers small but non‑zero weights. Elastic Net mixes the two priors, letting the practitioner express a belief that “most features are irrelevant, but a few may have modest effects”. In Bayesian terms, the regularisation strength `λ` controls the *precision* of the prior: a large `λ` makes the prior sharply peaked (strong belief in simplicity), while a small `λ` yields a diffuse prior (weak belief).
 
-The **bias‑variance trade‑off** is the quantitative expression of this prior belief. By increasing λ we deliberately inject bias—our model is forced to conform to the prior—but we reap a reduction in variance, which translates into more reliable predictions on unseen data. Cross‑validation becomes the empirical mechanism that **tunes the strength of the prior**: the λ that maximises validation performance is the one that best reconciles our simplicity bias with the data’s complexity.
+The **bias‑variance trade‑off** is the quantitative expression of this prior belief. By increasing `λ` we deliberately inject bias—our model is forced to conform to the prior—but we reap a reduction in variance, which translates into more reliable predictions on unseen data. Cross‑validation becomes the empirical mechanism that **tunes the strength of the prior**: the `λ` that maximises validation performance is the one that best reconciles our simplicity bias with the data’s complexity.
 
-Beyond predictive performance, **simplicity carries ethical weight**. Sparse L1 models are easier to audit: each non‑zero coefficient can be inspected, explained, and linked to domain knowledge, supporting transparency and fairness assessments. However, an overly aggressive prior may discard subtle but legally or socially important relationships (e.g., interactions that affect protected groups). Thus, regularisation must be calibrated **with domain‑specific stakes in mind**, not merely to chase the highest CV score.
+Beyond predictive performance, **simplicity carries ethical weight**. Sparse L1 models are easier to audit: each non‑zero coefficient can be inspected, explained, and linked to domain knowledge, supporting transparency and fairness assessments. However, an overly aggressive prior may discard subtle but legally or socially important relationships. Consider a credit‑scoring model trained on the Adult Income dataset: after applying a strong L1 penalty, the feature “marital status” disappears, and the model’s decisions become easier to explain. Yet, if “marital status” correlated with a protected attribute such as gender, its removal could mask indirect discrimination, making the model appear fairer than it truly is. Thus, regularisation must be calibrated **with domain‑specific stakes in mind**, not merely to chase the highest CV score.
 
-In Lab 2 you will experience this tension firsthand: after implementing L1 regularisation, you will examine the resulting coefficient vector on the **Adult Income** fairness dataset, discuss which features survive, and reflect on whether the induced sparsity aligns with ethical desiderata such as *explainability* and *non‑discrimination*.
+Historically, the debate between **Occam’s razor** and the **No‑Free‑Lunch (NFL) theorem** reminds us that no single prior is universally optimal. NFL tells us that, averaged over all possible data‑generating distributions, every learning algorithm performs equally. In practice, however, we possess domain knowledge that narrows the plausible hypothesis space, making a simplicity prior useful. The tension between these perspectives becomes stark in deep learning, where over‑parameterised networks can fit random noise yet still generalise when trained with implicit regularisation (e.g., early stopping, dropout). Future lectures will explore how **explicit priors** (L1/L2) interact with **implicit priors** in non‑linear models, and how we might design richer regularisers that respect known invariances (e.g., group sparsity, hierarchical priors).
+
+In Lab 2 you will experience this tension firsthand: after implementing L1 regularisation, you will examine the resulting coefficient vector on the **Adult Income** fairness dataset, discuss which features survive, and reflect on whether the induced sparsity aligns with ethical desiderata such as *explainability* and *non‑discrimination*. You will also experiment with weakening the prior (smaller `λ`) to see how hidden correlations re‑emerge, thereby appreciating the trade‑off between interpretability and predictive fidelity.
 
 ===== Key Points
 
-* Regulariser = explicit prior (L1 → Laplace, L2 → Gaussian).  
+* Regulariser = explicit prior (L1 → Laplace, L2 → Gaussian, Elastic Net → mixture).  
 * Bias‑variance trade‑off formalises Occam’s razor in statistical terms.  
-* Cross‑validation empirically balances bias (prior strength) and variance.  
-* Sparsity improves interpretability and supports ethical auditing.  
-* Over‑regularisation can hide genuine, fairness‑relevant patterns.  
-* Lab 2 ties prior selection to real‑world interpretability challenges.  
+* Cross‑validation empirically balances prior strength (bias) and data fit (variance).  
+* Sparsity improves interpretability and supports ethical auditing of models.  
+* Over‑regularisation can hide subtle, fairness‑relevant patterns; domain stakes must guide λ choice.  
+* Historical tension: Occam’s razor vs. No‑Free‑Lunch theorem; modern deep nets add implicit regularisation.  
+* Lab 2 ties prior selection to real‑world interpretability challenges and fairness analysis.  
 
 .Figure 4.3: Coefficient magnitude under L1 vs. L2 regularisation
 [plantuml,ch04-l03-coeff,svg,theme=sketchy-outline,scale=1.5]
@@ -145,23 +204,22 @@ In Lab 2 you will experience this tension firsthand: after implementing L1 reg
 scale 1.5
 title Coefficient Magnitudes (λ = 0.1)
 
-' Shared Y‑axis
-legend left
-  |*| L1 (Lasso) – many exact zeros (sparse)
-  |*| L2 (Ridge) – all coefficients reduced
+legend right
+  <&circle> L1 (Lasso) – many exact zeros (sparse)
+  <&square> L2 (Ridge) – all coefficients reduced
 endlegend
 
-' L1 panel
-rectangle "0" as L1c1
-rectangle "0" as L1c2
+' L1 panel – only non‑zero bars are drawn
+rectangle "0.9" as L1c1
+rectangle "0.0" as L1c2
 rectangle "0.8" as L1c3
-rectangle "0" as L1c4
+rectangle "0.0" as L1c4
 rectangle "0.5" as L1c5
-rectangle "0" as L1c6
-rectangle "0" as L1c7
+rectangle "0.0" as L1c6
+rectangle "0.0" as L1c7
 rectangle "0.2" as L1c8
-rectangle "0" as L1c9
-rectangle "0" as L1c10
+rectangle "0.0" as L1c9
+rectangle "0.0" as L1c10
 L1c1 -[hidden]-> L1c2
 L1c2 -[hidden]-> L1c3
 L1c3 -[hidden]-> L1c4
@@ -172,7 +230,7 @@ L1c7 -[hidden]-> L1c8
 L1c8 -[hidden]-> L1c9
 L1c9 -[hidden]-> L1c10
 
-' L2 panel
+' L2 panel – all bars have decreasing height
 rectangle "0.7" as L2c1
 rectangle "0.6" as L2c2
 rectangle "0.5" as L2c3
@@ -212,53 +270,62 @@ scale 1.5
 title k‑fold Cross‑validation Loop (k = 5)
 
 partition "Fold 1" {
-  :Train on folds 2‑5;
-  :Validate on fold 1;
+  rectangle "Train (folds 2‑5)" as T1
+  rectangle "Validate (fold 1)" as V1
 }
 partition "Fold 2" {
-  :Train on folds 1,3‑5;
-  :Validate on fold 2;
+  rectangle "Train (folds 1,3‑5)" as T2
+  rectangle "Validate (fold 2)" as V2
 }
 partition "Fold 3" {
-  :Train on folds 1,2,4‑5;
-  :Validate on fold 3;
+  rectangle "Train (folds 1,2,4‑5)" as T3
+  rectangle "Validate (fold 3)" as V3
 }
 partition "Fold 4" {
-  :Train on folds 1‑3,5;
-  :Validate on fold 4;
+  rectangle "Train (folds 1‑3,5)" as T4
+  rectangle "Validate (fold 4)" as V4
 }
 partition "Fold 5" {
-  :Train on folds 1‑4;
-  :Validate on fold 5;
+  rectangle "Train (folds 1‑4)" as T5
+  rectangle "Validate (fold 5)" as V5
 }
 note right
 Average validation metric → model selection
 end note
 
+' Loop arrow
+(T1) --> (T2) --> (T3) --> (T4) --> (T5) --> (T1)
 @enduml
 ....
 
 ==== Discussion Prompts
 
-* When does L1 regularisation outperform L2, and vice‑versa?  
-* How many folds should we use in k‑fold CV for a dataset of 200 samples? Discuss bias‑variance trade‑offs.  
-* Is “simplicity” (Occam’s razor) always the appropriate prior, or can a richer prior be justified?  
-* How do we decide the strength of a prior (λ) when the validation set is small?  
+* When does L1 regularisation outperform L2, and vice‑versa? Consider sparsity, interpretability, and multicollinearity.  
+* How many folds should we use in k‑fold CV for a dataset of 200 samples? Discuss the bias‑variance trade‑offs of small versus large *k*.  
+* Is “simplicity” (Occam’s razor) always the appropriate prior, or can a richer prior be justified in a high‑stakes domain such as healthcare?  
+* How do we decide the strength of a prior (`λ`) when the validation set is tiny? Explore the roles of nested CV and Bayesian optimisation.  
 * In what ways does cross‑validation differ from a simple train/validation/test split, and when might we need nested CV?  
-* Could an aggressive regulariser inadvertently hide unfair bias in a model? How would you detect it?
+* Could an aggressive regulariser inadvertently hide unfair bias in a model? Propose a diagnostic workflow to detect hidden discrimination after sparsification.  
 
 ==== Lab Prep
 
 *Lab 2 – Regularisation and Cross‑Validation*  
-In this lab you will extend the `ml_trainer` library to support **L1, L2, and no regularisation**. Implement a configurable `cv_folds` argument (default 5) and a **grid‑search** over a log‑spaced λ vector. After the search, the trainer must **re‑train on the full training set** using the selected hyper‑parameters and output the final coefficient vector and CV metric.
+In this lab you will extend the `ml_trainer` library to support **L1, L2, Elastic Net, and no regularisation**. Implement a configurable `cv_folds` argument (default 5) and a **grid‑search** over a log‑spaced `λ` vector. After the search, the trainer must **re‑train on the full training set** using the selected hyper‑parameters and output the final coefficient vector and CV metric.  
+
+The lab worksheet includes three checkpoints:
+
+1. **Sanity check** – run the trainer with `λ = 0` (no regularisation) and verify that the CV R² matches the unregularised baseline.  
+2. **Sparsity inspection** – after selecting the best `λ` for L1, print the indices of non‑zero coefficients and compare them to the ground‑truth informative features in the synthetic dataset.  
+3. **Fairness audit** – repeat the L1 pipeline on the Adult Income dataset, list the surviving features, and write a short reflection on whether any legally protected attributes have been removed or retained.
 
 ===== Key Points
 
-* Add `regularizer` argument (`'l1'`, `'l2'`, or `'none'`).  
-* Add optional `alpha` for Elastic Net mixing.  
-* Implement k‑fold CV loop; compute mean validation score for each λ.  
+* Add `regularizer` argument (`'l1'`, `'l2'`, `'elastic'`, or `'none'`).  
+* Add optional `alpha` for Elastic Net mixing (default 0.5).  
+* Implement k‑fold CV loop; compute mean validation score for each `λ`.  
 * Perform grid search, retain hyper‑parameters with highest mean score.  
-* Retrain on all data with chosen λ and regulariser; report coefficients and score.  
+* Retrain on all data with chosen `λ` and regulariser; report coefficients and final CV metric.  
+* Include three verification checkpoints to ensure correctness and to surface ethical considerations.  
 
 ==== Reading
 For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch04,Chapter 4>>).

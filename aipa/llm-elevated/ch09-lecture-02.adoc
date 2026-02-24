@@ -79,25 +79,25 @@ skinparam node {
 actor User
 node "LLM Agent" as LLM {
   rectangle "Prompt\n+ System Prompt" as Prompt
-  rectangle "Decision Engine\n(Probability\nDistribution)" as Decision
+  rectangle "Decision Engine\n(Probability‑based Call Decision)" as Decision
 }
 node "Tool Orchestrator" as Orchestrator {
   rectangle "Validate\nJSON Schema" as Validate
   rectangle "Execute\nsearch()" as Execute
 }
-database "Web\nSearch Engine" as Web
+cloud "Web Search Engine\n(API)" as Web
 
 User --> Prompt : writes request
 Prompt --> Decision : forward
 Decision --> LLM : generate output
-alt function call?
+alt Call search?
   LLM --> Orchestrator : JSON {name, arguments}
   Orchestrator --> Validate : schema check
   Validate --> Execute : if ok
   Execute --> Web : query(query, k)
   Web --> Execute : raw results
   Execute --> Orchestrator : formatted list
-  Orchestrator --> LLM : results payload
+  Orchestrator --> LLM : function result (JSON)
   LLM --> User : final answer
 else plain text
   LLM --> User : textual answer
@@ -114,11 +114,14 @@ Because it is the *contract* that guarantees the orchestrator can safely transla
 
 ==== Technical Example: Wiring the `search` Tool in Python
 
-Below is a minimal, self‑contained example that demonstrates the full lifecycle—from prompt to result—using the OpenAI `gpt‑4‑turbo` model with function calling enabled.
+Before we dive into code, imagine what is happening inside the model at the moment it decides to call the search tool. The model has read Maya’s request, recognised the phrase *“cheapest round‑trip flight”* as a domain that changes every day, and therefore inferred that a fresh data source is required. It then consults the function descriptions it was given at start‑up, matches the intent to the `search` description, and constructs a JSON payload that satisfies the schema. This mental choreography is invisible to the user, but it is what we will make explicit in the orchestrator.
+
+Below is a self‑contained example that demonstrates the full lifecycle—from prompt to result—using the OpenAI `gpt‑4‑turbo` model with function calling enabled. The script is deliberately verbose so that each step can be discussed in class.
 
 [source,python]
 ----
 import os, json, openai, httpx
+from jsonschema import validate, ValidationError
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
@@ -136,7 +139,7 @@ search_schema = {
     }
 }
 
-# 2️⃣ Helper that performs a real‑world search via a public API (e.g., DuckDuckGo Instant Answer)
+# 2️⃣ Helper that performs a real‑world search via a public API (DuckDuckGo Instant Answer)
 def real_search(query: str, k: int = 5):
     resp = httpx.get(
         "https://api.duckduckgo.com/",
@@ -155,18 +158,16 @@ def real_search(query: str, k: int = 5):
 
 # 3️⃣ Orchestrator that validates the JSON against the schema
 def orchestrate_function_call(call):
-    # Basic validation – in production use jsonschema.validate()
-    args = call.get("arguments", {})
-    if "query" not in args:
-        raise ValueError("Missing required field 'query'")
-    if not isinstance(args["query"], str):
-        raise TypeError("'query' must be a string")
-    k = args.get("k", 5)
-    if not isinstance(k, int) or k <= 0:
-        raise ValueError("'k' must be a positive integer")
-    return real_search(args["query"], k)
+    # Full validation – raises ValidationError on mismatch
+    try:
+        validate(instance=call["arguments"], schema=search_schema["parameters"])
+    except ValidationError as e:
+        raise ValueError(f"Invalid arguments: {e.message}")
 
-# 4️⃣ Main loop – send a user prompt and let the model decide whether to call the tool
+    args = call["arguments"]
+    return real_search(args["query"], args.get("k", 5))
+
+# 4️⃣ Main loop – send a user prompt and let the model decide whether to invoke the tool
 def ask_llm(user_input: str):
     response = openai.ChatCompletion.create(
         model="gpt-4-1106-preview",
@@ -179,7 +180,11 @@ def ask_llm(user_input: str):
         # Model wants to call the tool
         call = choice["message"]["function_call"]
         print(f"🔧 Model requested function call: {call['name']}({call['arguments']})")
-        results = orchestrate_function_call(call)
+        try:
+            results = orchestrate_function_call(call)
+        except Exception as exc:
+            # Failure‑mode demo: return a graceful apology
+            return f"Sorry, I couldn’t complete the search because: {exc}"
         # Feed the results back into the model for final answer
         follow_up = openai.ChatCompletion.create(
             model="gpt-4-1106-preview",
@@ -205,10 +210,11 @@ if __name__ == "__main__":
 *Key Points*
 
 * **Schema‑first definition** – The `search_schema` object mirrors the JSON snippet we examined earlier; any divergence would cause a validation error.
-* **Validation layer** – A lightweight check ensures required fields are present and typed correctly before the external HTTP request is made.
+* **Robust validation** – Using `jsonschema.validate` guarantees that required fields are present and typed correctly before the external HTTP request is made.
 * **Two‑step interaction** – The model first emits a function call, then receives the raw JSON results as a *function* message, allowing it to produce a polished natural‑language answer.
-* **Error handling** – Missing `query` or a non‑integer `k` raises an exception that can be caught and turned into a graceful “I couldn’t understand your request” message.
+* **Error handling & graceful degradation** – The `except` block shows how to turn a missing `query` or a rate‑limit (HTTP 429) into a user‑friendly apology rather than a crash.
 * **Extensibility** – Adding a new tool (e.g., `summarise`) follows the same pattern: define a schema, implement the function, and let the orchestrator route calls.
+* **Failure‑mode mini‑demo** – If the search API returns a 429, `httpx` raises an exception; the orchestrator catches it and returns a helpful message, illustrating how to keep the conversation flowing even when external services misbehave.
 
 Running the script produces an output similar to:
 
@@ -223,26 +229,31 @@ Here are the most recent COVID‑19 statistics for Brazil (as of 2024‑02‑20)
 Source: https://www.worldometers.info/coronavirus/country/brazil/
 ```
 
-The example demonstrates how a clean JSON contract turns a vague user request into a reliable, reproducible search operation.
+The example demonstrates how a clean JSON contract turns a vague user request into a reliable, reproducible search operation, while also showing how to handle the inevitable hiccups of real‑world APIs.
 
 ---
 
 ==== Philosophical Reflection: Trust, Bias, and the Outsourcing of Knowledge
 
-When we hand over the task of “finding the truth” to a web‑search tool, we implicitly trust three layers:
+*The incident.* A public‑health chatbot was deployed in a regional hospital to answer patient queries about vaccine schedules. One evening a user asked, “What is the recommended dose of the new flu vaccine for a 70‑year‑old?” The assistant, powered by an LLM with a `search` tool, fetched the top result from a popular health blog that mistakenly listed a pediatric dosage. The chatbot relayed the wrong number, and the patient later reported a mild adverse reaction. The error was traced to three stacked layers of trust that had gone unchecked.
 
-1. **The LLM’s judgment** – It decides *when* to delegate and *what* query to issue. This judgment is shaped by its training data, prompting, and temperature settings, and may reflect hidden biases (e.g., preferring popular sources over niche but accurate ones).
-2. **The search engine’s ranking algorithm** – Even a perfectly formed query is filtered through proprietary relevance models that prioritize certain domains, languages, or commercial interests. The LLM cannot see these internal weights, yet its answer inherits them.
-3. **The content on the web** – The internet is a mixture of peer‑reviewed research, governmental statistics, and misinformation. By surfacing the top‑k results, we risk amplifying the most visible (often the most sensational) rather than the most reliable.
+1. **The LLM’s judgment** – The model decided that a fresh web lookup was needed because the query mentioned a “new flu vaccine”. Its internal probability distribution favored a function call, but the prompt engineering did not include a constraint to verify medical sources. Consequently, the model treated any top‑ranked result as authoritative.
 
-*What does this mean for epistemic authority?*  
-We shift from a monolithic “model knows everything” to a distributed epistemology where knowledge is co‑produced by the model, the tool, and the external information ecosystem. This raises ethical questions:
+2. **The search engine’s ranking algorithm** – The engine’s relevance model gave the blog a high score because the page contained the exact phrase “flu vaccine dose”. Commercial SEO optimisation, not clinical accuracy, drove the ranking. The LLM, blind to these proprietary weights, inherited the bias.
 
-* **Privacy** – The model may embed personally identifying information in the query (e.g., “my last purchase”). Should the orchestrator scrub or anonymise such data before hitting the web?
-* **Bias mitigation** – Can we design schemas that force the model to request *multiple* sources, or to apply post‑retrieval verification steps?
-* **Responsibility** – If the model returns a faulty statistic, who is accountable? The model’s developers, the tool’s implementer, or the downstream user?
+3. **The content on the web** – The internet contains a mixture of peer‑reviewed research, official health agency guidance, and unvetted personal blogs. By returning the first five hits, the `search` tool exposed the assistant to the most visible—not necessarily the most reliable—information.
 
-By foregrounding these concerns, we prepare students not only to write code but also to interrogate the social implications of delegating knowledge acquisition to opaque, data‑driven pipelines.
+*What does this mean for epistemic authority?* We move from a monolithic “model knows everything” to a distributed epistemology where knowledge is co‑produced by the model, the tool, and the external information ecosystem. This shift forces designers to ask new questions:
+
+* **Privacy** – The model may embed personally identifying information (e.g., a patient’s name) in the query string. Should the orchestrator scrub or anonymise such data before hitting the web? A common mitigation is to hash or replace identifiable tokens with placeholders before the search call.
+* **Bias mitigation** – Schemas can be enriched to require multiple independent sources (`source_count`) or to request a provenance field (`source_url`). The orchestrator can then enforce a rule: *only return an answer if at least two sources agree*.
+* **Responsibility** – When a faulty fact is delivered, accountability is diffuse. The model’s developers, the tool’s implementer, and the downstream user all share a portion of the blame. Transparent logging of function calls and results becomes essential for post‑mortem analysis.
+
+*Design patterns for safer outsourcing.*
+
+* **Query sanitisation** – Before the orchestrator forwards a request, run a regex‑based filter that removes email addresses, phone numbers, or medical record numbers.
+* **Multi‑source verification** – Extend the schema with an optional `sources` array; after the search, a second tool (`verify`) can cross‑check the claims against a trusted knowledge base.
+* **Provenance tracking** – Include a `source` field in every result and surface it to the user (“According to the WHO…”). This not only builds trust but also creates an audit trail.
 
 *Key Points*
 
@@ -250,6 +261,7 @@ By foregrounding these concerns, we prepare students not only to write code but 
 * Search engines embed commercial and algorithmic biases that propagate into the model’s answer.
 * Ethical design patterns (query sanitisation, multi‑source verification, provenance tracking) can mitigate but not eliminate these risks.
 * Philosophical humility is required: tool‑augmented agents are *assistants*, not ultimate arbiters of truth.
+* Designers should treat the schema as a *safety contract* that can enforce provenance, source diversity, and privacy safeguards.
 
 ---
 
@@ -284,6 +296,7 @@ By foregrounding these concerns, we prepare students not only to write code but 
 * Validation prevents malformed calls from reaching the external API, protecting both the system and third‑party services.
 * Logging the raw function calls and responses creates an audit trail useful for debugging bias or privacy issues.
 * Chaining tools demonstrates how complex tasks (e.g., “Give me a brief report on the latest AI conferences”) can be decomposed into reusable primitives.
+* Adding a `source` field to the schema will let you surface provenance in the final answer—a concrete illustration of the philosophical safeguards discussed earlier.
 
 ---
 
@@ -291,4 +304,4 @@ By foregrounding these concerns, we prepare students not only to write code but 
 
 We have unpacked the anatomy of a `search` tool: from the high‑level decision‑making of an LLM, through the precise contract expressed as a JSON schema, to the concrete execution of a web query and the philosophical ramifications of delegating knowledge acquisition. Armed with this understanding, you are now ready to build more sophisticated agents that *search, summarise, translate, and act* in the world.
 
-In the next lecture we will explore **tool chaining**: how to orchestrate multiple function calls in a single conversation, enabling the agent to *search* for data, *summarise* it, and *present* a concise report. The lab that follows this session will give you hands‑on experience with the full pipeline, laying the groundwork for the multi‑tool agents we will construct in the upcoming weeks.
+In the next lecture we will explore **tool chaining**: how to orchestrate multiple function calls in a single conversation, enabling the agent to *search* for data, *summarise* it, and *present* a concise report. The lab that follows this session will give you hands‑on experience with the full pipeline, and you will see how a tiny schema change—adding a `source` field—lets you audit every fact your agent quotes.

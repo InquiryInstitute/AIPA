@@ -3,14 +3,14 @@
 
 [.epigraph]
 "Symbols point; vectors approximate."
-— Lewis et al., "RAG" <<Lewis2020>>; Izacard & Grave, "DPR" <<Izacard2020>> (hybrid memory)
+— Lewis et al., *RAG* <<Lewis2020>>; Izacard & Grave, *DPR* <<Izacard2020>> (hybrid memory)
 
 ==== Hook: A Real‑World Query
 
 *An autonomous research assistant receives the query:*  
 **“What papers cite the work of X and are most relevant to my current project?”**  
 
-To answer, the assistant must first locate the exact citation relationships (a symbolic graph operation) and then rank those papers by semantic relevance to the project (a vector‑based similarity operation). This tension—*exactness versus relevance*—drives the need for a hybrid memory architecture.
+To answer, the assistant must first locate the exact citation relationships (a symbolic graph operation) and then rank those papers by semantic relevance to the project (a vector‑based similarity operation). The tension—*exactness versus relevance*—is the engine that drives hybrid memory design.
 
 ==== Example Prompts
 
@@ -22,59 +22,63 @@ To answer, the assistant must first locate the exact citation relationships (a s
 
 ===== The Conflict: Pure Symbolic vs. Pure Sub‑symbolic
 
-When we rely **only** on a knowledge graph, we obtain perfectly precise facts (e.g., “Paper A cites Paper B”), but we quickly discover that the answer set can be *too narrow*: the graph may miss newer citations, informal references, or nuanced relevance to a downstream task.  
+When we rely **only** on a knowledge graph we obtain perfectly precise facts—e.g., “Paper A cites Paper B”.  In practice the answer set can be *too narrow*: the graph may miss newer citations, informal references, or domain‑specific shorthand.  Imagine a citation graph that was last updated six months ago; a breakthrough paper that cites X will be invisible, and the assistant will never propose it, even though its abstract is a perfect fit for the user’s task.
 
-Conversely, a **pure vector store** can surface documents that *feel* relevant, handling paraphrase and synonymy, yet it may hallucinate relationships that never existed in the data (“Paper C appears to cite X even though no citation edge is recorded”).  
+Conversely, a **pure vector store** can surface documents that *feel* relevant, handling paraphrase, synonymy, and even cross‑modal signals (e.g., a slide deck that mentions X without an explicit citation).  However, vectors can hallucinate relationships that never existed—e.g., “Paper C appears to cite X even though no citation edge is recorded”.  The hallucination stems from the fact that similarity does not guarantee factual grounding.
 
-The **resolution** is to let each modality compensate for the other's blind spot: a symbolic filter guarantees factual grounding, while a sub‑symbolic ranker supplies graded relevance.
+The **resolution** is to let each modality compensate for the other's blind spot: a symbolic filter guarantees factual grounding, while a sub‑symbolic ranker supplies graded relevance.  The hybrid architecture becomes a *guardrail*—the graph blocks impossible answers, the vectors pull the most useful ones from the allowed set.
 
 [NOTE]
-*Pause‑and‑Reflect*: Think of a scenario where a missing citation edge would cause the system to overlook a crucial paper. How could vector similarity rescue the answer?
+*Pause‑and‑Reflect*: Think of a scenario where a missing citation edge would cause the system to overlook a crucial paper.  How could vector similarity rescue the answer?
 
 ===== When Symbolic Retrieval Is Needed
 
-Exact relational facts—e.g., “What entities are related to X?” or “Is A the parent of B?”—require a structure that explicitly encodes entities and relations. Knowledge graphs provide:
+Exact relational facts—e.g., “What entities are related to X?” or “Is A the parent of B?”—require a structure that explicitly encodes entities and relations.  Knowledge graphs provide:
 
-* Nodes (entities)  
-* Edges (relations)  
-* Properties (attributes)  
+* **Nodes** (entities)  
+* **Edges** (relations)  
+* **Properties** (attributes)  
 
 *Key actions*  
 1. Identify the relevant node(s).  
 2. Follow edge types that match the query predicate.  
 3. Return the exact set of connected entities or the precise relationship.
 
+These steps are deterministic: given the same graph, the same query always yields the same answer.  That determinism is essential for auditability, legal compliance, and for any downstream reasoning that assumes a solid factual base.
+
 [NOTE]
 *Think‑Pair‑Share*: Share an example from your own work where an exact fact was non‑negotiable.
 
 ===== When Vector Retrieval Is Needed
 
-Semantic similarity queries—e.g., “Find documents about X that are most relevant to my current task”—need high‑dimensional embeddings. Vector stores excel at:
+Semantic similarity queries—e.g., “Find documents about X that are most relevant to my current task”—need high‑dimensional embeddings.  Vector stores excel at:
 
-* Graded relevance  
+* Graded relevance (scores, not just true/false)  
 * Paraphrase and synonym handling  
-* Fuzzy matching across modalities  
+* Fuzzy matching across modalities (text ↔ image ↔ code)
 
 *Key actions*  
 1. Encode the query into an embedding.  
 2. Retrieve nearest‑neighbor chunks from the vector index.  
-3. Rank results by cosine similarity (or another metric).
+3. Rank results by cosine similarity (or a learned metric).
+
+Because vectors are learned from data, they can capture nuances that no hand‑crafted ontology anticipates—such as emerging terminology or interdisciplinary connections.
 
 ===== Hybrid Retrieval in Practice
 
-Hybrid memory combines the strengths of both layers:
+A hybrid pipeline typically follows three steps:
 
 1. **Graph Filter** – restrict the candidate space according to precise structural constraints (e.g., citation edges).  
 2. **Vector Ranking** – compute similarity scores for the filtered items using their stored embeddings.  
-3. **Combine** – merge structural scores with similarity scores to produce a final ordered list.
+3. **Combine** – merge structural confidence with similarity scores to produce a final ordered list.
 
-This pipeline answers “What papers cite X and are most relevant to my project?” by first selecting citation edges (graph) and then ordering the cited papers (vector).
+*Mini‑Exercise*: Hand out the tiny graph below (nodes X, A, B, C, D; edges X→A, X→B, X→C, D→X).  You are given similarity scores between the query “reinforcement‑learning extensions of X” and each paper’s abstract: A = 0.78, B = 0.62, C = 0.85, D = 0.91.  Apply the hybrid pipeline manually: first filter by the citation edge, then rank the remaining candidates.  Which paper appears at the top?  Discuss what would happen if the edge X→C were missing.
 
 ===== Limits and Design Choices
 
-* Ontology design determines *what* the graph can represent; missing relations become blind spots.  
-* Maintaining two indexes incurs storage and update overhead.  
-* Hybrid pipelines introduce a new design decision: *when* to fall back to pure vector retrieval if the graph filter is too restrictive.
+* **Ontology design** determines *what* the graph can represent; missing relations become blind spots that may systematically exclude certain communities or research topics.  
+* Maintaining two indexes incurs storage, latency, and update overhead.  Synchronising graph edits with embedding recomputation is a non‑trivial engineering problem.  
+* Hybrid pipelines introduce a new decision point: *when* to fall back to pure vector retrieval if the graph filter is too restrictive (e.g., returns an empty set).  The fallback policy must balance factual safety against coverage.
 
 ===== Key Points (Conceptual Core)
 
@@ -83,24 +87,30 @@ This pipeline answers “What papers cite X and are most relevant to my projec
 * Pure vector queries return graded, semantic similarity results.  
 * The conflict between exactness and relevance motivates hybrid memory.  
 * Hybrid pipelines filter by structure then rank by similarity.  
-* Graph filter → vector rank → combine is the canonical flow.  
-* Ontology design is an epistemic and ethical decision.  
-* Maintaining both layers is a deliberate architectural trade‑off.
+* Graph filter → vector rank → combine is the canonical flow.  
+* Ontology design is an epistemic and ethical decision that shapes the agent’s worldview.  
+* Maintaining both layers is a deliberate architectural trade‑off.  
+* Fallback strategies mitigate missing‑edge failures but do not eliminate ontology bias.  
+* Designers must decide *when* to trust the graph versus the vector component.
 
 ==== Technical Example
 
-We illustrate a complete hybrid retrieval on a tiny citation graph (six papers). Each paper has an abstract embedding stored in a vector index.
+We illustrate a complete hybrid retrieval on a tiny citation graph (six papers).  Each paper has an abstract embedding stored in a vector index.
 
 [source,python]
 ----
+# ──────────────────────────────────────────────────────
 # 1️⃣ Load a minimal citation graph (NetworkX‑style API)
+# ──────────────────────────────────────────────────────
 graph = KG()                                   # symbolic layer
 graph.add_edge("X", "A", rel="cites")
 graph.add_edge("X", "B", rel="cites")
 graph.add_edge("X", "C", rel="cites")
 graph.add_edge("D", "X", rel="cites")          # unrelated direction
 
+# ──────────────────────────────────────────────────────
 # 2️⃣ Pre‑compute embeddings for each paper (e.g., Sentence‑Transformer)
+# ──────────────────────────────────────────────────────
 embeddings = {
     "A": embed("Abstract of paper A …"),
     "B": embed("Abstract of paper B …"),
@@ -109,12 +119,14 @@ embeddings = {
 }
 vector_store = VectorIndex(embeddings)        # sub‑symbolic layer
 
+# ──────────────────────────────────────────────────────
 # 3️⃣ Hybrid pipeline
+# ──────────────────────────────────────────────────────
 query = "Find recent work that builds on X for reinforcement learning"
 q_emb = embed(query)                           # query embedding
 
 #   a) Symbolic filter → subgraph of papers that *cite* X
-candidates = graph.filter(node="X", edge_type="cites")   # returns ["A","B","C"]
+candidates = graph.filter(node="X", edge_type="cites")   # → ["A","B","C"]
 #   b) Vector ranking of those candidates
 scores = {pid: cosine(q_emb, embeddings[pid]) for pid in candidates}
 ranked = sorted(scores.items(), key=lambda kv: kv[1], reverse=True)
@@ -124,11 +136,11 @@ final_results = [pid for pid, _ in ranked]
 
 print("Hybrid answer:", final_results)
 ----
-*Step a* guarantees that only papers with a **recorded citation** to X are considered.  
+*Step a* guarantees that only papers with a **recorded citation** to X are considered.  
 *Step b* orders those papers by how semantically close their abstracts are to the current task.  
 *Step c* merges the two signals; more sophisticated systems could weight the graph confidence separately.
 
-**What‑if scenario**: Suppose the edge “X → C” is missing from the graph. The hybrid pipeline would exclude C even if its abstract is highly relevant. A fallback strategy is to run a pure vector retrieval on the whole corpus and then *re‑inject* any high‑scoring items that lack a graph edge, thereby mitigating ontology gaps.
+**What‑if scenario**: Suppose the edge “X → C” is missing from the graph. The hybrid pipeline would exclude C even if its abstract is highly relevant.  A common fallback is to run a pure‑vector retrieval on the whole corpus, then *re‑inject* any high‑scoring items that lack a graph edge.  This mitigates ontology gaps while preserving factual grounding whenever possible.
 
 ===== Key Points (Technical Example)
 
@@ -143,50 +155,59 @@ print("Hybrid answer:", final_results)
 
 ==== Philosophical Reflection
 
-The long‑standing symbolic vs. sub‑symbolic debate is often framed as a clash between *explicit logic* and *distributed representation*. In practice, **both** are indispensable:
+The symbolic vs. sub‑symbolic debate is often cast as a binary clash between *explicit logic* and *distributed representation*.  In practice, **both are indispensable**.  Symbols give us inspectable, verifiable facts—critical for accountability, legal compliance, and for any downstream reasoning that must guarantee consistency.  Vectors give us flexibility, learning capacity, and the ability to cope with noisy, ambiguous language that no hand‑crafted ontology can anticipate.
 
-* **Symbols** give us inspectable, verifiable facts—crucial for accountability and legal compliance.  
-* **Vectors** give us flexibility, learning capacity, and the ability to handle noisy, ambiguous language.
+*Epistemic Ontology*: The knowledge graph is a curated worldview.  Deciding which entities and relations to include encodes a set of assumptions about what matters.  Public citation graphs, for example, under‑represent papers authored by women or scholars from the Global South, thereby biasing the agent’s “knowledge” toward a narrow academic elite.  When the hybrid pipeline filters first on that graph, entire research traditions can be silently excluded, no matter how semantically relevant their abstracts appear in the vector store.
 
-*Epistemic Ontology*: The knowledge graph is a curated worldview. Deciding which entities and relations to include encodes a set of assumptions about what matters. For instance, many public citation graphs under‑represent papers authored by women or scholars from the Global South, thereby biasing the agent’s “knowledge” toward a narrow academic elite.
+*Ethical Implications*: If the ontology excludes certain groups, the hybrid system will never retrieve their contributions, even if the vector similarity suggests high relevance.  Designers must therefore audit the graph, involve diverse stakeholders in its construction, and provide mechanisms for continual enrichment (e.g., community‑driven edge addition).  A fallback to pure‑vector retrieval can surface hidden work, but it does not *solve* the underlying bias; it merely offers a safety net.
 
-*Ethical Implications*: If the ontology excludes certain groups, the hybrid system will never retrieve their contributions, no matter how semantically relevant the vector similarity suggests. Designers must therefore audit the graph, involve diverse stakeholders in its construction, and provide mechanisms for continual enrichment.
-
-*Design Choice*: Hybrid memory is not a compromise but a purposeful architecture that expands an agent’s capacity. By explicitly choosing **when** to apply structure (graph) and **when** to apply similarity (vectors), developers can tailor systems to the demands of diverse tasks while remaining aware of the ethical stakes embedded in the symbolic layer.
+*Design Choice as a Moral Decision*: Choosing **when** to apply the graph filter and **when** to rely on vector similarity is not a purely technical trade‑off.  It is a moral decision about which kinds of errors are acceptable.  In safety‑critical domains (e.g., medical decision support) we may prioritize factual certainty, accepting lower coverage.  In exploratory research assistants we may lean toward coverage, allowing the vector component to surface novel ideas at the cost of occasional hallucinations.  The hybrid architecture thus becomes a lever for aligning system behavior with the values of its intended users.
 
 ===== Key Points (Philosophical Reflection)
 
-* Complementarity, not opposition, between symbols and vectors.  
+* Symbols and vectors are complementary, not opposing, tools.  
 * Symbols enable inspection, verification, and logical reasoning.  
 * Vectors enable flexibility, learning, and graded relevance.  
 * Ontology design is an epistemic and ethical decision that shapes the agent’s worldview.  
-* Hybrid memory is a deliberate design choice that leverages both strengths.  
-* Missing or biased relations in the graph can systematically marginalize groups.  
+* Missing or biased relations can systematically marginalize groups.  
+* Hybrid memory is a purposeful design that leverages both strengths.  
 * Fallback strategies mitigate but do not eliminate ontology bias.  
+* Choosing the filter‑vs‑rank balance is a moral design choice aligned with domain‑specific risk tolerance.  
 * Ongoing governance of the symbolic layer is essential for responsible AI.
 
 ==== Closing Synthesis
 
-In summary, **structure** (graph filtering) provides precise constraints, **similarity** (vector ranking) supplies relevance, and the **design choice** of hybrid memory lets agents harness both. As we move forward, we will ask: *How can the graph‑derived facts be used to construct plans and reason about actions?* The next lecture will explore **Planning with Symbolic Knowledge**, building on the hybrid retrieval foundations introduced here.
+In summary, **structure** (graph filtering) provides precise constraints, **similarity** (vector ranking) supplies relevance, and the **design choice** of hybrid memory lets agents harness both.  The three‑step flow—*graph filter → vector rank → combine*—will reappear when we move from retrieval to *planning*: the filtered facts become the nodes of a planning graph, and the similarity scores inform heuristic costs.  In the next lecture we will explore **Planning with Symbolic Knowledge**, showing how the same graph‑derived facts can be turned into actionable plans.
 
 .Figure 7.4: Hybrid memory (graph + vectors)
 [plantuml,ch07-l04,png,theme=cerulean]
 ....
 @startuml
+skinparam backgroundColor #F9F9F9
+skinparam ArrowColor #2A7FFF
+skinparam ActivityBorderColor #2A7FFF
+skinparam ActivityBackgroundColor #A9D0F5
+
 start
 :User Query;
-if (Mode?) then (graph‑only)
+:Select Retrieval Mode;
+if (graph‑only?) then (yes)
   :Graph Filter;
   :Return Structured Results;
-elseif (vector‑only)
+elseif (vector‑only?) then (yes)
   :Vector Retrieval;
   :Return Similar Chunks;
 else (hybrid)
   :Graph Filter;
-  note right: produces subgraph S
-  :Vector Ranking;
-  note right: uses query embedding + embeddings of S
-  :Combine Results;
+  if (candidates empty?) then (yes)
+    note right: Fallback to pure‑vector\nwhen the graph is too restrictive
+    :Vector Retrieval (fallback);
+    :Return Vector‑Only Results;
+  else (no)
+    :Vector Ranking;
+    :Weight Scores &\nCombine Results;
+    :Return Hybrid Results;
+  endif
 endif
 stop
 @enduml
@@ -206,7 +227,7 @@ stop
 
 *Lab 3 – Adding a Symbolic Layer*  
 
-In this lab you will integrate the Chapter 1 knowledge graph with the existing memory system. The tasks are:
+In this lab you will integrate the Chapter 1 knowledge graph with the existing memory system.  The tasks are:
 
 1. **Graph Integration** – Load a small citation KG (or construct one) and expose a `graph.filter(node, edge_type)` API.  
 2. **Embedding Store** – Compute and store embeddings for each node’s textual description in a vector index.  

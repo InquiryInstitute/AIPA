@@ -1,13 +1,250 @@
-python
+=== 5. Comparing Paired Classifiers with McNemar’s Test
+
+[.epigraph]
+____
+“Two doctors examine the same set of patients. One says *cancer* in 12 cases, the other in 15. Are the extra 3 diagnoses real, or just a statistical fluke?” – *Anonymous*
+____
+
+==== Hook
+
+Imagine you are leading a team that must choose between two diagnostic AI models for a life‑critical disease. Both models have been evaluated on a hold‑out set of 1 000 patients and report almost identical overall accuracies: Model A = 86.2 % and Model B = 86.9 %. The difference is small, yet the cost of a false negative is enormous. How can you decide whether Model B truly outperforms Model A, or whether the observed advantage is merely the result of random variation in the cases where the models disagree?
+
+The tension lies in the fact that overall accuracy masks *where* the models make mistakes. If the two models err on the same patients, the small accuracy gap is irrelevant; if they err on different patients, the pattern of disagreement matters. This scenario raises a concrete question that will guide our lecture:
+
+*When two classifiers are evaluated on the same instances, how can we test whether their error patterns differ in a statistically meaningful way?*
+
+The answer is the **McNemar test**, a non‑parametric test designed for paired binary outcomes. Over the next 90 minutes we will unpack the intuition behind the test, construct the contingency table that captures the disagreement, derive the chi‑square statistic, and finally see a clean Python implementation that can be dropped into any model‑evaluation pipeline.
+
+*Key points raised in the hook*  
+
+* Real‑world decision problem: choosing between two competing AI models.  
+* Identical overall accuracies do not guarantee identical performance on individual cases.  
+* Need for a statistical test that respects the pairing of predictions.  
+
+==== Conceptual Core
+
+The McNemar test originates from the analysis of *matched pairs*—situations where each observation contributes two correlated binary outcomes. In our setting the pair consists of the predictions of Model A and Model B on the *same* test instance. The test asks whether the probability of Model A being correct while Model B is wrong equals the probability of the opposite event. Formally, the null hypothesis is  
+
+\[
+H_0:\;P(\text{A correct, B wrong}) = P(\text{B correct, A wrong}).
+\]
+
+To answer this, we first arrange the paired outcomes into a 2 × 2 *contingency table* (also called a *McNemar table*):
+
+[plantuml, format=svg, title="McNemar contingency table"]
+----
+skinparam monochrome true
+skinparam backgroundColor transparent
+skinparam shadowing false
+
+class Table {
+  +-------------------+
+  |          | B correct |
+  |          |-----------|
+  |          |   Yes | No|
+  +----------+-------+---+
+  | A correct|  a    | b |
+  +----------+-------+---+
+  | A wrong  |  c    | d |
+  +----------+-------+---+
+}
+@enduml
+----
+
+* `a` – both models correct.  
+* `b` – Model A correct, Model B wrong (discordant).  
+* `c` – Model B correct, Model A wrong (discordant).  
+* `d` – both models wrong.
+
+Only the *discordant* cells (`b` and `c`) contain information about a systematic difference; the concordant cells (`a` and `d`) cancel out under the null hypothesis. The McNemar statistic therefore focuses on the imbalance between `b` and `c`:
+
+\[
+\chi^2 = \frac{(b - c)^2}{b + c}.
+\]
+
+When the sample size of discordant pairs (`b + c`) is small (typically < 25), the chi‑square approximation can be poor, and an *exact binomial* version of the test is preferred. For larger samples we often apply a *continuity correction* (Yates’ correction) to reduce the bias of the chi‑square approximation:
+
+\[
+\chi^2_{\text{corr}} = \frac{(|b - c| - 1)^2}{b + c}.
+\]
+
+The resulting statistic follows a chi‑square distribution with one degree of freedom under \(H_0\). A p‑value smaller than a pre‑chosen significance level (e.g., 0.05) leads us to reject the null hypothesis and conclude that the two models differ in their error patterns.
+
+*Assumptions and scope*  
+
+* Each test instance yields a *paired* binary outcome (correct/incorrect) for both models.  
+* The pairs are independent of each other (no temporal or spatial autocorrelation).  
+* The test is appropriate for *binary* outcomes; extensions exist for multi‑class settings but require different formulations.  
+
+*When to use McNemar versus alternatives*  
+
+[plantuml, format=svg, title="Decision flowchart for paired performance tests"]
+----
+skinparam backgroundColor transparent
+skinparam monochrome true
+skinparam shadowing false
+
+start
+:Are predictions binary (correct/incorrect)?;
+if (Yes) then (yes)
+  :Do you have paired predictions on the same instances?;
+  if (Yes) then (yes)
+    :Use McNemar test (exact or chi‑square);
+  else (no)
+    :Use independent‑samples test (e.g., chi‑square, Fisher);
+  endif
+else (no)
+  :Consider Cochran’s Q test (multiple classifiers) or
+  :Use bootstrap / permutation methods;
+endif
+stop
+@enduml
+----
+
+*Key points of the conceptual core*  
+
+* Paired binary outcomes → 2 × 2 contingency table.  
+* Null hypothesis: equal probability of discordant outcomes (`b` = `c`).  
+* Test statistic \((b-c)^2/(b+c)\) (with optional continuity correction).  
+* Large‑sample chi‑square approximation vs. exact binomial for small `b+c`.  
+* Assumptions: independence of pairs, binary outcomes, matched samples.  
+* Decision flowchart clarifies when McNemar is the appropriate tool.  
+
+==== Technical Example
+
+Let us work through a concrete, tiny dataset so that every step can be verified by hand. Suppose we have 20 patients and the predictions of two models are recorded as follows (C = correct, W = wrong):
+
+[options="header"]
+|=== 
+|Patient | Model A | Model B
+|1 | C | C
+|2 | C | W
+|3 | W | C
+|4 | C | C
+|5 | W | W
+|6 | C | C
+|7 | C | W
+|8 | W | C
+|9 | C | C
+|10| W | W
+|11| C | C
+|12| C | W
+|13| W | C
+|14| C | C
+|15| W | W
+|16| C | C
+|17| C | W
+|18| W | C
+|19| C | C
+|20| W | W
+|===
+
+From this table we tally the four cells:
+
+* `a` (both correct): patients 1,4,6,9,11,14,16,19 → **8**  
+* `b` (A correct, B wrong): patients 2,7,12,17 → **4**  
+* `c` (B correct, A wrong): patients 3,8,13,18 → **4**  
+* `d` (both wrong): patients 5,10,15,20 → **4**
+
+Notice that `b` and `c` are equal, suggesting no systematic advantage. The McNemar chi‑square statistic without continuity correction is
+
+\[
+\chi^2 = \frac{(4-4)^2}{4+4} = 0.
+\]
+
+With Yates’ continuity correction:
+
+\[
+\chi^2_{\text{corr}} = \frac{(|4-4|-1)^2}{4+4} = \frac{1}{8}=0.125.
+\]
+
+Both values are far below the critical value of 3.84 (χ²₁,0.05), yielding a p‑value > 0.5. Hence we fail to reject \(H_0\); the two models are statistically indistinguishable on this tiny sample.
+
+Now let us see how the same calculation is performed in Python using *statsmodels*:
+
+```python
 from statsmodels.stats.contingency_tables import mcnemar
 
-# b = # cases where A correct, B wrong
-# c = # cases where B correct, A wrong
-result = mcnemar([[0, b],
-                  [c, 0]], exact=False, correction=True)
+# Discordant counts from the table above
+b = 4   # A correct, B wrong
+c = 4   # B correct, A wrong
 
-print(f"McNemar chi2={result.statistic:.2f}, p={result.pvalue:.3f}")
+# Build the 2×2 table.  The diagonal entries (a, d) are irrelevant for McNemar,
+# so we set them to zero to emphasise that only discordant cells matter.
+table = [[0, b],
+         [c, 0]]
+
+# exact=False uses the chi‑square approximation;
+# correction=True applies Yates’ continuity correction.
+result = mcnemar(table, exact=False, correction=True)
+
+print(f"McNemar χ²={result.statistic:.3f}, p={result.pvalue:.3f}")
 if result.pvalue < 0.05:
     print("Significant difference between models")
 else:
     print("No significant difference")
+```
+
+**Explanation of the code arguments**
+
+* `table` – a list‑of‑lists representing the contingency matrix. The top‑right cell is `b`, the bottom‑left cell is `c`.  
+* `exact=False` – tells *statsmodels* to use the chi‑square approximation (appropriate here because `b + c = 8` > 25 is not met, but we still illustrate the default path).  
+* `correction=True` – activates Yates’ continuity correction, matching the manual computation above.  
+* `result.statistic` – the computed χ² value (0.125 in our example).  
+* `result.pvalue` – the associated p‑value (≈ 0.724).  
+
+If you prefer the exact binomial test for very small discordant counts, set `exact=True` and omit the correction flag:
+
+```python
+result_exact = mcnemar(table, exact=True, correction=False)
+```
+
+*Key points of the technical example*  
+
+* Manual construction of the contingency table from paired predictions.  
+* Hand calculation of χ² with and without continuity correction.  
+* Python implementation mirrors the formula: only `b` and `c` matter.  
+* `exact=False` → chi‑square; `exact=True` → binomial exact test.  
+* Interpretation of the p‑value in the context of model selection.  
+
+==== Philosophical Reflection
+
+Statistical significance is often mistaken for practical importance. In our example the p‑value of 0.72 tells us that, given the observed data, there is no evidence that one model consistently outperforms the other *in terms of error direction*. Yet the raw accuracy difference of 0.7 % might still be meaningful in a high‑stakes domain if it translates to, say, one additional life saved per 1 000 patients. Conversely, a statistically significant result on a massive dataset could be driven by a trivial effect size that has no operational impact.
+
+Another subtlety concerns *sample size*. The McNemar test’s power grows with the number of discordant pairs (`b + c`). With few disagreements, even large absolute differences between `b` and `c` may fail to achieve significance. Researchers sometimes inflate the test set to obtain more discordant cases, but this can introduce *selection bias* if the added instances are not representative of the deployment environment.
+
+Finally, the ethical dimension: declaring a model “better” based solely on a p‑value can influence regulatory approval, insurance reimbursement, and patient trust. Responsible AI practice demands that statistical evidence be coupled with domain expertise, cost‑benefit analysis, and transparent reporting of uncertainty. The McNemar test is a tool—not a verdict.
+
+*Key philosophical points*  
+
+* Distinguish statistical significance from practical/clinical significance.  
+* Recognise the influence of discordant‑pair count on test power.  
+* Beware of over‑reliance on p‑values; supplement with effect‑size measures (e.g., odds ratio).  
+* Ethical responsibility: model superiority claims affect real‑world outcomes.  
+* Transparency: report the full contingency table, not just the p‑value.  
+
+==== Discussion Prompts
+
+* How would you adapt the McNemar test for multi‑class classification problems?  
+* In what situations might a bootstrap confidence interval be preferable to a McNemar p‑value?  
+* Suppose `b` = 30 and `c` = 5 on a large test set. What does the odds ratio tell you beyond the p‑value?  
+* How could you integrate the McNemar test into an automated model‑selection pipeline that evaluates dozens of candidate models?  
+* Discuss the trade‑offs between using the exact binomial version versus the chi‑square approximation when `b + c` is moderate (e.g., 20–30).  
+
+==== Lab Preparation
+
+In the upcoming lab you will:
+
+* Load the *UCI Breast Cancer Wisconsin* dataset and split it into training and test sets.  
+* Train two distinct classifiers (e.g., a logistic regression and a random forest) using identical training data.  
+* Generate binary predictions on the shared test set and compute the full 2 × 2 contingency table.  
+* Implement the McNemar test both manually (hand‑calculated χ²) and with `statsmodels.mcnemar`.  
+* Interpret the results in the context of model deployment: decide whether to adopt the higher‑accuracy model, keep both, or collect more data.  
+
+*Lab key points*  
+
+* Dataset preparation and paired prediction generation.  
+* Construction of the contingency table (`a`, `b`, `c`, `d`).  
+* Manual vs. library implementation of McNemar.  
+* Decision‑making based on statistical and practical considerations.  
+* Extension: explore exact vs. approximate test outcomes.

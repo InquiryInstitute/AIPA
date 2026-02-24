@@ -78,7 +78,7 @@ The denominator is the **evidence probability** `P(W=true)`, ensuring that the p
 *Key Points*  
 
 * Normalisation guarantees a valid probability distribution.  
-* The evidence probability can be interpreted as the model’s prediction of how often the observed test result occurs.  
+* The evidence probability tells us how likely a positive test is overall, given disease prevalence and symptom distribution.  
 * Bayes’ rule is the mathematical embodiment of “learning from data”.
 
 *Paragraph 5 – Computational Perspective*  
@@ -119,12 +119,17 @@ skinparam node {
 node "R\nDisease\n{0,1}" as R <<Disease>>
 node "S\nSymptom\n{0,1}" as S <<Symptom>>
 node "W\nTest\n{0,1}" as W <<Test>>
-R --> S : influences
-R --> W : influences
-S --> W : influences
+R --> S : P(S|R)
+R --> W : P(W|R,‑)
+S --> W : P(W|S,‑)
+legend right
+  |#FFCCCC| Disease
+  |#CCFFCC| Symptom
+  |#CCCCFF| Test
+endlegend
 @enduml
 ....
-*Diagram 1:* Bayesian network for the medical diagnosis problem. Nodes are coloured by semantic role; arrows encode conditional dependencies that justify the factorisation (1).
+*Diagram 1:* Bayesian network for the medical diagnosis problem. Nodes are coloured by semantic role; arrows are annotated with the conditional probabilities that justify the factorisation (1).
 
 ==== Technical Example: Numerical Belief Updating
 
@@ -147,16 +152,16 @@ P(W|R,S) = {
 }
 ```  
 
-These numbers encode the intuition that the disease strongly raises both symptom and test positivity, while the test is still imperfect.  
+These numbers encode the intuition that the disease strongly raises both symptom and test positivity, while the test remains imperfect.  
 
 *Key Points*  
 
 * CPTs are the concrete instantiation of `f₁`, `f₂`, `f₃`.  
-* Probabilities must sum to one within each conditional distribution.  
-* Real‑world data often comes from epidemiological studies or expert elicitation.
+* Each conditional distribution must sum to one.  
+* Real‑world CPTs often come from epidemiological studies or expert elicitation.
 
 *Paragraph 2 – Evidence Restriction (W = true)*  
-We observe `W = true`. To apply evidence restriction we keep only the entries of `P(W|R,S)` where `W=true`. The restricted joint distribution becomes:
+We observe `W = true`. Evidence restriction means we keep only the entries of `P(W|R,S)` where `W=true`. The restricted joint distribution becomes:
 
 ```
 P(R,S,W=true) = P(R)·P(S|R)·P(W=true|R,S)
@@ -175,7 +180,7 @@ Computing each term:
 
 * Multiplication follows the factorised joint (1).  
 * The table now contains only rows compatible with the observed test result.  
-* The raw numbers are *unnormalised* posterior contributions.
+* The raw numbers are *unnormalised* contributions to the posterior.
 
 *Paragraph 3 – Marginalisation over S*  
 Sum over the hidden symptom `S` to obtain `P(R,W=true)`:
@@ -211,7 +216,7 @@ Thus, despite the low prior prevalence (2 %), a positive test raises the clini
 ....
 @startuml
 skinparam backgroundColor #F9F9F9
-title Evidence Restriction and Marginalisation
+title Evidence Restriction → Marginalisation → Normalisation
 !define RECTANGLE class
 RECTANGLE Joint {
   +R  S  W
@@ -222,40 +227,46 @@ RECTANGLE Restricted {
 RECTANGLE Marginalised {
   +R  W=true
 }
-Joint --> Restricted : evidence W=true
-Restricted --> Marginalised : sum over S
+RECTANGLE Posterior {
+  +R | W=true (normalised)
+}
+Joint --> Restricted : restrict to W=true
+Restricted --> Marginalised : Σ over S
+Marginalised --> Posterior : normalise
 @enduml
 ....
-*Diagram 2:* Flow of inference from the full joint distribution to the posterior after observing `W=true`. The shaded region (not shown) corresponds to rows retained after evidence restriction.
+*Diagram 2:* Flow of inference from the full joint distribution to the posterior after observing `W=true`. The coloured arrows highlight the three algebraic steps introduced in the Conceptual Core.
 
 ==== Philosophical Reflection: Limits and Possibilities of Bayesian Inference
 
-*Paragraph 1 – Model Misspecification*  
-Bayesian updating presumes that the conditional probabilities encoded in `f₂` and `f₃` faithfully represent the true generative process. In practice, CPTs are estimated from limited data, elicited from experts, or even guessed. If the model structure (the directed edges) is wrong—say, we omitted a hidden confounder that influences both `S` and `W`—the posterior can be systematically biased. This raises a philosophical question: **When does a mathematically correct update become epistemically unreliable?**  
+*Paragraph 1 – When a Correct Update Becomes Misleading*  
+Imagine that, unbeknownst to us, a third factor **M** – a medication the patient is taking – reduces the likelihood of a positive test while also alleviating the symptom. If we omit **M** from the network, the CPT `P(W|R,S)` will be systematically biased: the test will appear more indicative of disease than it truly is. Running the exact update we just performed would then produce a posterior that *over‑estimates* the chance of infection, potentially leading Dr. Lena to prescribe unnecessary antibiotics. This illustrates the philosophical tension: **mathematical correctness does not guarantee epistemic reliability** when the model’s structure misrepresents the world.  
 
 *Key Points*  
 
-* The quality of inference hinges on model adequacy, not just on computational correctness.  
-* Hidden variables and causal mis‑specification can produce misleading posteriors.  
-* Critical assessment of model assumptions is a core skill for AI practitioners.
+* Model adequacy, not just algorithmic precision, determines the quality of inference.  
+* Hidden confounders can invert the direction of evidence, turning a benign test into a misleading signal.  
+* Critical model validation is a core responsibility of any AI practitioner.
 
-*Paragraph 2 – Computational Tractability vs. Exactness*  
-Exact inference, as demonstrated, quickly becomes infeasible for networks with dozens of variables. Approximate algorithms sacrifice guarantees of convergence or accuracy, introducing stochastic error. Yet many AI systems (e.g., autonomous vehicles, medical decision support) must operate under strict time constraints. The tension between **the ideal of rational belief updating** and **the practical limits of computation** mirrors broader debates in the philosophy of artificial intelligence about bounded rationality.  
+*Paragraph 2 – Bounded Rationality and Approximation*  
+Exact inference, as we have demonstrated, quickly becomes infeasible for networks with dozens of variables. Real‑time systems—autonomous vehicles, emergency triage tools, or financial trading bots—must deliver decisions within milliseconds. They therefore rely on approximate methods such as loopy belief propagation or Monte Carlo sampling, which sacrifice guarantees of convergence or exactness for speed. This trade‑off embodies the philosophical notion of **bounded rationality**: agents make the best possible decision given limited computational resources. The stochastic error introduced by approximation becomes a new source of epistemic uncertainty that must be acknowledged alongside the usual statistical uncertainty.  
 
 *Key Points*  
 
 * Bounded rationality acknowledges that agents cannot compute exact posteriors in real time.  
-* Approximation introduces a new source of epistemic uncertainty.  
-* Understanding the exact case provides a benchmark for evaluating approximations.
+* Approximation introduces additional uncertainty that should be quantified (e.g., confidence intervals).  
+* Understanding the exact case provides a benchmark for evaluating the quality of approximations.
 
-*Paragraph 3 – Ethical Implications of Probabilistic Decisions*  
-When posteriors drive high‑stakes actions—administering a drug, granting a loan, or flagging content as harmful—the probabilistic nature of the decision must be transparent. Stakeholders should know not only the posterior value but also the underlying assumptions, data quality, and confidence intervals. This aligns with emerging AI ethics frameworks that demand *explainability* and *accountability* for algorithmic decisions.  
+*Paragraph 3 – Ethical Stakes of Probabilistic Decisions*  
+When posterior probabilities drive high‑stakes actions—administering a drug, granting a loan, or flagging harmful content—the probabilistic nature of the decision must be transparent to stakeholders. A patient should hear not only “your test is positive with a 20 % chance of disease” but also why that number arises: the prior prevalence, the test’s sensitivity, and the assumptions about symptom‑test interactions. This aligns with emerging AI ethics frameworks that demand *explainability* and *accountability*. Moreover, designers must decide where to place the decision threshold (e.g., treat if posterior > 0.5) and be prepared to justify that choice in terms of risk tolerance, societal values, and possible harms of false positives or false negatives.  
 
 *Key Points*  
 
-* Probabilistic reasoning is not value‑neutral; it encodes assumptions about risk.  
-* Transparency about the inference process supports ethical AI deployment.  
-* Philosophical reflection helps bridge technical work with societal impact.
+* Probabilistic reasoning encodes value judgments about risk and benefit.  
+* Transparency about the inference pipeline supports ethical AI deployment.  
+* Philosophical reflection bridges technical work with societal impact.
+
+Having examined the limits of perfect Bayesian updating, we now turn to implementing the same reasoning in code, where the same philosophical concerns—model misspecification, computational constraints, and ethical transparency—must be kept in mind.
 
 ==== Discussion Prompts
 
@@ -268,19 +279,15 @@ When posteriors drive high‑stakes actions—administering a drug, granting a l
 
 ==== Lab Preparation: Implementing Belief Updating
 
-In the upcoming lab you will implement the belief‑updating pipeline in Python (or your language of choice). The assignment consists of three parts:
-
-1. **Model Specification** – Encode the CPTs for `R`, `S`, and `W` as dictionaries or NumPy arrays. Verify that each conditional distribution sums to one.  
-2. **Inference Engine** – Write functions that (a) restrict the joint distribution given arbitrary evidence, (b) marginalise over a user‑specified set of hidden variables, and (c) normalise to obtain a posterior. Test your engine on the medical example presented above.  
-3. **Experimentation** – Vary the prior prevalence, test sensitivity, and symptom likelihoods. Record how the posterior `P(R|evidence)` responds. Produce a short report that includes a plot of posterior probability versus test sensitivity, and discuss any non‑intuitive behaviours you observe.
+In the upcoming lab you will translate the three‑step belief‑updating pipeline into executable code and explore its behaviour under different assumptions.
 
 *Key Points for the Lab*  
 
-* Use vectorised operations to avoid explicit loops where possible.  
-* Validate each step against hand‑computed values (the numbers in the Technical Example).  
-* Explore both exact inference (full enumeration) and an approximate method such as Gibbs sampling.  
-* Document assumptions and limitations of your implementation.  
-* Reflect on how the computational choices you made affect interpretability and runtime.
+1. **Model Specification** – Encode the CPTs for `R`, `S`, and `W` as dictionaries, NumPy arrays, or tensors. Verify that each conditional distribution sums to one.  
+2. **Inference Engine** – Implement three functions: (a) *restrict* the joint distribution given arbitrary evidence, (b) *marginalise* over a user‑specified set of hidden variables, and (c) *normalise* to obtain a posterior. Test your engine on the medical example presented above.  
+3. **Experimentation** – Systematically vary the prior prevalence, test sensitivity, and symptom likelihoods. Record how the posterior `P(R|evidence)` responds. Produce a plot of posterior probability versus test sensitivity and write a brief analysis of any non‑intuitive patterns you discover.  
+4. **Approximation Exploration** – Extend your engine with an approximate method (e.g., Gibbs sampling or loopy belief propagation) and compare its results to the exact enumeration.  
+5. **Documentation** – Include a short README that lists all assumptions, explains the data sources for the CPTs, and discusses the runtime and memory characteristics of both exact and approximate inference.
 
 <<<Pearl1988>>>, <<KollerFriedman2009>>>
 

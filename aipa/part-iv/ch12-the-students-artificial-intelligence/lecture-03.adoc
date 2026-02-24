@@ -7,86 +7,225 @@
 
 *Adapt the agent for the specific problem.*
 
-==== Example Prompts
+==== Hook: A Situation That Demands More Than a Generic Bot
 
-* "Customize the agent for our domain." — _Add domain tools; adjust prompts_
-* "Configure the workflows." — _Implementation: assemble, extend_
-* "Add tools specific to our use case." — _Capstone customization_
+Imagine a regional hospital that has just installed a conversational triage assistant. The base student‑AI agent can understand natural language, retrieve documents from a generic knowledge store, and call a handful of pre‑wired tools such as a web search and a simple calculator. On its first night shift, a nurse asks the bot, “Does Mr. Liu need an immediate CT scan for his suspected stroke?” The generic agent replies with a polite definition of a CT scan and a link to a Wikipedia article—useful for a layperson, but useless for a clinician who needs the patient’s latest lab values, the hospital’s imaging protocol, and a decision‑support rule that flags contraindications. The conversation stalls, the nurse escalates to a human, and the promise of AI‑augmented triage collapses.
+
+The tension is clear: a *generic* language model is a powerful substrate, but without *domain‑specific prompts, tools, and data* it cannot act as a competent specialist. In this lecture we will answer the question, **“How do we transform a generic student‑AI agent into a situated, problem‑solving artifact?”** The answer unfolds through three intertwined layers—prompt engineering, tool integration, and knowledge injection—each of which we will design, implement, and evaluate.
+
+==== Example Prompts (A Mini‑Demo)
+
+When a user types a high‑level customization request, the system should immediately surface a concrete checklist that guides the next steps. For example:
+
+```
+User: Customize the agent for our emergency‑medicine triage workflow.
+System: ✅ Prompt layer – define system prompt & few‑shot examples.
+        ✅ Tool layer – register LabResultsAPI, ImagingProtocolAPI, RiskScoreCalculator.
+        ✅ Data layer – index latest clinical guidelines and patient encounter cache.
+        ✅ Integration – verify rate limits, latency budgets, and audit logging.
+        ✅ Test – run unit, integration, and clinician‑acceptance scenarios.
+```
+
+This short vignette illustrates that *customization* is not a single button press but a series of deliberate actions that map directly onto the three layers we will explore.
 
 ==== Conceptual Core
 
-The student-ai/ agent is generic—it has the tools and structure from the course. The capstone makes it specific. Customization points: prompts (system prompt, few-shot examples), tools (add domain-specific tools or data), workflows (orchestrator routing, when to call which tool). Add domain-specific tools: e.g., an API for your industry, a database connector, a custom search index. Add domain data: index relevant documents in the memory store, configure the knowledge graph. The generic agent becomes situated.
+The student‑AI agent delivered in the first half of the course is deliberately *generic*: it ships with a core LLM, a minimal orchestrator, and three built‑in tool interfaces (web search, calculator, and a simple document retriever). This genericity is a strength because it lets every cohort start from the same baseline, but it also means that the agent knows nothing about the particular regulatory constraints, data formats, or decision‑making heuristics of any real‑world domain.
 
-Integration with existing systems: the agent may need to call APIs, query databases, or interact with legacy systems. The agent lives in context—it is not standalone. Testing: unit tests (components work in isolation), integration tests (end-to-end flow), user acceptance tests (does it solve the problem?). The agent in context: general vs. situated. The course agent is general; the capstone agent is situated—designed for a specific problem, users, and environment. Customization as design: we do not just configure—we design the agent for its situation.
+**Customization** therefore becomes the design activity that situates the agent. We distinguish three orthogonal knobs:
+
+1. **Prompt Layer** – The system prompt defines the agent’s role, tone, and high‑level policy; few‑shot examples illustrate the patterns of interaction that are expected in the target domain. For the hospital triage bot, a system prompt might read, “You are a certified emergency‑medicine assistant. You must always verify the patient’s latest vitals before recommending imaging.” Few‑shot examples would then show a dialogue where the bot asks for lab results, interprets them, and decides whether a CT is indicated.
+
+2. **Tool Layer** – Domain‑specific APIs or wrappers extend the agent’s action space. In the triage scenario we might add a `LabResultsAPI` that returns the most recent blood‑gas values, an `ImagingProtocolAPI` that encodes hospital‑specific ordering rules, and a `RiskScoreCalculator` that implements the NIH Stroke Scale. Each tool is registered with the orchestrator via a small descriptor that specifies its name, input schema, and cost model.
+
+3. **Data Layer** – Knowledge that the agent can retrieve on‑demand must be indexed in a memory store or knowledge graph. For a medical deployment this includes a curated set of clinical guidelines, a local drug‑interaction database, and a cache of recent patient encounters. The data layer is the only part that persists across sessions and can be refreshed without redeploying the model.
+
+These three layers are not merely configuration steps; they are *design decisions* that shape the agent’s affordances and constraints. The process of customization therefore mirrors the classic engineering workflow: **requirements → analysis → specification → implementation → validation**. The agent lives inside an ecosystem of APIs, security firewalls, and cost‑governance policies, so integration concerns must be addressed early. Rate limits, latency budgets, and data‑privacy regulations dictate which tools can be called synchronously and which must be batched or cached.
+
+> **Think‑Pair‑Share (2 min):** Choose a domain you are familiar with (e.g., finance, education, logistics). Sketch a quick “customization map” that lists one prompt tweak, one tool you would need, and one data source you would index. Share with your neighbor and note any overlaps.
+
+Testing follows the same layered logic. **Unit tests** verify that each tool wrapper conforms to its schema and returns plausible mock data. **Integration tests** stitch the orchestrator, prompts, and tools together to simulate end‑to‑end conversations. **User‑acceptance tests** involve domain experts (e.g., clinicians) who run realistic scenarios and judge whether the agent’s recommendations are safe, accurate, and aligned with workflow. By iterating through these tests we move the agent from a *general* artifact to a *situated* one that respects the nuances of its operational context.
+
+Finally, we must adopt a **design‑as‑customization mindset**: rather than treating the agent as a black box to be toggled on or off, we view each knob as a lever that can be refined, replaced, or removed as the problem domain evolves. This mindset prepares students for the inevitable need to revisit prompts, swap tools, or re‑index data when the deployment environment changes.
 
 ===== Key Points
 
-* Customize: prompts, tools, workflows
-* Domain tools, domain data
-* Integrate: APIs, databases
-* Testing: unit, integration, UAT
-* General → situated
-* Customization = design
-* Agent lives in context
+* Prompt layer: system prompt + few‑shot examples  
+* Tool layer: register domain‑specific APIs, wrappers, cost models  
+* Data layer: index guidelines, patient records, knowledge graph  
+* Integration constraints: rate limits, latency, security, cost  
+* Testing hierarchy: unit → integration → user‑acceptance  
+* General → situated artifact through design decisions  
+* Customization is an iterative design process, not a one‑off configuration  
 
-==== Technical Example
+==== Technical Example (Legal‑Document Summarizer)
 
-Extend the agent for the capstone problem. Identify gaps: does the problem require a tool the course does not provide? Add it. Configure prompts: system prompt for the domain, few-shot examples for common patterns. Configure orchestrator routing: when should the agent call memory vs. search vs. a custom tool? Test end-to-end: run a representative task. Does the agent complete it? What fails? Iterate. Lab 2: Implement the agent for the capstone. Add custom tools if needed. Configure prompts. Test end-to-end. The agent must complete a representative task. See Lab 2 for requirements.
+To show that the same customization workflow applies across domains, let’s walk through a corporate‑compliance use‑case: **a legal‑document summarizer for a compliance team**. The generic agent can read text and produce summaries, but the team needs summaries that flag regulatory clauses, reference internal policy IDs, and respect document confidentiality.
+
+**1. Gap Analysis** – The team lists required capabilities: (a) a `ClauseClassifier` that tags sections as “Data‑Privacy”, “Financial‑Reporting”, or “Intellectual‑Property”; (b) a `PolicyLookup` service that maps clause tags to internal policy documents; (c) a `RedactionTool` that removes personally identifiable information before any output is shown. The generic agent lacks (a) and (c), and its knowledge base does not contain the firm’s policy IDs.
+
+**2. Adding Custom Tools, Prompt, and Routing** –  
+*Tool implementation* – A thin Python wrapper around the firm’s existing clause‑classification micro‑service:
+
+```python
+# file: tools/clause_classifier.py
+from student_ai.orchestrator import ToolBase
+import requests
+
+class ClauseClassifier(ToolBase):
+    name = "clause_classifier"
+    description = "Classifies legal clauses into regulatory categories."
+
+    def run(self, text: str) -> dict:
+        resp = requests.post(
+            "https://api.corp.com/classify",
+            json={"document": text},
+            timeout=5,
+        )
+        resp.raise_for_status()
+        return resp.json()   # {"sections": [{"id":1,"tag":"Data-Privacy"}, …]}
+```
+
+*Registration* – The wrapper is declared in `routes.yaml`:
+
+```yaml
+tools:
+  - module: tools.clause_classifier.ClauseClassifier
+    enabled: true
+    cost: 0.02   # USD per 1 000 tokens
+```
+
+*Prompt engineering* – The system prompt now frames the agent as a “Compliance‑aware summarizer” and explicitly instructs it to invoke the `clause_classifier` before drafting a summary:
+
+```
+You are an AI assistant that summarizes corporate legal documents.
+First, call the tool `clause_classifier` on the full text.
+Then, for each identified clause, retrieve the corresponding internal policy
+using the `policy_lookup` tool. Finally, produce a concise summary that
+highlights any compliance risks and references the policy IDs.
+```
+
+A few‑shot example demonstrates the desired flow:
+
+```
+User: Summarize the attached NDA.
+Assistant: (calls clause_classifier) → receives tags...
+Assistant: (calls policy_lookup) → retrieves policy 42...
+Assistant: Summary: The NDA contains a data‑privacy clause (Policy 42) …
+```
+
+*Routing* – The orchestrator’s routing table encodes the workflow:
+
+```yaml
+routes:
+  - trigger: "^summarize"
+    steps:
+      - tool: clause_classifier
+      - tool: policy_lookup
+      - tool: redaction_tool
+      - output: final_summary
+```
+
+**3. End‑to‑End Test and Iteration** – A representative task is scripted:
+
+```bash
+python run_task.py --task "summarize" --file contracts/nda_v3.pdf
+```
+
+The test asserts that (a) every clause receives a tag, (b) the correct policy IDs appear in the output, and (c) no raw PII is present. Failures are logged, the prompt is tweaked, and the tool wrappers are refined until the suite passes. This hands‑on loop shows how a handful of targeted customizations—one new tool, a revised system prompt, and a routing rule—can transform a generic language model into a domain‑expert system that satisfies real business requirements.
 
 ===== Key Points
 
-* Extend agent
-* Custom tool if needed
-* Configure prompts, routing
-* Lab 2: Implement, test
-* Representative task
+* Conduct a gap analysis to identify missing capabilities  
+* Implement and register a custom tool (`ClauseClassifier`)  
+* Engineer a system prompt that orchestrates tool calls  
+* Define routing rules that encode the workflow sequence  
+* Write an end‑to‑end test that validates the representative task  
+* Iterate on prompts, tool wrappers, and routing until the test passes  
 
 ==== Philosophical Reflection
 
-General vs. situated: the generic agent becomes specific through deployment. The course gives you a framework; the capstone gives you a problem. The work of customization is the work of design. We do not just set parameters—we make choices about what the agent should do, how it should behave, what tools it needs. The agent is a situated artifact—it exists in a context, for a purpose. Customization is design: we design for the situation.
+The transition from a *generic* to a *situated* agent is more than a technical checklist; it is an act of **designing an artifact into a social context**. Latour’s actor‑network theory reminds us that every tool we attach to the agent becomes part of a network of actors—human users, legacy databases, regulatory bodies, and even the cost‑governance policies that limit API calls. By choosing which tools to embed, we implicitly decide whose knowledge counts and whose constraints are respected.
 
-The agent in context: the agent does not exist in isolation. It connects to APIs, databases, users. It has constraints—rate limits, latency, cost. The capstone agent is embedded. Understanding that embedding is part of the work. The agent that works in the lab may fail in the field—different data, different users, different expectations. Customization and testing bridge that gap.
+Customization therefore carries **ethical responsibility**. When we inject proprietary policy documents or patient data into the agent’s knowledge layer, we inherit obligations for privacy, provenance, and bias mitigation. As Dr. Maya Patel, a hospital chief medical officer, warned after a pilot failure, “We trusted the bot’s recommendation because it sounded authoritative, but we never verified that the underlying lab values were up‑to‑date—privacy and safety slipped through the cracks.” Designers must therefore document the rationale behind each prompt, tool, and data source, and establish governance mechanisms (audit logs, versioning, consent records) that make the artifact accountable.
+
+Finally, a situated agent is a **living artifact**. APIs evolve, regulations change, and user practices shift, causing inevitable drift. Recognizing this, we must adopt continuous stewardship: monitor performance metrics, re‑prompt or re‑train when drift is detected, and retire tools that become obsolete. In the next lecture we will explore concrete techniques for **monitoring, drift detection, and automated governance** of customized agents, completing the lifecycle from design to long‑term operation.
 
 ===== Key Points
 
-* Generic → specific
-* Customization = design
-* Situated artifact
-* Agent embedded in context
+* Customization embeds the agent in a sociotechnical network (Latour)  
+* Ethical responsibility: privacy, provenance, bias mitigation, auditability  
+* Real‑world quote illustrating stakes of poor customization  
+* Drift awareness: continuous monitoring, re‑prompting, de‑commissioning  
+* Ongoing stewardship bridges design and operations  
+* Next lecture preview: monitoring, drift detection, governance  
 
 .Figure 12.3: Customization points in agent
 [plantuml,ch12-l03,png,theme=sketchy-outline]
 ....
 @startuml
-start
-:Base Agent;
-:Prompts;
-:Tools;
-:Data;
-:Custom Agent;
-stop
+skinparam rectangle {
+  BackgroundColor<<Base>> #DDEEFF
+  BackgroundColor<<Custom>> #FFEECC
+}
+skinparam shadowing false
+
+rectangle "Base Agent\n(generic LLM + minimal orchestrator)" <<Base>> as base
+
+rectangle "Orchestrator\n(routing, tool registry)" as orch
+
+rectangle "Prompt layer\n(system prompt, few‑shot examples)" <<Custom>> as prompts
+rectangle "Tool layer\n(APIs, wrappers)" <<Custom>> as tools
+rectangle "Data layer\n(index, KG, cached records)" <<Custom>> as data
+
+rectangle "Custom Agent\n(deployed, domain‑specific)" <<Custom>> as custom
+
+base --> orch : contains
+orch --> prompts : set system prompt
+orch --> tools   : register API wrappers
+orch --> data    : inject knowledge sources
+
+prompts --> custom : defines role & policy
+tools   --> custom : extends action space
+data    --> custom : supplies on‑demand facts
+
+custom ..> base : retrain / version update\n↺
+
+legend left
+  <&box> <<Base>>  = Generic core (light blue)
+  <&box> <<Custom>> = Customization layer (light orange)
+endlegend
 @enduml
 ....
 
 ==== Discussion Prompts
 
-* What counts as "customization" vs. "new development"?
-* How do we know the agent is "ready" for the problem?
-* When should we add a custom tool? When is the existing set enough?
-* How do we balance generality (reusable) vs. specificity (problem-fit)?
-* What integration challenges have you faced?
-* How do we test for "representative" tasks?
+* What counts as "customization" versus "new development"?  
+* How do we know the agent is "ready" for the problem we aim to solve?  
+* When should we add a custom tool, and when is the existing set sufficient?  
+* How do we balance generality (reusability) with specificity (problem‑fit)?  
+* What integration challenges have you encountered in your own domains?  
+* How can we test that a task is truly "representative" of real‑world use?  
+* In what ways does embedding an agent raise ethical or accountability concerns?  
 
 ==== Lab Prep
 
-Lab 2: Implement the agent for the capstone problem. Add custom tools if needed. Configure prompts. Test end-to-end. The agent should complete a representative task. Document customization choices and rationale. See Lab 2 for requirements.
+Lab 2 asks you to implement a customized agent for your capstone problem. You will:
 
-===== Key Points
+* Perform a gap analysis to identify missing prompts, tools, or data.  
+* Develop and register at least one custom tool (e.g., an API wrapper).  
+* Craft a system prompt and few‑shot examples that encode domain policy.  
+* Configure the orchestrator’s routing table to reflect the desired workflow.  
+* Write unit, integration, and user‑acceptance tests that exercise a representative scenario.  
+* Document every customization decision, including the ethical rationale and any governance measures (e.g., data‑privacy safeguards).
 
-* Lab 2: Implement agent
-* Custom tools, prompts
-* Test end-to-end
+===== Starter‑Kit Checklist
 
+* `tools/` – place custom tool modules here (e.g., `my_tool.py`).  
+* `prompts/` – `system.txt` for the system prompt, `examples.txt` for few‑shot demos.  
+* `routes.yaml` – orchestrator routing configuration.  
+* `tests/` – `unit/`, `integration/`, `acceptance/` subfolders with pytest scripts.  
+* `docs/customization_report.md` – narrative + ethical justification.  
 
 ==== Reading
 For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch12,Chapter 12>>).

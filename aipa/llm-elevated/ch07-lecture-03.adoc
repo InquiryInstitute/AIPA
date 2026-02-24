@@ -5,86 +5,147 @@
 "Retrieval grounds generation—or tries to."
 — Lewis et al., "Retrieval‑Augmented Generation" <<Lewis2020>>
 
-*Hook*: A customer‑service chatbot once answered a legal question with a fabricated clause, “the contract may be terminated with 30 days’ notice,” even though no such clause existed in the company’s policy. After wiring a retrieval step that pulled the actual policy document, the bot began citing the correct paragraph and stopped hallucinating. *Retrieval can turn a confident liar into a trustworthy assistant.*
+*Hook*: A customer‑service chatbot once answered a legal question with a fabricated clause, “the contract may be terminated with 30 days’ notice,” even though no such clause existed in the company’s policy. The user, a senior manager, copied the answer into a contract amendment and later discovered the clause was unenforceable, costing the company weeks of renegotiation. After wiring a retrieval step that pulled the actual policy document, the bot began citing the correct paragraph and stopped hallucinating. *Retrieval can turn a confident liar into a trustworthy assistant.*
+
+*Interactive pause*: Why did the original model hallucinate? What information was missing, and how could we have prevented the error without retraining the model? (Give students 2 minutes to discuss in pairs, then collect a few hypotheses.)
 
 ==== Example Prompts
 
-* "Answer based on our company docs." — _Retrieve → inject into prompt → generate_
-* "Summarize the relevant passages." — _RAG pipeline: query → embed → search → augment → generate_
-* "Cite where you found that." — _Retrieved chunks as sources; grounding in retrieval_
+* `"Answer based on our company docs."` — _Retrieve → inject into prompt → generate_
+* `"Summarize the relevant passages."` — _RAG pipeline: query → embed → search → augment → generate_
+* `"Cite where you found that."` — _Retrieved chunks as sources; grounding in retrieval_
 
 ==== Conceptual Core
 
-**The problem** – Large language models excel at fluent generation but frequently fabricate details that are not present in any source. In high‑stakes domains (legal, medical, finance) such hallucinations can be costly or dangerous.  
+Large language models (LLMs) are astonishingly good at producing fluent prose, but they are also prone to *hallucination*: generating statements that sound plausible yet have no grounding in any external source. In high‑stakes domains—legal advice, medical triage, financial compliance—such fabrications can lead to costly mistakes, regulatory breaches, or even loss of life. The core problem, therefore, is not just *how* to make the model sound knowledgeable, but *how* to make it *know* something that can be verified.
 
-**The solution** – Retrieval‑Augmented Generation (RAG) inserts factual context from an external knowledge store directly into the prompt, giving the model a concrete grounding point. By augmenting the query with retrieved passages, we bias the generation toward verifiable information without retraining the model.  
+Retrieval‑Augmented Generation (RAG) offers a pragmatic answer. Instead of trying to bake every fact into the model’s parameters, we keep the model lightweight and *augment* each query with a handful of passages drawn from a curated knowledge store. The store—often a vector database built from PDFs, wikis, or internal tickets—acts as an external memory that can be updated independently of the model. By concatenating the retrieved context to the user’s question, we give the LLM a concrete anchor point, biasing its subsequent generation toward the supplied facts. In effect, we turn the model from a *closed‑book* generator into a *closed‑book* generator that can *open* a book on demand.
 
-**The limitation** – Retrieval is only as good as the index it draws from. Garbage‑in‑garbage‑out still applies: irrelevant or incorrect chunks can mislead the model, and the model may still ignore or distort the retrieved text.  
+The promise of RAG, however, is bounded by the quality of the retrieval step. If the index contains outdated policy versions, noisy OCR artifacts, or irrelevant sections, the model receives a misleading hint and may still hallucinate, or worse, it may faithfully repeat an error that originated in the store. This “garbage‑in‑garbage‑out” risk forces us to treat the vector store as a *gatekeeper* of truth: its curation, versioning, and validation become as critical as the model’s architecture.
 
-[.formal-definition]
-****
-*Formal Definition (RAG)*
-*RAG* (Retrieval‑Augmented Generation) is a pipeline in which retrieval augments the prompt before generation. Given a query *q*, RAG: (1) retrieves top‑*k* chunks from a vector store via similarity search, (2) constructs an augmented prompt = [retrieved context] + [q], (3) generates via the LLM. Knowledge is added by retrieval, not by retraining. See <<Lewis2020>>.
-****
+A second, often under‑appreciated, limitation is the *latency‑quality trade‑off*. The number of retrieved chunks, denoted *k*, directly influences recall: a larger *k* increases the chance that the correct passage is present. Yet each additional chunk adds token overhead to the prompt and may trigger a longer generation time. Practitioners therefore adopt a two‑stage retrieval strategy: a fast, high‑recall first pass that pulls a generous set of candidates, followed by a more expensive reranking step (e.g., a cross‑encoder or a secondary LLM) that filters down to a concise, high‑precision subset. The final prompt then contains only the most relevant snippets, keeping the token budget manageable while preserving factual fidelity.
 
-**Latency vs. quality trade‑off** – Choosing *k* and whether to rerank affects both response time and answer fidelity. Larger *k* improves recall but adds latency; reranking (e.g., with a cross‑encoder) sharpens precision at the cost of extra compute. Practitioners often adopt a two‑stage approach: retrieve a generous set, then filter to a concise, high‑quality subset before prompting.  
+To illustrate the impact, consider a SaaS support bot that answers “How do I reset my password?” The baseline model replies, “You can reset it from the account settings page,” which is correct but unsourced. After integrating RAG with the product’s knowledge base, the bot returns: “According to the *User Guide* (Section 3.2), click *Forgot password* on the login screen, then follow the emailed link.” The answer is both accurate and explicitly cited, allowing auditors to trace the source instantly. Moreover, when the knowledge base is updated to reflect a new two‑factor reset flow, the bot automatically adopts the change without any model retraining—a clear operational advantage.
 
-**Mini‑case study** – Consider a SaaS support bot that answers “How do I reset my password?” The baseline model replies, “You can reset it from the account settings page,” which is correct but unsourced. After integrating RAG with the product’s knowledge base, the bot returns: “According to the *User Guide* (Section 3.2), click *Forgot password* on the login screen, then follow the emailed link.” The answer is both accurate and explicitly cited, demonstrating how retrieval reduces hallucination and improves auditability.
+*Bridge to the lab*: In the upcoming lab you will implement exactly this two‑stage pipeline, experiment with different values of *k*, and observe how a confidence‑threshold fallback can protect users when the retrieved context is weak or contradictory.
 
 ===== Key Points
 
-* **Identify** the hallucination problem and why grounding matters  
+* **Identify** the hallucination problem and why grounding matters in high‑stakes domains  
 * **Add** factual context by retrieving top‑*k* chunks before generation  
-* **Understand** that retrieval quality limits overall performance  
+* **Understand** that retrieval quality (freshness, relevance, cleanliness) limits overall performance  
 * **Balance** latency and precision via *k* selection and optional reranking  
-* **Choose** chunking strategies: fixed, semantic, sliding‑window, hierarchical  
+* **Choose** chunking strategies: fixed‑size, semantic, sliding‑window, hierarchical  
 * **Apply** RAG to factual QA, domain‑specific tasks, citation, and hallucination reduction  
 * **Recognize** that retrieval is a strong hint, not a guarantee of truth  
-* **Measure** accuracy, citation fidelity, and faithfulness  
+* **Measure** accuracy, citation fidelity, and faithfulness across different configurations  
 
 ==== Technical Example
 
 [.algorithm]
 ****
 *RAG Pipeline*  
-.Input: Query *q*, vector store *V*, LLM *M*, *k*  
-.Output: Generated answer  
-+
-1. embed(*q*) → *q_emb*  
-2. *V*.search(*q_emb*, *k*) → *chunks*  
-3. (optional) rerank *chunks* → *top_chunks*  
-4. prompt = "Context: [top_chunks]\nQuery: [q]\nAnswer based on the context."  
-5. *M*.generate(prompt) → *answer*  
-6. Return *answer*  
+.Input: Query *q*, vector store *V*, LLM *M*, retrieval size *k*, rerank flag *r*  
+.Output: Generated answer *a*  
+
+1. **Embed** the query → *q_emb* = embed(*q*)  
+2. **Search** the store → *candidates* = *V*.search(*q_emb*, *k*)  
+3. **(Optional) Rerank**  
+   *if* *r* = true *then*  
+  *ranked* = cross_encoder(*q_emb*, *candidates*)  
+  *top_chunks* = ranked[:*k′*]   // *k′* ≪ *k* for prompt brevity  
+   *else*  
+  *top_chunks* = *candidates*[:*k′*]  
+4. **Assemble Prompt**  
+
+```
+prompt = f"""Context:
+{format_chunks(top_chunks)}
+
+Question: {q}
+Answer (cite sources):"""
+```  
+
+5. **Generate** → *a* = *M*.generate(prompt)  
+6. **Confidence check** (optional) → if confidence(*a*) < τ then fall back to plain generation  
+7. **Return** *a*  
+
 ****
 
-**Implementation checklist** – Embed the query, retrieve *k* candidate chunks, optionally rerank with a cross‑encoder or a secondary LLM call, concatenate the selected passages into a prompt template, and invoke the generation model.  
+**Python‑style reference implementation**
 
-**Evaluation strategy** – Run the pipeline on a held‑out factual QA set both with and without retrieval. Compare (i) answer accuracy, (ii) citation fidelity (does the model correctly reference the retrieved chunk), and (iii) faithfulness (does the answer stay within the retrieved context).  
+```python
+def rag(query: str,
+        store: VectorStore,
+        model: LLM,
+        k: int = 10,
+        rerank: bool = True,
+        top_k: int = 3,
+        confidence_thr: float = 0.7):
+    # 1. embed query
+    q_emb = model.embed(query)
+
+    # 2. retrieve k candidates
+    candidates = store.search(q_emb, k)
+
+    # 3. optional rerank
+    if rerank:
+        scores = cross_encoder.score(q_emb, candidates)
+        top_idxs = np.argsort(scores)[-top_k:]          # highest scores
+        top_chunks = [candidates[i] for i in reversed(top_idxs)]
+    else:
+        top_chunks = candidates[:top_k]
+
+    # 4. build prompt
+    context = "\n---\n".join(chunk.text for chunk in top_chunks)
+    prompt = f"Context:\n{context}\n\nQuestion: {query}\nAnswer (cite sources):"
+
+    # 5. generate answer
+    answer, conf = model.generate_with_confidence(prompt)
+
+    # 6. fallback if needed
+    if conf < confidence_thr:
+        answer = model.generate(query)   # plain generation
+
+    return answer
+```
+
+In a concrete QA pair—*“What is our refund policy for cancelled subscriptions?”*—the store returns three snippets: (1) a policy paragraph stating “full refund within 14 days,” (2) a FAQ entry describing “partial refunds after 30 days,” and (3) an outdated email stating “no refunds after 7 days.” After reranking, the first two snippets rise to the top, and the final prompt contains only them. The LLM then answers: “According to the *Refund Policy* (Section 2.1) you receive a full refund if you cancel within 14 days; after that, only a partial refund is offered (see FAQ, Q5).” The answer is both accurate and explicitly sourced.
+
+**Evaluation strategy** – Run the pipeline on a held‑out factual QA benchmark (e.g., a curated set of 500 internal support tickets). Compare three configurations: (a) plain generation, (b) RAG with *k* = 5, no rerank, (c) RAG with *k* = 20, rerank = true, *k′* = 3. Report (i) *Exact‑Match* accuracy, (ii) *Citation Fidelity* (percentage of answers that correctly reference the retrieved chunk), and (iii) *Faithfulness* (percentage of tokens that are entailed by the retrieved context). Typical results show a 15‑20 % lift in accuracy and a 30 % lift in citation fidelity, at the cost of an average latency increase from 120 ms to 340 ms when reranking is enabled.
 
 ===== Key Points
 
-* **Implement** embed, retrieve, optional rerank, prompt, generate  
-* **Use** a concise prompt template that merges context and query  
-* **Evaluate** with vs. without retrieval on factual QA  
+* **Implement** embed, retrieve, optional rerank, prompt construction, generate, and confidence fallback  
+* **Use** a concise prompt template that merges context and query cleanly  
+* **Evaluate** with vs. without retrieval on a factual QA set, measuring accuracy, citation fidelity, and faithfulness  
 * **Optionally** add reranking to boost precision at the cost of latency  
-* **Report** accuracy, citation fidelity, and faithfulness  
+* **Report** latency, token usage, and confidence‑threshold behavior for each configuration  
 
 ==== Philosophical Reflection
 
-Grounding in retrieval: we hope retrieval grounds generation. We provide the model with a source; we expect it to use it. The boundary between *retrieved* and *generated* is blurry. The model may quote verbatim, paraphrase, synthesize, or invent. It may cite a passage and add fabrication. It may ignore the context entirely. Retrieval reduces hallucination on average—but it does not eliminate it. The model is still a generator; we are biasing it toward the retrieved content, not constraining it.
+Grounding in retrieval is often presented as a silver bullet: give the model a source, and it will behave responsibly. In practice the boundary between *retrieved* and *generated* text is porous. The model may copy a passage verbatim, paraphrase it, synthesize multiple snippets, or—dangerously—inject a fabricated claim that *appears* to be supported by the context. Consider the answer: “Our privacy policy (Section 4) states that we never share data with third parties; however, we may disclose information to law‑enforcement agencies under a subpoena.” The citation is correct, yet the second clause is an invention that contradicts the actual policy. The system has *cited* accurately while still delivering misinformation.
 
-**What does “grounded” mean?** – One definition: the answer is entailed by or supported by the retrieved context. Another: the model explicitly cites its sources. A third: the answer does not contradict the retrieved material. These notions diverge, so evaluation must state which criterion is being measured. Citation fidelity—does the model attribute correctly?—is distinct from factual accuracy. A model can cite accurately and still be wrong; it can be right and fail to cite. Both matter for trustworthy RAG.
+What does it mean for an answer to be *grounded*? Three common interpretations coexist:
 
-**Epistemic authority** – By outsourcing knowledge to a vector store, the system shifts the locus of truth from the model’s parameters to the curated index. Who curates the store? Who decides what gets retrieved? RAG encodes epistemic authority in the retrieval pipeline, making the store a gatekeeper of what the model can “know.”  
+1. **Entailment‑based grounding** – every proposition in the answer must be logically entailed by the retrieved passages.  
+2. **Citation‑based grounding** – the answer includes a verifiable reference to the source(s) of each claim.  
+3. **Non‑contradiction grounding** – the answer does not contradict any retrieved material, even if it adds new, unverified information.
+
+These definitions diverge in measurable ways. A model can achieve high citation fidelity (it always lists a source) while scoring poorly on entailment (the cited source does not actually support the claim). Conversely, a model may produce an answer that is fully entailed by the context but omit any explicit citation, making audit trails impossible. Selecting the appropriate grounding metric therefore depends on the downstream risk profile: regulatory compliance may demand strict citation, whereas internal knowledge‑base assistants might settle for non‑contradiction.
+
+By externalizing knowledge into a vector store, RAG also shifts *epistemic authority* from the opaque parameters of the LLM to the curated index. This raises governance questions: Who decides which documents are ingested? How often are they refreshed? If a vendor supplies the store, whose bias permeates the system? The retrieval pipeline becomes the *gatekeeper* of truth, and any systematic omission or mis‑labeling in the store propagates directly to end‑users. Designers must therefore treat the store as a first‑class component, subject to version control, provenance tracking, and bias audits—just as they would a model checkpoint.
+
+Finally, the confidence‑threshold fallback introduced in the algorithmic sketch embodies a modest form of *self‑regulation*: when the model’s internal certainty falls below a preset level, it discards the retrieved context and reverts to pure generation (or a human hand‑off). This mechanism acknowledges that retrieval is a *hint*, not a hard constraint, and that the system must retain the ability to say “I don’t know” rather than confidently hallucinate. Designing the right threshold, however, is itself a value judgment: a low threshold yields more safe‑fallbacks but may degrade user experience; a high threshold risks silently propagating errors from a stale index.
 
 ===== Key Points
 
-* **Acknowledge** that grounding is a hope, not a guarantee  
-* **Recognize** the blurry line between retrieved and generated text  
-* **Define** “grounded” explicitly for each evaluation scenario  
-* **Separate** citation fidelity from factual accuracy  
-* **Understand** that the vector store becomes the epistemic authority  
+* **Acknowledge** that grounding is a hope, not a guarantee; the model can still fabricate despite citations  
+* **Recognize** the blurry line between retrieved and generated text, especially in paraphrasing and synthesis  
+* **Define** “grounded” explicitly for each evaluation scenario (entailment, citation, non‑contradiction)  
+* **Separate** citation fidelity from factual accuracy and measure both  
+* **Understand** that the vector store becomes the epistemic authority, requiring governance and bias audits  
+* **Employ** confidence‑threshold fallbacks as a safety valve, and tune τ according to risk tolerance  
 
 .Figure 7.3: RAG pipeline
 [plantuml,ch07-l03,png,theme=sketchy-outline]
@@ -97,23 +158,25 @@ skinparam Rectangle {
   BackgroundColor<<Store>> LightYellow
   BackgroundColor<<Model>> LightBlue
 }
-legend left
-  ◉ = data flow
-  ◇ = decision
-endlegend
+title RAG Pipeline (two‑stage)
 
 start
-:Embed query → q_emb;
-:VectorStore[V] (pre‑computed embeddings);
+:Embed query q → q_emb;
+note right: embed() from LLM
+:VectorStore[V] (k‑NN search);
+note right: returns *k* candidate chunks
 if (Rerank?) then (yes)
-  :Cross‑encoder / LLM rerank → top_chunks;
+  :Cross‑encoder score(q_emb, candidates);
+  :Select top *k′* chunks → top_chunks;
 else (no)
-  :top_chunks = chunks;
+  :top_chunks = candidates[:*k′*];
 endif
-:Assemble Prompt = "Context: [top_chunks]\\nQuery: [q]\\nAnswer:"; 
+:Assemble Prompt\\n"Context: [top_chunks]\\nQuestion: [q]\\nAnswer (cite):";
+note right: prompt length limited by token budget
 :LLM[M] generate → answer;
+note right: also returns confidence
 if (Confidence < τ?) then (fallback)
-  :Generate without retrieval;
+  :Plain generation without retrieval;
 endif
 :Return answer;
 stop
@@ -122,28 +185,28 @@ stop
 
 ==== Discussion Prompts
 
-* When does RAG reduce hallucination? When does it fail?
-* How do we evaluate “grounded” generation? What metrics matter?
-* What if retrieval returns wrong or misleading context? How can we mitigate?
-* Who is epistemically responsible when a RAG system gives a wrong answer—the model, the store, or the designer?
-* How does RAG change the relationship between the model and “knowledge”?
-* What are the trade‑offs between single‑stage and two‑stage (reranked) retrieval?
+* When does RAG reduce hallucination, and when can it actually amplify misinformation?
+* How should we define and measure “grounded” generation in a given application?
+* What strategies can mitigate the impact of a stale or biased vector store?
+* Who bears epistemic responsibility when a RAG system delivers a wrong answer—the model, the store, or the system designer?
+* How does the introduction of a confidence‑threshold fallback reshape user expectations of AI assistants?
+* Compare single‑stage retrieval (direct top‑*k*) with two‑stage (rerank) pipelines: what are the trade‑offs in latency, precision, and engineering complexity?
 
 ==== Lab Prep
 
-*Before the lab* we will run a quick poll: “How many of you have seen a hallucinated answer from a chatbot?” – the results will frame the upcoming demo.  
+*Before the lab* we will poll the class: “How many of you have seen a hallucinated answer from a chatbot?” – the results will frame the upcoming demo and motivate the need for retrieval.  
 
-Lab 2: Implement RAG. Query → embed → retrieve → (optional rerank) → generate. The memory tool will expose `rag_retrieve(query, k)` that returns formatted context. Test: run factual QA with and without retrieval; compare accuracy, citation fidelity, and faithfulness. If retrieval fails to return relevant chunks, fall back to plain generation as a safety net.
+Lab 2: **Implement the full RAG pipeline** using the provided `rag_retrieve(query, k)` helper. You will (1) embed the query with the LLM’s encoder, (2) retrieve *k* candidate chunks from a pre‑populated vector store, (3) optionally rerank using a cross‑encoder, (4) construct the prompt template, (5) generate the answer, and (6) apply a confidence‑threshold fallback. You will then run a factual QA benchmark both with and without retrieval, reporting **accuracy**, **citation fidelity**, **faithfulness**, and **average latency** for each configuration.  
 
 ===== Key Points
 
-* **Complete** Lab 2 by building the full RAG pipeline  
-* **Optionally** integrate two‑stage retrieval for higher precision  
-* **Integrate** LLM embedding, generation, and vector‑store search  
-* **Test** both with and without retrieval, reporting accuracy, citation fidelity, and faithfulness  
-* **Include** a fallback path for low‑confidence answers  
+* **Build** the end‑to‑end RAG flow (embed → retrieve → rerank → prompt → generate)  
+* **Experiment** with different *k* values and observe the latency‑quality curve  
+* **Integrate** a confidence‑threshold fallback to handle low‑confidence cases  
+* **Evaluate** using the three metrics introduced in the technical example  
+* **Document** findings in a short report and discuss governance implications of the vector store  
 
 ==== Reading
 For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch07,Chapter 7>>).
 
-Take‑away: *RAG lets us outsource knowledge to a curated store, but we must remain vigilant about the source we trust.*
+Take‑away: *RAG lets us outsource knowledge to a curated store, but we must remain vigilant about the source we trust, the metrics we use to judge grounding, and the safety nets we build around uncertainty.*

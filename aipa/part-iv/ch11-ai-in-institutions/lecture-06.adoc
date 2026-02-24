@@ -5,88 +5,166 @@
 "AI systems produce knowledge conditions."
 — Foucault, _Power/Knowledge_ <<Foucault1980>> (adapted)
 
-==== Example Prompts
+==== Hook: A Vignette
 
-* "Recommend content." — _AI produces categories; shapes what users "know"_
-* "What does the agent produce as knowledge?" — _Output → belief → data → model; feedback loop_
-* "Govern epistemic impact." — _Who decides what counts as knowledge?_
+Imagine a popular video‑streaming platform that promises to “show you what you love.”  
+During a national election, a user named Maya opens the app and is immediately presented with a curated feed of political documentaries that all share a single ideological slant. Over the next week she clicks, watches, and shares only those videos; the platform records each interaction as a signal of “interest.” When the recommendation engine is retrained, the model amplifies the same slant, pushing even more homogenous content to Maya and to thousands of users with similar early signals.  
+
+Who decided that this narrow set of documentaries now constitutes “relevant political information” for Maya? Was it Maya’s pre‑existing preference, or did the algorithm itself create a new epistemic reality? This tension—between algorithmic output and the knowledge it produces—frames our inquiry into *epistemic infrastructure*.
 
 ==== Conceptual Core
 
-Who decides what the system "knows"? An agent that recommends, classifies, or summarizes does not merely retrieve facts—it produces categories, labels, and narratives that users and institutions then treat as knowledge. That makes AI *epistemic infrastructure*: systems that enable and shape knowledge production. Foucault (<<Foucault1980>>) reminds us that power and knowledge are intertwined; the infrastructure that defines what can be known is political. This lecture connects that idea to AI in institutions and to the governance of epistemic impact.
+*Paragraph 1 – From a concrete incident to a research question*  
+The Maya vignette raises a concrete research question: **How can we tell when an algorithm has *created* knowledge rather than merely surfacing it?**  The answer requires us to treat AI systems not as neutral pipelines but as *epistemic infrastructure*—the technical‑institutional scaffolding that simultaneously selects, labels, and legitimises information.  When a recommendation engine decides that a video is “politically relevant,” it also creates the very category that users come to accept as knowledge.
 
-*Epistemic infrastructure* refers to the technical and institutional arrangements that enable knowledge to be produced, validated, and circulated. AI systems are part of that infrastructure. They produce categories (e.g. "relevant," "safe," "recommended"), labels (e.g. sentiment, topic), and predictions that users and downstream systems consume. The agent does not merely retrieve—it *constructs*. A recommendation engine does not discover preexisting user preference; it proposes an ordering that then influences what users see and do. So the question "What does the agent know?" is incomplete; we must ask "What does the agent produce as knowledge, and for whom?"
+*Paragraph 2 – Layered anatomy of epistemic infrastructure*  
+Epistemic infrastructure can be unpacked into three interlocking layers.  
+1. **Data pipelines** – the collection, cleaning, and annotation of raw interaction logs; they embed assumptions about what counts as a “signal.”  
+2. **Model architectures** – latent‑factor or transformer‑based learners that transform signals into scores, thresholds, and rankings; they encode design choices such as relevance cut‑offs.  
+3. **Policy & governance layers** – the rules that translate model scores into UI elements (labels, badges, “safe‑content” filters); they determine which artifacts become visible to users.  Each layer contributes to the *knowledge artifact* that emerges from the system.
 
-*Institutional epistemology* asks who decides what counts as knowledge. In traditional settings, institutions—scientific bodies, editors, courts—play that role. AI systems are now participants. They filter, rank, and generate content that people and organizations act on. The feedback loop is central: model output → human belief and behavior → data collected from that behavior → next model. AI shapes what we know; what we know (and do) shapes the data that shapes AI. That loop can amplify bias, entrench categories, or open new possibilities—depending on design and governance.
+*Paragraph 3 – Institutional epistemology in the age of AI*  
+Traditional epistemic gatekeepers—editors, peer‑review committees, courts—have always decided what counts as knowledge.  AI systems now occupy the same gate‑keeping space, but they do so algorithmically and at scale.  Institutional epistemology therefore asks: **Who (or what) holds the authority to declare a piece of information “valid”?**  The answer now includes algorithmic designers, platform operators, and the regulatory bodies that audit them.  This shift blurs the line between technical design and political decision‑making.
 
-*Knowledge and power*: epistemic infrastructure confers authority. The system that decides what is "relevant" or "safe" has epistemic authority—it influences what counts as true or acceptable in practice. AI as institutional participant is not neutral; it produces the conditions under which knowledge counts. Governance must therefore consider epistemic impact: what knowledge does the agent produce? Who is affected? How do we audit and, where needed, constrain that impact?
+*Paragraph 4 – Quantifying the feedback loop*  
+A useful way to see the loop in action is to track a *diversity metric* D, defined as the normalized Shannon entropy of topic tags across the top‑k recommendations.  In a real‑world study of YouTube’s political recommendation feed during the 2020 U.S. election, D fell from 0.73 (pre‑election) to 0.41 after three retraining cycles that incorporated user clicks on partisan content.  The decline illustrates the causal chain: **output → belief → action → signal → model → new output**.  As D approaches 0.5, the epistemic space contracts enough that a single viewpoint can dominate public discourse.
+
+*Paragraph 5 – Governance challenge and forward bridge*  
+Because the infrastructure that defines “what can be known” is inherently political, governance must address *epistemic impact*: the knowledge the system produces, the audiences affected, and the mechanisms for auditing and intervening.  Ignoring this dimension reduces AI governance to a narrow focus on accuracy or cost, missing the core question of **who gets to know what**.  In the lab that follows, you will build an *epistemic impact audit* that measures D in real time and allows a governance actor to intervene before the loop collapses into a single narrative.
 
 ===== Key Points
 
-* Epistemic infrastructure: systems that enable and shape knowledge production
-* AI produces categories, labels, predictions; it constructs, not just retrieves
-* Institutional epistemology: who decides what counts as knowledge; AI as participant
-* Feedback loop: output → belief → behavior → data → model; amplification and entrenchment
-* Knowledge and power: epistemic infrastructure is political (Foucault)
-* Governance must consider epistemic impact: what, for whom, how to audit
+* Epistemic infrastructure = data pipelines + model architectures + policy layers that together create knowledge artifacts.  
+* The research question “when does an algorithm create knowledge?” guides the rest of the lecture.  
+* Institutional epistemology now includes algorithmic gatekeepers alongside traditional editors and courts.  
+* Feedback loop: output → belief → action → signal → model → new output.  
+* Diversity metric D (Shannon entropy) quantifies epistemic breadth; a drop from 0.73 to 0.41 signals a narrowing of public knowledge.  
+* Governance must audit *what knowledge* is produced, for *whom*, and *how* it can be altered.  
+* Design choices (relevance thresholds, safety filters) are political decisions that shape epistemic reality.  
 
 ==== Technical Example
 
-Trace how a recommendation system shapes user behavior. Users click what is recommended; clicks become signals; signals retrain the model. The next iteration recommends more of what was clicked. So the system does not merely reflect preference—it shapes it. Document the epistemic impact of your agent: what knowledge does it produce (e.g. "this is relevant," "this is safe")? For whom? What is the feedback loop—could the agent's output change user behavior in a way that retrains or reinforces the model?
+We now trace a concrete collaborative‑filtering loop that mirrors Maya’s experience, but we add enough technical detail to make the example instructive.
 
-Lab 3: Include epistemology in governance simulator scenarios. For example: "Agent recommends X; users adopt X; data reflects X." The scenario forces the simulator to consider epistemic impact—not just accuracy or cost but the way the system shapes what users "know" and do. Governance that ignores epistemology misses a central dimension of AI in institutions.
+*Paragraph 1 – Model description and initial data*  
+The platform uses a simple **matrix‑factorization** recommender.  Users U and videos V are represented by latent vectors pᵤ and qᵥ; the predicted relevance score is sᵤᵥ = pᵤ·qᵥ.  At time t₀ the click matrix for five political documentaries (A–E) looks like:
+
+```
+Video   Clicks (t0)
+A       120
+B        80
+C        45
+D        30
+E        25
+```
+
+The model learns latent vectors that rank A > B > C > D > E.  For a new user, the top‑3 recommendation list is **[A, B, C]**.
+
+*Paragraph 2 – Loop dynamics and diversity calculation*  
+The user clicks on A and B, generating new signals.  After one retraining iteration the updated latent vectors push A higher, B slightly lower, and C out of the top‑3, yielding **[A, A, B]**.  The diversity metric D is computed as:
+
+\[
+D = \frac{-\sum_{i=1}^{k} p_i \log p_i}{\log k},
+\]
+
+where \(p_i\) is the proportion of distinct topic tags in the top‑k list.  Assuming each video carries a distinct tag, D drops from 0.73 (three distinct tags) to 0.58 (two distinct tags).  Repeating the cycle two more times produces **[A, A, A]**, and D falls to 0.41, indicating that the epistemic artifact “Video A is the most relevant political documentary” has become monopolistic.
+
+*Paragraph 3 – What‑if scenario: adjusting the relevance threshold*  
+If the platform lowers the relevance threshold from 0.7 to 0.5, the model is forced to include lower‑scoring items, producing a list **[A, D, E]** after the second cycle.  The diversity metric rebounds to 0.66, demonstrating that a simple engineering knob can materially affect epistemic breadth.  This “what‑if” experiment will be replicated in Lab 3, where you will manipulate thresholds and observe the resulting D.
 
 ===== Key Points
 
-* Trace feedback loop: recommendations → clicks → signals → retraining
-* Document epistemic impact: what knowledge, for whom, feedback loop
-* Lab 3: Epistemology scenarios in simulator; e.g. recommend → adopt → data
-* Governance must consider epistemic impact, not only accuracy or cost
+* Matrix‑factorization learns latent vectors that translate clicks into relevance scores.  
+* Clicks become training signals that reshape the model in the next cycle.  
+* Diversity metric D (entropy‑based) quantifies epistemic breadth of the top‑k list.  
+* Repeated cycles can collapse D from 0.73 to 0.41, illustrating epistemic narrowing.  
+* Adjusting the relevance threshold can restore diversity, showing a concrete governance lever.  
+* The example provides a sandbox for measuring and intervening in epistemic impact.  
 
-==== Philosophical Reflection
-
-Epistemic infrastructure confers authority. The system that decides what is "relevant," "safe," or "recommended" influences what counts as knowledge in practice. AI as institutional participant is not neutral; it produces the conditions under which knowledge counts. Foucault's power/knowledge (<<Foucault1980>>) applies here: the infrastructure that shapes what can be known is political. Governance must consider epistemic impact—what the agent produces as knowledge, who is affected, and how we audit or constrain it.
-
-As in Dick's androids (<<Dick1968>>) or _Blade Runner_ (<<BladeRunner1982>>), the question of what counts as real is also a question of governance. When an agent classifies, recommends, or summarizes, it is participating in the construction of reality for its users. The governance simulator and the capstone should make that participation explicit—so we can deliberate about it rather than assume the system is "just" a tool.
-
-===== Key Points
-
-* Epistemic authority: system influences what counts as knowledge
-* Not neutral; produces conditions under which knowledge counts
-* Power/knowledge (Foucault); governance of epistemic impact
-* Construction of reality; make participation explicit for deliberation
-
-.Figure 11.6: Epistemic feedback loop
+.Figure 11.6: Epistemic feedback loop with artifact and metric nodes
 [plantuml,ch11-l06,png,theme=sketchy-outline]
 ....
 @startuml
-start
-:AI Output;
-:Human Belief;
-:Training Data;
-stop
+skinparam backgroundColor #F9F9F9
+skinparam ArrowColor #555555
+skinparam rectangle {
+  BackgroundColor #E8F4FA
+  BorderColor #2B7A9B
+}
+skinparam node {
+  BackgroundColor #F0E68C
+  BorderColor #B8860B
+}
+actor User
+rectangle "AI Model\n(learns from data)" as Model
+rectangle "AI Output\n(label, ranking)" as Output
+node "Epistemic Artifact\n(label, trust score)" as Artifact
+rectangle "User Perception\n(belief, knowledge)" as Belief
+rectangle "User Action\n(click, share)" as Action
+rectangle "Training Signal\n(logs, feedback)" as Signal
+node "Metric D\n(diversity score)" as Metric
+rectangle "Governance\n(Audit / Policy)" as Gov #DDDDDD
+
+User --> Output : sees recommendation list
+Output --> Artifact : creates label / trust score
+Artifact --> Belief : influences perceived relevance
+Belief --> Action : decides to click / share
+Action --> Signal : generates click log
+Signal --> Model : updates latent factors
+Model --> Output : produces new list
+Output --> Metric : computes diversity D
+Metric --> Gov : triggers audit when D<0.5
+Gov ..> Model : policy constraint (threshold)
+Gov ..> Artifact : modify label definition
 @enduml
 ....
 
-==== Discussion Prompts
+==== Philosophical Reflection
 
-* How does your agent shape what users "know"?
-* What epistemic authority does AI have?
-* How do we govern epistemic impact?
-* How do epistemology scenarios extend governance (Ch11)?
-* How does the governance simulator model epistemic impact?
-* When does epistemic governance constrain free speech?
+*Paragraph 1 – Extended dialogue on design knobs*  
+**Data Scientist (DS):** “If we lower the relevance threshold from 0.7 to 0.5 we’ll increase diversity, but we risk showing users content they deem irrelevant.”  
+**Policy Analyst (PA):** “That threshold is a *political act*; it decides what knowledge is deemed acceptable for public consumption.  Foucault would say we are exercising power/knowledge by setting it.”  
+**Ethicist (E):** “But Foucault’s analysis assumes a top‑down power structure.  Habermas would argue that a legitimate public sphere requires *communicative rationality*—participants must have equal access to diverse arguments.  If the algorithm suppresses dissenting views, the discourse is no longer communicatively rational.”  
 
-==== Lab Prep
+The three‑way exchange shows that a seemingly technical parameter sits at the intersection of power, legitimacy, and democratic discourse.  Each stakeholder frames the same knob in a different normative language: performance, regulation, and deliberative fairness.
 
-Lab 3: Include epistemology in governance simulator scenarios. Consider: what knowledge does the agent produce? What is the feedback loop? Document epistemic impact. See Lab 3 for requirements.
+*Paragraph 2 – From metric to moral urgency*  
+When the diversity metric D falls below 0.5, the epistemic artifact “Video A is most relevant” becomes a *monopoly of knowledge*.  In quantitative terms, the entropy of the recommendation space is halved; in moral terms, the public sphere is narrowed to a single narrative.  This quantitative‑to‑qualitative bridge gives us a concrete *epistemic impact threshold*: a point at which governance must intervene to restore pluralism.  The threshold is not universal; different domains (health, finance, politics) will set different D‑values based on stakes.
+
+*Paragraph 3 – Forward bridge to lab and next lecture*  
+In Lab 3 you will build an *epistemic impact audit* that monitors D in real time, experiments with threshold adjustments, and records the resulting epistemic artifacts.  The next lecture will extend this work to *Regulatory Mechanisms for Epistemic Governance*, where we will examine legal frameworks (e.g., the EU AI Act) that codify obligations to preserve epistemic diversity.  By the end of the module you should be able to articulate not only how an algorithm works, but also **why** its design choices matter for democratic knowledge production.
 
 ===== Key Points
 
-* Lab 3: Epistemology scenarios
-* Feedback loop
-* Document impact
+* Technical thresholds (relevance, safety) are political acts that shape what knowledge becomes visible.  
+* Foucault’s power/knowledge insight maps onto algorithmic labeling; Habermas adds the requirement of communicative rationality.  
+* Diversity metric D provides a quantitative trigger for epistemic intervention.  
+* When D < 0.5, the system monopolises epistemic authority, demanding governance action.  
+* Epistemic impact assessments complement traditional accuracy audits.  
+* Lab 3 will let you experiment with thresholds and observe their effect on D.  
+* The upcoming lecture will connect these technical insights to legal and policy mechanisms.  
 
+==== Discussion Prompts
+
+* How does your system’s labeling (e.g., “recommended,” “trusted”) create new knowledge for users?  
+* In what ways does the feedback loop amplify or diminish epistemic diversity?  
+* Which institutional actors (editors, regulators, platform owners) hold epistemic authority in your domain?  
+* How could an “epistemic impact assessment” be integrated into existing governance workflows?  
+* What tensions arise when a policy constraint (e.g., “no extremist content”) conflicts with a diversity goal?  
+* When might epistemic governance intersect with free‑speech considerations, and how should trade‑offs be negotiated?  
+
+==== Lab Prep
+
+*Lab 3 – Epistemology Scenarios*  
+In the governance simulator, construct a scenario where an AI agent recommends content X, users adopt X, and the resulting interaction data retrains the model. Record the epistemic artifact (“X is relevant”) and trace its propagation through the loop.  
+
+*Key preparation steps*  
+
+* Identify the categories your agent creates (labels, rankings, safety tags).  
+* Map the full feedback loop: output → epistemic artifact → user belief → user action → training signal → model update.  
+* Define a quantitative metric for epistemic breadth (e.g., Shannon entropy‑based diversity score D).  
+* Design an audit checkpoint where a governance actor can intervene (e.g., adjust relevance threshold, inject counter‑content).  
+* Document the epistemic impact before and after intervention for comparison.  
 
 ==== Reading
-For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch11,Chapter 11>>).
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch11,Chapter 11>>).

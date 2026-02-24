@@ -7,83 +7,246 @@
 
 ==== Example Prompts
 
-* "Check if this action complies." — _Agent invokes governance.check_compliance before acting_
-* "Define a new policy." — _governance.define_policy; self-audit_
-* "Can the agent govern itself?" — _Limits of self-audit; reflexive governance_
+* "Check if this action complies." — _Agent invokes `governance.check_compliance` before acting_
+* "Define a new policy." — _`governance.define_policy`; self‑audit_
+* "Can the agent govern itself?" — _Limits of self‑audit; reflexive governance_
 
 ==== Conceptual Core
 
-Governance becomes a tool the agent—or the operator—invokes. Instead of only auditing after the fact (Ch2), we give the system a *governance* tool server: define policies, check compliance before acting, simulate scenarios, and report. The agent can call governance to check itself; the operator can use the same tools to set and enforce policy. This lecture specifies the tool schema, its place in the stack, and the promise and limits of reflexive governance.
+*Hook – a dilemma in the wild*::  
+Imagine a medical‑advice chatbot that receives a request to prescribe a high‑dose opioid for a patient whose recent lab results show elevated liver enzymes. Hospital policy (and law) forbids any dosage above a certain threshold for patients with that biomarker. The chatbot could simply forward the request to a human clinician, but doing so would waste precious minutes and might expose the patient to danger while the clinician reviews the request. Instead, the chatbot calls a **governance tool**: it sends the proposed prescription to `governance.check_compliance`, receives a *block* decision together with the reason “dose exceeds policy limit for elevated‑enzyme patients”, and immediately returns a safe alternative (“schedule a tele‑consultation”). The question that now drives the lecture is: **Can an autonomous agent enforce institutional policy *before* it acts, and what are the limits of that self‑governance?**
 
-The *governance tool* exposes four core operations. *define_policy(policy)* adds or updates rules—e.g. "Do not exceed cost X per user," "Block actions that match pattern P." *check_compliance(action)* returns allow or block (and optionally a reason): is this action allowed under current policy? The agent invokes this before sensitive actions—e.g. before calling a paid API or modifying user data. *simulate(scenario)* runs a scenario (e.g. "100 users, mixed workload") and returns outcomes—latency, cost, violations—so we can test policies before deployment. *report()* returns an audit summary: what was checked, what was blocked, what was simulated. Together, these operations make governance *actionable* inside the agent loop.
+*From post‑hoc audit to pre‑action gate*::  
+Traditional audit pipelines (see Chapter 2) record what the system did and later verify compliance. In high‑stakes domains, waiting until after the fact is often too late—the damage may already be done. A proactive mechanism must intervene *inside* the decision loop, preventing prohibited actions from ever occurring. Treating governance as a **tool** means the agent can invoke it exactly like a search or calculation service, with a guaranteed round‑trip latency that fits within the overall response time budget.
 
-The agent invokes governance for *self-audit*. Before a sensitive action, it calls check_compliance; if the result is block, it does not proceed (or escalates). That extends the agent's capacity for responsibility: it can refuse to act when policy forbids it. Integration with the audit tool (Ch2) is direct: audit *describes* what happened; governance *prescribes* what is allowed and checks before action. The governance tool belongs in student-ai/ alongside memory, reasoning, and other tool servers. Reflexive governance—the agent that governs itself—has a clear limit: the agent can only check what it is programmed to check. It cannot audit its own auditing; external audit and human oversight remain necessary. But self-audit is a real capability: the agent can say no.
+*The governance tool in the agent stack*::  
+Figure 11.7 (see below) places the governance tool alongside memory, reasoning, and other external tool servers. When the agent is about to execute a high‑impact operation—e.g., a paid API call, a database write, or a medical recommendation—it first sends a JSON description of the intended action to `governance.check_compliance`. The tool evaluates the request against the current policy set, logs the check to the audit service, and returns either `allow` or `block` together with a human‑readable justification. If the response is `block`, the agent can abort, ask for human clarification, or synthesize a fallback action. This *reflexive* call is a self‑check that happens every time, not just at deployment time.
 
-===== Key Points
+*Policy language and failure modes*::  
+Policies are expressed in a compact, hierarchical JSON rule language that supports three primitive constructs:
 
-* governance tool: define_policy, check_compliance, simulate, report
-* define_policy: add/update rules; check_compliance: allow/block before action
-* simulate: run scenarios, get outcomes; report: audit summary
-* Agent invokes for self-audit; check before sensitive actions
-* Integrates with audit (Ch2): audit describes, governance prescribes
-* Reflexive governance: agent can refuse when policy forbids
-* Limits: agent checks only what it is programmed to check; external audit still needed
+1. **Threshold rules** – e.g. `{"type":"threshold","field":"dose_mg","max":30}`.
+2. **Pattern‑matching rules** – e.g. `{"type":"regex","field":"drug_name","pattern":"^opioid_.*$"}`.
+3. **Role‑based overrides** – e.g. `{"type":"override","role":"senior_physician","allow":true}`.
 
-==== Technical Example
+The rule engine walks the list of policies in order of specificity, short‑circuiting on the first decisive match. Because the engine is deterministic and stateless, it can be sandboxed and formally verified. However, the system is only as trustworthy as the policy store itself. A corrupted database, a stale version, or an adversarial injection could cause the tool to *allow* a prohibited action. To mitigate this, every policy update is signed, versioned, and logged; the audit service monitors integrity alerts and can trigger a human‑in‑the‑loop override.
 
-Define the governance tool schema in your agent framework. *define_policy(policy)* takes a policy object (e.g. rules, limits, patterns) and stores it. *check_compliance(action)* evaluates the action against the current policy and returns allow or block (and optionally a reason). *simulate(scenario)* runs the scenario—e.g. a set of hypothetical actions or a load profile—and returns outcomes (e.g. violations, cost, latency). *report()* returns a summary of recent checks and simulations. The agent calls check_compliance before sensitive actions (e.g. before calling a paid API or writing user data); if the result is block, the agent does not proceed or escalates to the user.
-
-Lab 3: Complete the governance simulator. Implement the tool server, register it with the agent, and integrate so the agent invokes governance for compliance checks. The agent that can check itself is a core deliverable—but document the limits: what the agent can and cannot check, and where external audit is still required.
-
-===== Key Points
-
-* Schema: define_policy, check_compliance, simulate, report
-* Agent calls check_compliance before sensitive actions; block → do not proceed or escalate
-* Lab 3: Complete simulator, register, integrate; document limits
-
-==== Philosophical Reflection
-
-Reflexive governance—the agent that governs itself—is a real design choice. By giving the agent a governance tool, we extend its capacity for responsibility: it can check policy and refuse to act. That is not full accountability; the agent can only check what it knows to check, and it cannot audit its own auditing. Blind spots and gaming remain possible. So self-audit complements rather than replaces external audit and human oversight. But self-audit matters: it shifts some governance *into* the loop, so the system can say no before harm occurs. The EU AI Act (<<EU2024>>) and NIST AI RMF (<<NIST2023>>) treat governance as something systems should support; the governance tool is one way to make that support concrete.
+*Performance, scaling, and the bridge to the lab*::  
+In latency‑sensitive settings (e.g., real‑time triage), the `check_compliance` call must complete within a few milliseconds. The tool therefore caches the compiled rule set in memory and uses a lock‑free read‑only data structure for look‑ups. For batch workloads—such as a nightly simulation of 10 000 hypothetical prescriptions—the `simulate` operation runs the rule engine in parallel across multiple cores, aggregating violation statistics. Understanding these trade‑offs (synchronous vs. asynchronous checks, caching vs. freshness) will be the focus of Lab 3, where you will turn the stub into a production‑grade HTTP service, stress‑test it, and integrate it with the agent’s tool‑registry.
 
 ===== Key Points
 
-* Reflexive governance: agent can check and refuse; extends responsibility
-* Limits: only checks what it is programmed to check; cannot audit its own auditing
-* Self-audit complements external audit and human oversight; does not replace them
-* Governance in the loop: system can say no before harm; EU/NIST alignment
+* The governance tool is a *first‑class* capability that sits beside memory, reasoning, and other tool servers.  
+* Reflexive governance means the agent calls `check_compliance` on its own planned actions before they are executed.  
+* Policies are declarative JSON rules supporting thresholds, regex patterns, and role‑based overrides.  
+* `check_compliance` returns `allow` or `block` with a human‑readable reason; a `block` can trigger abort, escalation, or fallback.  
+* `simulate` runs what‑if workloads to surface hidden violations before deployment.  
+* `define_policy` updates the rule set; updates are signed, versioned, and logged for integrity.  
+* `report` streams real‑time compliance data to the audit service (Chapter 2).  
+* Failure modes include corrupted policy stores, stale caches, and adversarial rule injection.  
+* Performance is achieved via in‑memory compiled rule caches and lock‑free reads; batch simulation uses parallel execution.  
+* The tool bridges legal mandates (EU AI Act, NIST AI RMF) and engineering practice, providing concrete evidence of compliance.
 
-.Figure 11.7: governance in agent stack
+.Figure 11.7: Interaction diagram for the governance tool – how an autonomous agent consults the Governance Tool before acting, logs to the Audit Service, receives policy updates from a human overseer, and registers the tool via the Tool Registry.
 [plantuml,ch11-l07,png,theme=sketchy-outline]
 ....
 @startuml
-start
-:Agent;
-:governance;
-:define_policy;
-:check_compliance;
-:simulate;
-stop
+skinparam componentStyle rectangle
+skinparam backgroundColor #F9F9F9
+
+component Agent
+component "Governance Tool\n(define, check, simulate, report)" as Gov
+component "Audit Service (Ch2)" as Audit
+component "Human / External Auditor" as Human
+component "Tool Registry" as Registry
+
+Agent --> Registry : register\n(governance)
+Registry --> Gov : invoke
+Agent --> Gov : self‑check\n(check_compliance)
+Gov --> Agent : allow / block\n(reason)
+Gov --> Audit : log check
+Audit --> Gov : integrity alerts\n(tamper detection)
+Human -[#gray,dashed]-> Gov : policy push (signed)
+Agent -[#gray,dotted]-> Agent : self‑check (reflexive)
+
 @enduml
 ....
 
-==== Discussion Prompts
+==== Technical Example
 
-* Can an agent truly govern itself?
-* What are the limits of self-audit?
-* When should governance block vs. warn?
-* How does the governance tool integrate with the orchestrator (Ch10)?
-* How does the governance tool extend the audit tool (Ch2)?
-* When is self-audit sufficient vs. external audit?
+Below is a minimal Python‑style stub that demonstrates how an agent integrates the governance tool. The stub focuses on the *pre‑action check* and shows a concrete JSON policy representation. The code is deliberately simple so you can extend it in Lab 3.
 
-==== Lab Prep
+```python
+# governance_tool.py
+import json
+from typing import Dict, Any, List
 
-Lab 3: Complete the governance simulator. Register as tool server. Integrate with the agent. The agent invokes governance for compliance checks. See Lab 3 for requirements.
+class GovernanceTool:
+    def __init__(self):
+        # In‑memory list of policy dicts; in production this would be loaded from a signed store
+        self.policies: List[Dict[str, Any]] = []
+
+    def define_policy(self, policy: Dict[str, Any]) -> None:
+        """Replace or add a policy based on its 'id'."""
+        self.policies = [p for p in self.policies if p.get("id") != policy.get("id")]
+        self.policies.append(policy)
+
+    def _evaluate_threshold(self, action: Dict[str, Any], rule: Dict[str, Any]) -> bool:
+        field = rule["field"]
+        limit = rule["max"]
+        return action.get(field, 0) <= limit
+
+    def _evaluate_regex(self, action: Dict[str, Any], rule: Dict[str, Any]) -> bool:
+        import re
+        field = rule["field"]
+        pattern = rule["pattern"]
+        value = str(action.get(field, ""))
+        return re.match(pattern, value) is not None
+
+    def check_compliance(self, action: Dict[str, Any]) -> Dict[str, str]:
+        """
+        Evaluate `action` against all policies.
+        Returns {'decision': 'allow'|'block', 'reason': str}
+        """
+        for p in self.policies:
+            if p["type"] == "threshold":
+                if not self._evaluate_threshold(action, p):
+                    return {"decision": "block",
+                            "reason": f"{p['field']} exceeds {p['max']}"}
+            elif p["type"] == "regex":
+                if not self._evaluate_regex(action, p):
+                    return {"decision": "block",
+                            "reason": f"{p['field']} does not match {p['pattern']}"}
+            elif p["type"] == "override":
+                # Simple role‑based override – if role matches, force allow
+                if action.get("role") == p["role"]:
+                    return {"decision": "allow", "reason": "role‑based override"}
+        return {"decision": "allow", "reason": "All checks passed"}
+```
+
+The agent loop now becomes a thin wrapper around this tool. The following snippet shows a *full request trace*: the agent builds an action description, calls `check_compliance`, reacts to a `block`, and finally logs the outcome to the audit service.
+
+```python
+# agent_loop.py
+from governance_tool import GovernanceTool
+
+gov = GovernanceTool()
+# Load a simple policy: no opioid dose > 30 mg for patients with elevated enzymes
+gov.define_policy({
+    "id": "opioid_dose_limit",
+    "type": "threshold",
+    "field": "dose_mg",
+    "max": 30,
+    "condition": {"lab": "ALT", "operator": ">", "value": 50}  # illustrative
+})
+
+def perform_action(action):
+    # 1️⃣ Reflexive compliance check
+    verdict = gov.check_compliance(action)
+    if verdict["decision"] == "block":
+        print(f"[BLOCKED] {verdict['reason']}")
+        # In a real system we would forward to a human overseer here
+        return
+    # 2️⃣ Safe to execute – placeholder for the actual high‑impact work
+    print(f"[EXECUTING] {action['name']} with params {action}")
+    # 3️⃣ Log to audit (omitted for brevity)
+
+# Example usage – a risky prescription
+risky_prescription = {
+    "name": "prescribe_opioid",
+    "dose_mg": 45,
+    "lab_ALT": 70,          # elevated liver enzyme
+    "role": "junior_physician"
+}
+perform_action(risky_prescription)   # prints blocked message
+```
+
+*Simulation and HTTP wrapper*::  
+Before deploying a new policy, developers typically run a *what‑if* simulation. The stub below shows a quick `simulate` function that generates 1 000 synthetic actions (random doses, random lab values) and aggregates the number of blocks. In Lab 3 you will replace this with a proper FastAPI endpoint (`/simulate`) that accepts a workload description, streams results, and returns a JSON summary.
+
+```python
+import random
+
+def simulate(num_cases: int = 1000):
+    violations = 0
+    for _ in range(num_cases):
+        action = {
+            "name": "prescribe_opioid",
+            "dose_mg": random.randint(5, 60),
+            "lab_ALT": random.randint(20, 120),
+            "role": random.choice(["junior_physician", "senior_physician"])
+        }
+        if gov.check_compliance(action)["decision"] == "block":
+            violations += 1
+    return {"total": num_cases, "violations": violations,
+            "violation_rate": violations / num_cases}
+```
+
+Running `simulate()` after defining a policy gives you immediate insight into how many prescriptions would be rejected under current rules—a crucial step before a policy goes live.
 
 ===== Key Points
 
-* Lab 3: Complete, register, integrate
-* Agent invokes governance
+* Governance schema is a tiny rule engine (`define_policy`, `check_compliance`) built on JSON.  
+* Policies support thresholds, regex pattern matching, and role‑based overrides.  
+* The agent loop performs a *reflexive* `check_compliance` before any high‑risk operation.  
+* A `block` decision triggers abort, escalation to a human, or generation of a safe fallback.  
+* `simulate` re‑uses the same rule engine to evaluate synthetic workloads and produce violation statistics.  
+* Lab 3 will wrap the engine in a FastAPI/Flask HTTP service exposing `/define`, `/check`, and `/simulate`.  
+* Students will also add signed policy loading, versioning, and audit‑log integration.  
 
+==== Philosophical Reflection
+
+*Responsibility gaps narrowed, but not closed*::  
+When the medical chatbot in our opening scenario blocks the opioid prescription, it appears to have taken responsibility for patient safety. Yet the *responsibility gap*—the distance between the system’s designers and its real‑world actions—remains because the block is only as trustworthy as the policy store. If an adversary compromises the signed JSON file, the same chatbot could *allow* a dangerous dose, silently violating law and ethics. Reflexive governance therefore must be paired with immutable logging (the audit service) and periodic human review to detect and remediate such integrity breaches.
+
+*Legal mandates meet engineering practice*::  
+Both the EU AI Act and the NIST AI RMF explicitly require “technical governance mechanisms” that can enforce compliance in real time. The governance tool provides exactly that: a documented API (`check_compliance`, `define_policy`, `simulate`, `report`) that regulators can inspect, a signed policy artifact that can be audited, and a real‑time audit feed that satisfies the “record‑keeping” clause of the EU AI Act. However, the standards also caution that “technical measures alone cannot guarantee compliance.” Our tool is therefore *evidence* of due diligence, not a silver bullet that absolves designers from broader accountability.
+
+*Beyond direct actions – indirect harms and future safeguards*::  
+Consider a different high‑risk domain: an autonomous trading bot that must not exceed a daily exposure limit on a particular asset class. A simple threshold rule can block a trade that would push the exposure over the limit, but the bot could still *indirectly* influence the market by issuing a series of small trades that together achieve the same effect—a classic “aggregation” problem. Anticipating such indirect pathways pushes us toward richer policy languages that can express *causal constraints* (e.g., “no sequence of actions whose cumulative effect exceeds X”) and toward hybrid oversight models where humans audit *outcomes* as well as *actions*. In Lecture 12 we will explore how multiple agents can share a common governance framework, negotiate policy conflicts, and collectively monitor emergent systemic risks.
+
+*Design trade‑offs: synchronous vs. asynchronous checks*::  
+A synchronous `check_compliance` call guarantees that no prohibited action slips through, but it adds latency to every high‑impact request. In latency‑critical settings (e.g., emergency triage) an asynchronous “pre‑flight” check that runs in parallel with the main computation may be preferable, provided the system can roll back or abort if a later block arrives. Understanding these trade‑offs—how to balance safety, responsiveness, and resource consumption—is a core design decision you will confront when you build the full‑featured tool in Lab 3.
+
+*Future vision*::  
+If we succeed in making reflexive governance reliable, the next frontier is *collective* governance: a federation of agents that share policy updates, propagate integrity alerts, and co‑ordinate simulations of systemic risk. Such a network could satisfy the “systemic oversight” clause that appears in upcoming AI regulatory drafts, turning isolated reflexive checks into a distributed safety net.
+
+===== Key Points
+
+* Reflexive governance narrows the responsibility gap but does not eliminate the need for immutable audit logs and human review.  
+* The tool operationalises EU AI Act and NIST AI RMF requirements, providing concrete API evidence of compliance.  
+* Direct rule checks cannot capture indirect or aggregated harms; richer causal policy languages are needed.  
+* Synchronous checks guarantee safety at the cost of latency; asynchronous designs trade immediacy for throughput.  
+* Future work includes multi‑agent shared governance, systemic risk simulation, and regulatory “systemic oversight” provisions.  
+* The medical‑chatbot example illustrates both the promise (preventing a dangerous prescription) and the peril (policy store compromise).  
+
+==== Discussion Prompts
+
+* Can an autonomous agent truly *govern* itself, or does it merely execute externally supplied rules without understanding their intent?  
+* Which classes of policies (thresholds, pattern matching, causal constraints) are easy to encode in a rule engine, and which resist formalisation?  
+* How should an agent react when `check_compliance` returns `block`—abort, ask for human input, or synthesize a safe alternative?  
+* In what ways might an adversary manipulate the policy store, and what cryptographic or architectural safeguards can mitigate that risk?  
+* How does the governance tool complement the audit service from Chapter 2, and where does each approach fall short in detecting hidden violations?  
+* Looking ahead, how might multiple agents coordinate under a shared governance framework, and what new challenges does that introduce?  
+
+==== Lab Prep
+
+*Lab 3 – Governance Simulator*::  
+Students will transform the stub from the Technical Example into a production‑grade HTTP service that can be queried by any agent in the stack. The lab tasks are:
+
+1. **Design a JSON‑based policy schema** that supports thresholds, regex pattern matching, and role‑based overrides, and add a version field signed with a private key.  
+2. **Implement `check_compliance`** using a lightweight rule‑engine (e.g., `jsonlogic` or a custom evaluator) that can be hot‑reloaded without restarting the server.  
+3. **Create a `/simulate` endpoint** that accepts a synthetic workload description, runs each generated action through the compliance checker in parallel, and returns aggregated statistics (total actions, violations, average latency).  
+4. **Expose the tool via FastAPI (or Flask)** and register it with the agent’s Tool Registry so that `governance.check_compliance` can be invoked automatically from the agent loop.  
+5. **Document limitations** (e.g., inability to detect indirect harms, reliance on policy integrity) and propose a minimal external audit checklist that the audit service must run nightly.
+
+===== Key Points
+
+* Implement a signed, versioned JSON policy language with thresholds, regexes, and role overrides.  
+* Build a fast, hot‑reloadable rule engine for `check_compliance`.  
+* Provide a `/simulate` endpoint for batch “what‑if” testing and metrics aggregation.  
+* Register the service with the Tool Registry and ensure agents can call it synchronously.  
+* Write a short report on tool limits and a complementary external audit checklist.  
 
 ==== Reading
-For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch11,Chapter 11>>).
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch11,Chapter 11>>).

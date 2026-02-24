@@ -10,6 +10,8 @@
  * Usage:
  *   cd aipa && node scripts/grade-lectures-with-llm.mjs [--dry-run] [--limit N] [--output path] [--reviews-dir DIR]
  *   --reviews-dir DIR  Read review files from DIR (default: llm-reviews); use llm-reviews-round2 for post-revision baseline.
+ *   --bedrock   Use AWS Bedrock instead of the Supabase gateway. --model = Bedrock model ID (default: openai.gpt-oss-120b-1:0).
+ *   --bedrock-region R  AWS region for Bedrock (default: us-east-1). Set AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY or AWS_PROFILE.
  */
 
 import fs from 'fs'
@@ -24,16 +26,27 @@ const REVIEWS_DIR = reviewsDirIdx >= 0 && process.argv[reviewsDirIdx + 1]
   ? path.resolve(AIPA_ROOT, process.argv[reviewsDirIdx + 1])
   : path.join(AIPA_ROOT, 'llm-reviews')
 
-function loadEnvFromInquiryInstitute() {
-  const envPath = path.join(REPO_ROOT, '..', 'Inquiry.Institute', '.env.local')
+const ENV_KEYS = /^\s*(NEXT_PUBLIC_SUPABASE_URL|NEXT_PUBLIC_SUPABASE_ANON_KEY|SUPABASE_URL|SUPABASE_ANON_KEY|AWS_ACCESS_KEY_ID|AWS_SECRET_ACCESS_KEY|AWS_REGION|AWS_DEFAULT_REGION)\s*=\s*(.+)\s*$/
+function loadEnvFromFile(envPath) {
   if (!fs.existsSync(envPath)) return
   const text = fs.readFileSync(envPath, 'utf8')
   for (const line of text.split('\n')) {
-    const m = line.match(/^\s*(NEXT_PUBLIC_SUPABASE_URL|NEXT_PUBLIC_SUPABASE_ANON_KEY|SUPABASE_URL|SUPABASE_ANON_KEY)\s*=\s*(.+)\s*$/)
+    const m = line.match(ENV_KEYS)
     if (!m) continue
     const key = m[1].startsWith('NEXT_PUBLIC_') ? m[1].replace('NEXT_PUBLIC_', '') : m[1]
     const val = (m[2] || '').replace(/^["']|["']$/g, '').trim()
     if (val && !process.env[key]) process.env[key] = val
+  }
+}
+function loadEnvFromInquiryInstitute() {
+  const dirs = [
+    path.join(REPO_ROOT, '..', 'Inquiry.Institute'),
+    path.join(process.env.HOME || process.env.USERPROFILE || '', 'GitHub', 'Inquiry.Institute'),
+  ]
+  for (const dir of dirs) {
+    if (!dir) continue
+    loadEnvFromFile(path.join(dir, '.env.local'))
+    loadEnvFromFile(path.join(dir, '.env'))
   }
 }
 loadEnvFromInquiryInstitute()
@@ -46,18 +59,27 @@ const dryRun = args.includes('--dry-run')
 const limitIdx = args.indexOf('--limit')
 const limit = limitIdx >= 0 && args[limitIdx + 1] ? parseInt(args[limitIdx + 1], 10) : null
 const modelIdx = args.indexOf('--model')
-const MODEL = modelIdx >= 0 && args[modelIdx + 1] ? args[modelIdx + 1] : null
+const MODEL = modelIdx >= 0 && args[modelIdx + 1] ? args[modelIdx + 1] : 'openai/gpt-oss-120b'
 const outIdx = args.indexOf('--output')
 const outputPath = outIdx >= 0 && args[outIdx + 1]
   ? path.resolve(process.cwd(), args[outIdx + 1])
   : path.join(REPO_ROOT, 'AIPA_LECTURE_GRADES.md')
+const USE_BEDROCK = args.includes('--bedrock')
+const bedrockRegionIdx = args.indexOf('--bedrock-region')
+const BEDROCK_REGION = bedrockRegionIdx >= 0 && args[bedrockRegionIdx + 1]
+  ? args[bedrockRegionIdx + 1]
+  : (process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION || 'us-east-1')
+const BEDROCK_MODEL = USE_BEDROCK ? (modelIdx >= 0 && args[modelIdx + 1] ? args[modelIdx + 1] : 'openai.gpt-oss-120b-1:0') : null
 
-if (!dryRun && (!SUPABASE_URL || !SUPABASE_ANON_KEY)) {
-  console.error('Set SUPABASE_URL and SUPABASE_ANON_KEY')
+if (!dryRun && !USE_BEDROCK && (!SUPABASE_URL || !SUPABASE_ANON_KEY)) {
+  console.error('Set SUPABASE_URL and SUPABASE_ANON_KEY, or use --bedrock')
   process.exit(1)
 }
+if (!dryRun && USE_BEDROCK && (!process.env.AWS_ACCESS_KEY_ID && !process.env.AWS_SECRET_ACCESS_KEY && !process.env.AWS_PROFILE)) {
+  console.warn('Bedrock: no AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY or AWS_PROFILE set; using default credential chain.')
+}
 
-const GATEWAY_URL = `${SUPABASE_URL}/functions/v1/llm-gateway`
+const GATEWAY_URL = SUPABASE_URL ? `${SUPABASE_URL}/functions/v1/llm-gateway` : null
 
 const CHAPTER_NAMES = {
   1: 'Intelligence as Process',
@@ -118,6 +140,16 @@ function parseSourceHeader(lecturePath) {
   return { num: '', title: '' }
 }
 
+/** Derive lecture num from slug when source has no parseable header (e.g. ch03-lecture-01 → 3.1) */
+function numFromSlug(slug) {
+  const useCase = slug.match(/^ch(\d+)-lecture-use-cases$/)
+  if (useCase) return `${parseInt(useCase[1], 10)}.2`
+  const m = slug.match(/^ch(\d+)-lecture-(\d+)([a-z])?$/i)
+  if (!m) return ''
+  const [, ch, lec, a] = m
+  return `${parseInt(ch, 10)}.${parseInt(lec, 10)}${a ? a.toLowerCase() : ''}`
+}
+
 /** Get list of review files in lecture order (ch01-lecture-01, ch01-lecture-02, ...) */
 function listReviewFiles() {
   const files = fs.readdirSync(REVIEWS_DIR)
@@ -133,11 +165,12 @@ function listReviewFiles() {
   })
 }
 
-const GRADE_PROMPT = `You are grading a single lecture from the AIPA textbook. Use this scale only:
-- A = Exemplary: 90-min ready, clear hook → development → closing, meets density (Conceptual 4-6 para, Technical 2-3, Reflection 2-3; Key Points 6-12/5-8). Minimal ad-lib needed.
+const GRADE_PROMPT = `You are grading a single lecture from the AIPA textbook. Use this scale only. Target density and depth: ~2,500–3,500 words total; Conceptual Core ~800–1,200 words (4–6 para, 6–12 Key Points); Technical ~400–600 words (2–3 para, 5–8 Key Points); Reflection ~400–600 words (2–3 para, 5–8 Key Points); 5–6 Discussion Prompts; Lab Prep 1–2 para, 4–6 Key Points. Depth = substantive sections, no thin or definition-only dumps; reflection extends the story; forward bridge where appropriate.
+
+- A = Exemplary: 90-min ready, clear hook → development → closing, meets density and word targets above, substantive depth. Minimal ad-lib needed.
 - B = Solid: Good structure and density; all sections present; may have one lighter section or slightly definition-first opening. Teachable.
 - C = Adequate: Complete but lighter; needs instructor expansion or discussion for 90 min. Some lectures are C by design (e.g. tool/Lab Integration).
-- D = Thin or weak: Below target density and/or missing narrative arc or key section. Needs expansion.
+- D = Thin or weak: Below target density/depth and/or missing narrative arc or key section. Needs expansion.
 
 Reply with exactly two lines:
 GRADE: [A or B or C or D]
@@ -146,6 +179,37 @@ REASON: [one short phrase, no newline]`
 const GATEWAY_RETRY_ON_STATUS = [502, 503, 504]
 const GATEWAY_RETRY_DELAY_MS = 5000
 const GATEWAY_RETRY_MAX = 2
+
+/** Call AWS Bedrock Converse API. messages = [{ role, content }]. */
+async function callBedrock(messages, modelId, maxTokens = 256) {
+  const sdk = await import('@aws-sdk/client-bedrock-runtime').catch(() => null)
+  if (!sdk) throw new Error('Bedrock requires @aws-sdk/client-bedrock-runtime. Run: npm install @aws-sdk/client-bedrock-runtime')
+  const { BedrockRuntimeClient, ConverseCommand } = sdk
+  const systemBlocks = []
+  const converseMessages = []
+  for (const msg of messages) {
+    const text = typeof msg.content === 'string' ? msg.content : (msg.content?.text ?? '')
+    if (msg.role === 'system') {
+      systemBlocks.push({ text })
+    } else {
+      converseMessages.push({
+        role: msg.role === 'assistant' ? 'assistant' : 'user',
+        content: [{ text }],
+      })
+    }
+  }
+  const client = new BedrockRuntimeClient({ region: BEDROCK_REGION })
+  const response = await client.send(new ConverseCommand({
+    modelId,
+    ...(systemBlocks.length ? { system: systemBlocks } : {}),
+    messages: converseMessages,
+    inferenceConfig: { maxTokens, temperature: 0.2, topP: 1 },
+  }))
+  const output = response.output
+  return output?.message?.content?.length
+    ? output.message.content.map(block => block.text ?? '').join('')
+    : ''
+}
 
 async function callGateway(messages, maxTokens = 200) {
   const body = { messages, temperature: 0.2, max_tokens: maxTokens }
@@ -188,18 +252,13 @@ function parseGradeResponse(text) {
 function buildReport(rows) {
   const byChapter = {}
   for (const r of rows) {
-    const ch = parseInt(r.num, 10) || parseInt(r.num.replace(/[^0-9]/g, ''), 10)
+    const chMatch = r.slug && r.slug.match(/^ch(\d+)/)
+    const ch = chMatch ? parseInt(chMatch[1], 10) : (parseInt(r.num, 10) || parseInt((r.num || '').replace(/[^0-9]/g, ''), 10) || 1)
     if (!byChapter[ch]) byChapter[ch] = []
     byChapter[ch].push(r)
   }
-  const sortKey = (n) => {
-    const m = n.match(/^(\d+)\.(\d+)([a-z]?)$/i)
-    if (!m) return n
-    const [, c, s, a] = m
-    return `${c.padStart(2, '0')}.${s.padStart(2, '0')}${(a || 'z').toLowerCase()}`
-  }
   for (const ch of Object.keys(byChapter)) {
-    byChapter[ch].sort((a, b) => sortKey(a.num).localeCompare(sortKey(b.num)))
+    byChapter[ch].sort((a, b) => (a.slug || '').localeCompare(b.slug || ''))
   }
   const counts = { A: 0, B: 0, C: 0, D: 0 }
   rows.forEach(r => { counts[r.grade] = (counts[r.grade] || 0) + 1 })
@@ -250,7 +309,7 @@ async function main() {
   if (limit) toProcess = toProcess.slice(0, limit)
   const lectures = findLectures()
   const slugToPath = Object.fromEntries(lectures.map(p => [slugFromPath(p), p]))
-  console.log(`Review files: ${files.length}; grading: ${toProcess.length} (dryRun=${dryRun})`)
+  console.log(`Review files: ${files.length}; grading: ${toProcess.length} (dryRun=${dryRun})${USE_BEDROCK ? ' [Bedrock: ' + BEDROCK_MODEL + ']' : ''}`)
 
   const rows = []
   for (let i = 0; i < toProcess.length; i++) {
@@ -258,32 +317,52 @@ async function main() {
     const slug = path.basename(reviewPath, '.md')
     const content = fs.readFileSync(reviewPath, 'utf8')
     const firstLine = content.split('\n')[0]
-    let { num, title } = parseReviewHeader(firstLine)
-    if (!num && slugToPath[slug]) {
-      const fromSource = parseSourceHeader(slugToPath[slug])
-      if (fromSource.num) ({ num, title } = fromSource)
+    // Prefer num/title from source lecture so filename (ch03-lecture-01) determines identity,
+    // not the often-wrong first line of the review (e.g. "1.1" in ch07-lecture-05).
+    const sourcePath = slugToPath[slug]
+    let { num, title } = sourcePath ? parseSourceHeader(sourcePath) : { num: '', title: '' }
+    if (!num) {
+      const fromReview = parseReviewHeader(firstLine)
+      if (fromReview.num) ({ num, title } = fromReview)
+    }
+    if (!num) {
+      const derived = numFromSlug(slug)
+      if (derived) num = derived
+    }
+    if (!title && sourcePath) {
+      const fromSource = parseSourceHeader(sourcePath)
+      if (fromSource.title) title = fromSource.title
+    }
+    if (!title) {
+      const fromReview = parseReviewHeader(firstLine)
+      if (fromReview.title) title = fromReview.title
     }
     if (!num) {
       console.warn(`  Skip ${slug}: could not parse header`)
       continue
     }
-    console.log(`[${i + 1}/${toProcess.length}] ${num} ${title.slice(0, 40)}...`)
+    if (!title) title = slug
+    const displayNum = numFromSlug(slug) || num
+    console.log(`[${i + 1}/${toProcess.length}] ${displayNum} ${title.slice(0, 40)}...`)
 
     if (dryRun) {
-      rows.push({ num, title, grade: '?', reason: '(dry run)' })
+      rows.push({ slug, num: displayNum, title, grade: '?', reason: '(dry run)' })
       continue
     }
 
     try {
-      const reply = await callGateway([
+      const messages = [
         { role: 'system', content: GRADE_PROMPT },
         { role: 'user', content: `Review to grade:\n\n${content.slice(0, 6000)}` },
-      ])
+      ]
+      const reply = USE_BEDROCK
+        ? await callBedrock(messages, BEDROCK_MODEL, 256)
+        : await callGateway(messages)
       const { grade, reason } = parseGradeResponse(reply)
-      rows.push({ num, title, grade, reason })
+      rows.push({ slug, num: displayNum, title, grade, reason })
     } catch (e) {
       console.error(`  ERROR: ${e.message}`)
-      rows.push({ num, title, grade: '?', reason: e.message.slice(0, 80) })
+      rows.push({ slug, num: displayNum, title, grade: '?', reason: e.message.slice(0, 80) })
     }
     await new Promise(r => setTimeout(r, 800))
   }

@@ -8,77 +8,90 @@ ____
 
 ==== Hook: The Hidden Cost of “One‑off” Experiments
 
-Imagine you are part of a fast‑moving data‑science team. Yesterday you trained a gradient‑boosted model that achieved 92 % accuracy on a validation set. Today a stakeholder asks for a **production‑ready** version. You pull the notebook, rerun the cells, and—​to your surprise—the model now scores only 84 %. The code looks identical, the data is the same, but something invisible has shifted.  
+Imagine you are part of a fast‑moving data‑science team. Yesterday you trained a gradient‑boosted model that achieved **92 %** accuracy on a validation set. Today a stakeholder asks for a **production‑ready** version. You pull the notebook, rerun the cells, and—​to your surprise—the model now scores only **84 %**. The code looks identical, the data is the same, but something invisible has shifted.
 
 *Why does this happen?*  
 *How can we guarantee that the model we ship is exactly the one we celebrated in the sprint demo?*  
 
-These questions set the stage for today’s lecture: we will explore how **MLflow** turns ad‑hoc experiments into reproducible, auditable artifacts, and we will walk through a concrete implementation that logs every seed, hyper‑parameter, metric, and model artifact.
+These two questions will drive the lecture. We will first see how a single, seemingly harmless change (a library upgrade, a different random seed, a hidden data‑augmentation flag) can break reproducibility, and then we will introduce **MLflow** as the systematic antidote that turns ad‑hoc notebooks into auditable, repeatable experiments.
 
-==== Conceptual Core: Building a Reproducible Experiment Pipeline
+==== Conceptual Core: From a Mystery to a Method
 
-MLflow is an open‑source platform that standardises the *lifecycle* of a machine‑learning experiment: from the moment a run starts, through iterative logging of parameters and metrics, to the final artefact registration. Its three core components—*Tracking*, *Projects*, and *Model Registry*—work together to make experiments searchable, comparable, and repeatable.
+When Alice’s model degraded, three concrete gaps became apparent:
 
-*Key points*  
-* **Experiment tracking** records every *run* as a first‑class object, assigning it a unique ID.  
-* **Parameters** (hyper‑parameters, seeds, data‑paths) are stored as key‑value pairs, enabling later filtering.  
-* **Metrics** (loss, accuracy, custom scores) can be logged per step, allowing visualisation of training curves.  
-* **Artifacts** (model files, configuration files, plots) are persisted in a central store (local filesystem, S3, Azure Blob, etc.).  
-* **Model Registry** provides a versioned catalogue of production‑ready models, complete with stage transitions (Staging → Production).  
+1. **No single source of truth for the run configuration** – the notebook scattered hyper‑parameters across cells, and the seed was set in a hidden utility script.  
+2. **Metrics were plotted on the fly but never persisted** – the loss curve existed only in a temporary Matplotlib window.  
+3. **The code that produced the model was not version‑locked** – a minor `scikit‑learn` update had silently altered the default solver behaviour.
 
-Why log *seeds*? Random number generators in NumPy, PyTorch, TensorFlow, and even scikit‑learn determine data shuffling, weight initialisation, and stochastic optimisation paths. By persisting the exact seed values alongside the code version, we guarantee that a future replay of the run will follow the same stochastic trajectory, yielding identical metrics—*provided the environment is unchanged*.
+MLflow was designed precisely to close those gaps. It treats every training execution as a *run*—a first‑class object that lives in a central experiment server. The run records **what** was executed, **how** it was executed, and **what** came out of it. The three pillars of MLflow map directly onto Alice’s missing pieces:
 
-*Key points*  
-* **Determinism** is a spectrum: fixing seeds reduces variance but does not eliminate nondeterminism arising from parallel GPU kernels or library‑level nondeterministic ops.  
-* **Configuration files** (YAML, JSON) capture the full experimental context—learning rates, batch sizes, data‑augmentation flags—so that a colleague can rerun the experiment with a single command.  
-* **Version control integration** (Git SHA stored as a tag) ties each run to the exact code snapshot, closing the loop between code and results.  
+* **Tracking** – a lightweight API that logs parameters, metrics, and artefacts as the run progresses.  
+* **Projects** – a convention (and optional CLI) that packages code, environment specifications, and entry points into a reproducible bundle.  
+* **Model Registry** – a versioned catalogue that stores trained models, their stages (Staging, Production, Archived), and associated metadata.
 
-The MLflow UI visualises this information in a web dashboard. Users can compare runs side‑by‑side, filter by parameter values, and download artefacts for deeper inspection. This transparency is not merely a convenience; it is a cornerstone of scientific rigor and ethical AI deployment, where hidden hyper‑parameters can mask bias or overfitting.
+Below are the essential concepts that make the system work in practice.
 
 *Key points*  
-* **Comparative analysis**: overlay loss curves of multiple runs to spot hyper‑parameter sensitivities.  
-* **Audit trails**: regulatory frameworks (e.g., GDPR, FDA) often require proof that a model’s behaviour can be reproduced.  
-* **Collaboration**: shared experiment servers enable distributed teams to build on each other’s work without re‑training from scratch.  
+* **Run ID** – a globally unique identifier that ties together all logged information.  
+* **Parameters** – scalar key‑value pairs (e.g., `learning_rate=0.01`, `seed=42`) that can be filtered in the UI.  
+* **Metrics** – numeric values optionally associated with a step (e.g., `epoch=5, loss=0.23`).  
+* **Artifacts** – arbitrary files (model binaries, configuration YAML, plots) stored in a configurable backend (local filesystem, S3, Azure Blob, etc.).  
+* **Git SHA tag** – the exact commit hash of the source code, automatically captured when `mlflow.start_run()` is called inside a Git‑tracked repository.
 
-Finally, MLflow’s extensibility lets you plug in custom logging (e.g., logging model explanations, data‑drift metrics) and integrate with orchestration tools such as Airflow or Kubeflow for automated pipelines.
+Why does logging the *seed* matter? Random number generators in NumPy, PyTorch, TensorFlow, and even scikit‑learn drive data shuffling, weight initialization, and stochastic optimisation. By persisting the seed values together with the code version, we guarantee that a future replay of the run will follow the same stochastic trajectory—*provided the execution environment is otherwise identical*. This deterministic anchor is the cornerstone of reproducibility, but it is not a silver bullet.
 
 *Key points*  
-* **Custom callbacks** can enrich the run with domain‑specific artefacts.  
-* **Pipeline orchestration** ensures that every stage—from data ingestion to model registration—is tracked automatically.  
-* **Scalable storage** options keep artefacts safe even as experiments grow into the terabyte range.
+* **Determinism is a spectrum** – fixing seeds reduces variance, yet GPU kernels, multithreaded BLAS libraries, and nondeterministic ops can still introduce tiny differences.  
+* **Configuration files** (YAML/JSON) capture the full experimental context (learning rates, batch sizes, data‑augmentation flags) in a single, human‑readable artifact.  
+* **Environment capture** – MLflow Projects can declare a Conda environment or Docker image, ensuring that library versions remain constant across machines.
+
+The MLflow UI makes these abstractions concrete. A run appears as a row in a table; clicking it expands a pane that shows parameters, a line chart of logged metrics, and a list of downloadable artefacts. The UI also supports **comparative analysis**: select two or more runs, overlay their loss curves, and instantly spot hyper‑parameter sensitivities. This visual audit trail is more than a convenience; it satisfies regulatory expectations (e.g., GDPR’s “right to explanation”, FDA’s software‑as‑a‑medical‑device guidance) that demand proof of reproducibility.
+
+*Key points*  
+* **Audit trails** – every change is immutable; the server stores a chronological log that can be exported for compliance reviews.  
+* **Collaboration** – a shared MLflow server lets distributed teams query each other’s experiments without re‑training.  
+* **Scalable storage** – artefacts can be off‑loaded to cloud object stores, keeping the server lightweight even when experiments generate terabytes of data.
+
+Finally, MLflow’s extensibility lets you plug in domain‑specific logging (e.g., model explanations, data‑drift scores) and hook into orchestration tools such as Airflow, Prefect, or Kubeflow. By treating the *experiment* as a first‑class citizen, you shift the culture from “one‑off notebooks” to “track‑first pipelines”.
 
 [plantuml,mlflow-run-lifecycle,svg]
 ----
 @startuml
 title MLflow Run Lifecycle
+legend left
+  <b>Solid line</b> = data flow
+  <b>Dashed line</b> = control / metadata
+endlegend
 start
 :Start Run (mlflow.start_run());
 :Log Parameters (mlflow.log_params());
 repeat
-  :Log Metric per epoch (mlflow.log_metric());
+  :Log Metric per epoch (mlflow.log_metric(step));
 repeat while (More epochs?) is (yes)
 :Log Model Artifact (mlflow.sklearn.log_model());
-:Log Config File (mlflow.log_dict());
+:Log Config File (mlflow.log_artifact());
+note right: Artefacts are stored in the\nconfigured backend (FS, S3, …)
 stop
 @enduml
 ----
-*Figure 1: The sequential steps that constitute a single MLflow run, from initialisation to artefact persistence.*
+*Figure 1: The sequential steps that constitute a single MLflow run, from initialisation to artefact persistence. Solid arrows represent data (metrics, artefacts); the dashed arrow shows the control flow that ends the run.*
 
 [plantuml,reproducibility-loop,svg]
 ----
 @startuml
 title Reproducibility Loop
 actor DataScientist
-DataScientist -> MLflow : Set seeds & config
-MLflow -> Training : Run with deterministic seeds
+DataScientist -> MLflow : Set seeds & config (log_params, log_artifact)
+MLflow -> Training : Launch run with deterministic seeds
 Training -> MLflow : Log metrics & artefacts
 MLflow -> DataScientist : Store run ID
 DataScientist -> MLflow : Replay run (run_id)
-MLflow -> Training : Restore seeds & config
+MLflow -> Training : Restore seeds & config (load_params)
 Training -> MLflow : Produce identical results
+note left: The replay step guarantees\nthat, barring external nondeterminism,\nthe same numbers reappear.
 @enduml
 ----
-*Figure 2: How persisting seeds and configuration enables exact replay of a training run.*
+*Figure 2: How persisting seeds and configuration enables an exact replay of a training run. The dashed arrows indicate control actions (store/replay), while solid arrows carry data.*
 
 ==== Technical Example: A Step‑by‑Step Walkthrough
 
@@ -89,11 +102,11 @@ We will now implement a minimal yet complete MLflow tracking script that trains 
 import mlflow
 import mlflow.sklearn
 import numpy as np
+import yaml
 from sklearn.datasets import load_iris
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
-import yaml
 
 # ------------------------------------------------------------------
 # 1️⃣  Define a reproducible configuration dictionary
@@ -152,53 +165,62 @@ with mlflow.start_run() as run:
 print(f"Run {run.info.run_id} logged with accuracy={acc:.4f}")
 ----
 *Key points*  
-* The **configuration dictionary** centralises all experiment settings, making it trivial to modify a single value (e.g., `C`) and rerun.  
-* `np.random.seed` and `random_state` guarantee deterministic data splits.  
-* `mlflow.log_params` records every scalar hyper‑parameter, while `mlflow.log_artifact` stores the full YAML file for future replay.  
-* `mlflow.log_metric` captures the final accuracy; in a real training loop you would log per‑epoch loss.  
-* `mlflow.sklearn.log_model` archives the model in a format that can be loaded later with `mlflow.sklearn.load_model`.  
+* **Configuration centralisation** – a single dictionary holds every scalar that influences the run; persisting it as `config.yaml` makes replay a one‑line operation.  
+* **Deterministic data split** – both NumPy’s global seed and scikit‑learn’s `random_state` are set, guaranteeing identical train/test partitions.  
+* **Parameter logging** – `mlflow.log_params` records each entry of `cfg` as a searchable key‑value pair.  
+* **Artifact logging** – the YAML file and the model binary are stored in the backend, providing a complete snapshot of the experiment.  
+* **Metric logging** – `mlflow.log_metric` captures the final accuracy; in a real deep‑learning loop you would call it each epoch with a `step` argument.  
 
-Running the script creates a new experiment entry visible at `http://localhost:5000` (default MLflow UI). Students can immediately explore the run, compare it to a second run where we change `C` to `0.1`, and observe the impact on accuracy. This live comparison reinforces the value of systematic logging.
+Running the script creates a new experiment entry visible at `http://localhost:5000` (the default MLflow UI). Students can immediately explore the run, compare it to a second run where we change `C` to `0.1`, and observe the impact on accuracy. This live comparison reinforces the value of systematic logging.
 
 *Key points*  
-* **Experiment comparison**: the UI shows a table of runs; clicking “Compare” overlays metrics.  
-* **Replaying a run**: by checking out the logged `config.yaml` and resetting the seed, a colleague can reproduce the exact accuracy.  
-* **Extensibility**: additional artefacts (e.g., feature importance plots) can be added with `mlflow.log_artifact`.  
+* **UI comparison view** – select multiple runs, click “Compare”, and the UI overlays loss/accuracy curves for instant visual analysis.  
+* **Replayability** – download the logged `config.yaml`, set the same seed, and re‑run the script to obtain the identical accuracy score.  
+* **Extensibility** – additional artefacts (e.g., feature‑importance plots) can be added with `mlflow.log_artifact`; the same pattern works for PyTorch (`mlflow.pytorch.log_model`) and TensorFlow (`mlflow.tensorflow.log_model`).  
 
 #### Extending to Deep Learning
 
-For PyTorch users, the same pattern applies: replace `mlflow.sklearn.log_model` with `mlflow.pytorch.log_model`, and log per‑epoch loss with `mlflow.log_metric("loss", loss, step=epoch)`. The surrounding scaffolding—seed handling, config persistence, UI inspection—remains unchanged, illustrating MLflow’s language‑agnostic design.
+For a PyTorch training loop, replace the `mlflow.sklearn.log_model` call with `mlflow.pytorch.log_model`, and log per‑epoch loss with:
 
-==== Philosophical Reflection: Beyond the Code
+```python
+for epoch in range(num_epochs):
+    # … training code …
+    mlflow.log_metric("train_loss", loss.item(), step=epoch)
+    mlflow.log_metric("val_accuracy", val_acc, step=epoch)
+```
 
-Reproducibility is often framed as a *technical* requirement, yet it carries profound philosophical weight. In the scientific method, a claim is only as strong as its ability to be independently verified. Machine‑learning research, however, has historically suffered from “code‑only” papers where hyper‑parameters are omitted, random seeds are unstated, and data preprocessing steps are vague. By institutionalising experiment tracking, we restore the *epistemic humility* that acknowledges the fragility of our models.
+All other scaffolding—seed handling, config persistence, UI inspection—remains unchanged, illustrating MLflow’s language‑agnostic design.
+
+==== Philosophical Reflection: The Ethics of a Logged Run
+
+Reproducibility is often framed as a *technical* requirement, yet it carries profound philosophical weight. In the scientific method, a claim is only as strong as its ability to be independently verified. Machine‑learning research, however, has historically suffered from “code‑only” papers where hyper‑parameters are omitted, random seeds are unstated, and data‑preprocessing steps are vague. By institutionalising experiment tracking, we restore the *epistemic humility* that acknowledges the fragility of our models.
 
 *Key points*  
-* **Transparency**: logged parameters and artefacts make the model’s decision‑making pipeline visible to auditors, regulators, and end‑users.  
-* **Accountability**: when a deployed model behaves unexpectedly, the MLflow run history provides a forensic trail to pinpoint the exact training configuration that produced it.  
-* **Ethical stewardship**: hidden hyper‑parameters can mask bias‑inducing choices (e.g., class weighting). Explicit logging forces practitioners to confront these decisions.  
+* **Transparency** – every hyper‑parameter, seed, and artefact is visible to auditors, regulators, and end‑users, turning a black‑box into a glass‑box.  
+* **Accountability** – when a deployed model behaves unexpectedly, the MLflow run history provides a forensic trail that pinpoints the exact training configuration responsible.  
+* **Ethical stewardship** – hidden choices (e.g., class‑weighting to mitigate imbalance) can mask bias. Explicit logging forces practitioners to confront and justify those decisions.  
 
-Moreover, reproducibility is a *social* contract among collaborators. When Alice logs every seed and configuration, Bob can build upon her work without reinventing the wheel, accelerating scientific progress. Conversely, neglecting these practices leads to duplicated effort, wasted compute resources, and a culture of “black‑box” engineering that erodes trust in AI systems.
+Beyond the individual, reproducibility is a *social contract* among collaborators. When Alice logs every seed and configuration, Bob can build on her work without re‑training from scratch, accelerating scientific progress and conserving compute resources. Conversely, neglecting these practices leads to duplicated effort, wasted carbon, and a culture of “black‑box” engineering that erodes public trust in AI.
 
 *Key points*  
-* **Collaborative efficiency**: shared experiment servers reduce redundant training runs, freeing compute for novel research.  
-* **Regulatory compliance**: standards such as ISO 27001 or the EU AI Act increasingly demand auditable model pipelines; MLflow satisfies many of these audit‑log requirements out‑of‑the‑box.  
-* **Future‑proofing**: as models become larger and training costs soar, the ability to *replay* a run without re‑training becomes an economic necessity.  
+* **Collaborative efficiency** – shared experiment servers eliminate redundant training runs, freeing resources for novel research.  
+* **Regulatory compliance** – standards such as ISO 27001, the EU AI Act, and FDA guidance increasingly require auditable model pipelines; MLflow satisfies many of these requirements out‑of‑the‑box.  
+* **Future‑proofing** – as models grow to billions of parameters, the economic cost of re‑training becomes prohibitive; a reproducible log is an essential safeguard.  
 
 In sum, the humble act of logging a seed is a gateway to a broader ethic of responsible AI development—one that values clarity, repeatability, and collective stewardship over opaque, one‑off experiments.
 
 ==== Closing: From Theory to Practice
 
-Today we have seen how a simple, reproducible workflow—anchored by MLflow—transforms chaotic experimentation into a disciplined engineering practice. In the next lab you will extend this script to a multi‑run hyper‑parameter sweep, visualise the results in the MLflow UI, and register the best model for production deployment. Remember: every run you log is a *statement* about how you built your model; make that statement clear, honest, and repeatable.
+Today we have seen how a simple, reproducible workflow—anchored by MLflow—transforms chaotic experimentation into a disciplined engineering practice. In the upcoming lab you will extend this script to a multi‑run hyper‑parameter sweep, visualise the results in the MLflow UI, and promote the best model to the *Staging* stage of the Model Registry. Remember: every run you log is a *statement* about how you built your model; make that statement clear, honest, and repeatable.
 
 ==== Discussion Prompts
 
-* How does deterministic seeding interact with GPU‑accelerated training, where nondeterminism can arise from parallel kernels?
-* In what ways might excessive logging (e.g., logging every minibatch loss) hinder rather than help reproducibility?
-* Consider a scenario where a model is trained on proprietary data that cannot be stored. How can MLflow still support reproducibility without violating data privacy?
-* Discuss the ethical implications of failing to log hyper‑parameters that affect model fairness (e.g., class weighting, oversampling).
-* How might the MLflow Model Registry be integrated into a CI/CD pipeline for continuous deployment of models?
-* What are the limits of reproducibility when the underlying libraries (e.g., NumPy, PyTorch) evolve between runs?
+* How does deterministic seeding interact with GPU‑accelerated training, where nondeterminism can arise from parallel kernels?  
+* In what ways might excessive logging (e.g., logging every minibatch loss) hinder rather than help reproducibility?  
+* Consider a scenario where a model is trained on proprietary data that cannot be stored. How can MLflow still support reproducibility without violating data privacy?  
+* Discuss the ethical implications of failing to log hyper‑parameters that affect model fairness (e.g., class weighting, oversampling).  
+* How might the MLflow Model Registry be integrated into a CI/CD pipeline for continuous deployment of models?  
+* What are the limits of reproducibility when underlying libraries (e.g., NumPy, PyTorch) evolve between runs?
 
 ==== Lab Preparation
 
@@ -217,6 +239,4 @@ mlflow ui &   # launches the tracking UI at http://localhost:5000
 *Prepare for the lab*  
 * Bring a laptop with Python 3.10+ installed.  
 * Ensure that port 5000 is not blocked by your firewall (required for the MLflow UI).  
-* Review the “Reproducibility Loop” diagram (Figure 2) and be ready to explain each arrow in your own words.  
-
----
+* Review the “Reproducibility Loop” diagram (Figure 2) and be ready to explain each arrow in your own words.

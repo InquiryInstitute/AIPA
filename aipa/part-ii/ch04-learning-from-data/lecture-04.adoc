@@ -1,4 +1,34 @@
-yaml
+=== 4.4 Declarative Configuration with YAML
+
+[.epigraph]
+____
+*“You have just won a Kaggle competition. The model you built scores 0.998 AUC, but the next day your teammate runs the same script and gets 0.842. What changed?”*  
+____
+
+The answer is often hidden in a tiny text file that most data scientists glance over: a configuration file. In modern machine‑learning pipelines, reproducibility, collaboration, and rapid experimentation hinge on a single, well‑structured declarative document. This lecture unpacks why YAML has become the lingua franca for such configurations, how it integrates with Python‑based training code, and what philosophical tensions it surfaces about code, data, and responsibility.
+
+==== Conceptual Core
+
+YAML (YAML Ain’t Markup) is a human‑readable data‑serialization format that emphasizes hierarchy through indentation rather than brackets or commas. Its core design principles—*readability*, *expressiveness*, and *compatibility* with JSON—make it ideal for describing complex objects such as machine‑learning models, data splits, and training hyper‑parameters.
+
+*Key Point 1*:: **Indentation defines structure** – each level of indentation introduces a new mapping (dictionary) or sequence (list).  
+*Key Point 2*:: **Scalars, collections, and tags** – YAML supports plain strings, numbers, booleans, dates, as well as explicit typing via tags (e.g., `!!float`).  
+*Key Point 3*:: **Comments are first‑class** – lines beginning with `#` are ignored by parsers, allowing documentation alongside configuration values.  
+*Key Point 4*:: **Compatibility with JSON** – any valid JSON document is also valid YAML, enabling seamless conversion when needed.  
+*Key Point 5*:: **Declarative vs. imperative** – the file declares *what* the pipeline should do, leaving the *how* to the execution engine.  
+*Key Point 6*:: **Version control friendliness** – because YAML is line‑oriented, diffs are clean, making it easy to track changes across experiments.
+
+Why does this matter for reproducibility? When a data‑science team shares a notebook, the notebook often contains hard‑coded hyper‑parameters (`n_estimators=100`, `max_depth=8`). If a colleague runs the notebook on a different machine, they may inadvertently modify a value, leading to divergent results. By externalizing these parameters into a YAML file, the code becomes a *pure function* of its inputs: the data and the configuration. This separation also enables *continuous integration* pipelines to validate configurations automatically before training begins.
+
+*Key Point 7*:: **Schema validation** – tools like `jsonschema` or `cerberus` can enforce that required fields exist, that numeric values fall within sensible ranges, and that mutually exclusive options are not simultaneously set.  
+*Key Point 8*:: **Dynamic defaults** – a schema can supply defaults for optional fields (e.g., `random_state` defaults to 42), reducing boilerplate while preserving explicitness.  
+*Key Point 9*:: **Security considerations** – unlike JSON, YAML can embed arbitrary Python objects via tags; safe loaders (`yaml.safe_load`) must be used to avoid code execution attacks.  
+*Key Point 10*:: **Portability across environments** – a single `config.yaml` can be mounted into Docker containers, Kubernetes ConfigMaps, or cloud‑based ML platforms, ensuring the same hyper‑parameters travel from dev to prod.
+
+Together, these concepts form a disciplined workflow: *author → validate → parse → instantiate*. The next section demonstrates this workflow in concrete Python code, using the snippet that will serve as our running example.
+
+[source,yaml]
+----
 # config.yaml
 model:
   type: random_forest      # options: decision_tree, random_forest, xgboost
@@ -8,3 +38,174 @@ model:
 train:
   test_size: 0.2
   random_state: 1
+----
+
+[plantuml, format=png, title="Figure 1 – Config‑to‑Pipeline Flow"]
+----
+@startuml
+start
+:Read config.yaml;
+:Validate against schema;
+if (model.type == "random_forest") then (yes)
+  :Instantiate RandomForestClassifier;
+else (no)
+  if (model.type == "decision_tree") then (yes)
+    :Instantiate DecisionTreeClassifier;
+  else (xgboost)
+    :Instantiate XGBClassifier;
+  endif
+endif
+:Split data (train:test_size);
+:Fit model;
+stop
+@enduml
+----
+
+==== Technical Example
+
+The following Python fragment shows how to turn the `config.yaml` file into a live scikit‑learn pipeline. Each step mirrors a key point from the conceptual core, reinforcing the “declarative → imperative” transformation.
+
+```python
+import yaml
+import jsonschema
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.tree import DecisionTreeClassifier
+from xgboost import XGBClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.datasets import load_breast_cancer
+
+# 1️⃣ Load and safely parse the YAML file
+with open('config.yaml') as f:
+    cfg = yaml.safe_load(f)
+
+# 2️⃣ Define a JSON‑compatible schema for validation
+schema = {
+    "type": "object",
+    "properties": {
+        "model": {
+            "type": "object",
+            "properties": {
+                "type": {"enum": ["decision_tree", "random_forest", "xgboost"]},
+                "n_estimators": {"type": "integer", "minimum": 1},
+                "max_depth": {"type": "integer", "minimum": 1},
+                "random_state": {"type": "integer"}
+            },
+            "required": ["type"]
+        },
+        "train": {
+            "type": "object",
+            "properties": {
+                "test_size": {"type": "number", "minimum": 0, "maximum": 1},
+                "random_state": {"type": "integer"}
+            },
+            "required": ["test_size"]
+        }
+    },
+    "required": ["model", "train"]
+}
+
+# 3️⃣ Validate the configuration; raise informative errors early
+jsonschema.validate(instance=cfg, schema=schema)
+
+# 4️⃣ Map the declarative model type to a concrete estimator
+model_cfg = cfg["model"]
+if model_cfg["type"] == "random_forest":
+    estimator = RandomForestClassifier(
+        n_estimators=model_cfg.get("n_estimators", 100),
+        max_depth=model_cfg.get("max_depth", None),
+        random_state=model_cfg.get("random_state", 42)
+    )
+elif model_cfg["type"] == "decision_tree":
+    estimator = DecisionTreeClassifier(
+        max_depth=model_cfg.get("max_depth", None),
+        random_state=model_cfg.get("random_state", 42)
+    )
+else:  # xgboost
+    estimator = XGBClassifier(
+        n_estimators=model_cfg.get("n_estimators", 100),
+        max_depth=model_cfg.get("max_depth", 6),
+        random_state=model_cfg.get("random_state", 42)
+    )
+
+# 5️⃣ Load a toy dataset and split according to the config
+X, y = load_breast_cancer(return_X_y=True)
+train_cfg = cfg["train"]
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y,
+    test_size=train_cfg["test_size"],
+    random_state=train_cfg.get("random_state", 1)
+)
+
+# 6️⃣ Fit and evaluate
+estimator.fit(X_train, y_train)
+score = estimator.score(X_test, y_test)
+print(f"Test accuracy: {score:.3f}")
+```
+
+*Key Point 1*:: **Safe loading** – `yaml.safe_load` prevents execution of arbitrary Python objects.  
+*Key Point 2*:: **Schema‑driven validation** – catching a typo such as `max_dept: 8` early avoids silent model degradation.  
+*Key Point 3*:: **Default handling** – `dict.get` supplies sensible defaults, keeping the config concise.  
+*Key Point 4*:: **Factory pattern** – the conditional block maps a declarative string to an instantiated class, illustrating the “code as data” principle.  
+*Key Point 5*:: **Data split reproducibility** – `train.test_size` and `train.random_state` are both declared, guaranteeing identical train/test partitions across runs.  
+*Key Point 6*:: **Performance feedback** – printing the test accuracy closes the loop, allowing students to see the immediate impact of configuration changes.  
+*Key Point 7*:: **Debugging tip** – if the printed accuracy drops dramatically, inspect the parsed `cfg` object; a misplaced space often turns a numeric field into a string, which scikit‑learn silently coerces to default values.
+
+By experimenting with the YAML file—changing `model.type` to `decision_tree`, tweaking `max_depth`, or adjusting `test_size`—students observe how a single line can cascade through the pipeline, altering both training dynamics and evaluation outcomes.
+
+[plantuml, format=png, title="Figure 2 – YAML vs. JSON vs. INI"]
+----
+@startuml
+package "Declarative Formats" {
+  component YAML {
+    note right: Indentation‑based\nhierarchy\nComments allowed
+    [model:\n  type: random_forest\n  n_estimators: 100]
+  }
+  component JSON {
+    note right: Bracketed syntax\nNo comments
+    {"model":{"type":"random_forest","n_estimators":100}}
+  }
+  component INI {
+    note right: Section‑based\nFlat key/value
+    [model]\ntype=random_forest\nn_estimators=100
+  }
+}
+YAML -[#green]-> JSON : 1‑to‑1 mapping
+YAML -[#blue]-> INI : Flattened conversion
+@enduml
+----
+
+==== Philosophical Reflection
+
+The rise of declarative configuration raises a subtle but profound question: *When does code become data, and what responsibilities shift as a result?* In a traditional script, hyper‑parameters are hard‑coded constants; the author bears full responsibility for their values and for documenting why they were chosen. When those constants migrate into a YAML file, the responsibility diffuses across the team: the file can be edited by anyone with write access, and version control records the evolution of choices. This democratization can accelerate experimentation, yet it also introduces governance challenges—who validates a change to `max_depth` that might dramatically increase training time and carbon footprint?
+
+*Key Point 1*:: **Auditability** – a YAML change is a traceable artifact, enabling post‑mortem analysis of model performance regressions.  
+*Key Point 2*:: **Transparency vs. opacity** – while the file is human‑readable, the downstream effect (e.g., a subtle change in random seed) may be opaque without proper documentation.  
+*Key Point 3*:: **Ethical hyper‑parameter tuning** – aggressive increases in `n_estimators` can improve accuracy but also inflate compute costs, raising questions about resource stewardship.  
+*Key Point 4*:: **Regulatory compliance** – many AI governance frameworks require that model configurations be archived and justified; YAML provides a natural vessel for such records.  
+*Key Point 5*:: **Code‑as‑policy** – treating configuration as policy forces teams to think of model behavior as a set of negotiated rules rather than an accidental byproduct of a script.
+
+These reflections invite us to view configuration files not merely as technical conveniences but as *social contracts* within data‑science teams and between organizations and society. The act of writing, reviewing, and versioning a YAML file becomes a moment of collective responsibility, echoing broader debates about algorithmic transparency and accountability.
+
+*Key Point 6*:: **Human‑centered design** – readable formats lower the barrier for non‑engineers (e.g., domain experts) to participate in model specification.  
+*Key Point 7*:: **Future‑proofing** – as pipelines evolve toward automated hyper‑parameter optimization, the declarative baseline remains a stable anchor for reproducibility.  
+*Key Point 8*:: **Philosophical tension** – the more we abstract behavior into data, the more we must ensure that the *interpretation* of that data remains clear and trustworthy.
+
+==== Discussion Prompts
+
+* How does externalizing hyper‑parameters into YAML affect the reproducibility of a research experiment compared to hard‑coding them?
+* In what ways can schema validation be considered a form of *defensive programming* for machine‑learning pipelines?
+* Discuss the trade‑offs between YAML’s readability and its potential security risks when using unsafe loaders.
+* Reflect on the ethical implications of tuning resource‑intensive hyper‑parameters (e.g., `n_estimators`) in the context of sustainable AI.
+* How might a team structure code‑review processes around configuration files to balance agility and governance?
+* Imagine a scenario where a production failure is traced to a misplaced indentation in a YAML file. What safeguards could have prevented the incident?
+
+==== Lab Preparation
+
+In the upcoming lab, you will:
+
+* Clone the starter repository containing `config.yaml`, the validation schema, and a skeleton training script.  
+* Modify the YAML to explore at least three different model families (`random_forest`, `decision_tree`, `xgboost`) and observe the impact on test accuracy and training time.  
+* Introduce a deliberate schema violation (e.g., set `max_depth` to a negative number) and use the validation step to capture the resulting error message.  
+* Extend the schema to include a new optional field `class_weight` and update the Python factory logic accordingly.  
+
+By the end of the session, you should be able to articulate how declarative configuration bridges the gap between *what* a model should do and *how* the execution environment enforces it, setting the stage for the next lecture on *dynamic hyper‑parameter optimization* and *automated experiment tracking*.

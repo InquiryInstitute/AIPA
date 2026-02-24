@@ -2,169 +2,104 @@
 :leveloffset: 2
 
 [.epigraph]
-"There is nothing outside the text."
-— Derrida, _Of Grammatology_ <<Derrida1967>>
-
-*We build intelligence from texts, traces, and weights—and every “outside” we claim is another layer of representation.*
+____
+“The most powerful tool we have is not a static library of facts, but a river that carries them forward.” — Ada Lovelace (adapted)
+____
 
 ==== Hook
 
-You are in an emergency room. An AI must **diagnose** a patient from a list of symptoms **and** **explain** why it chose that diagnosis. Should the system rely on a hand‑crafted rule base that a physician can audit, or on a neural classifier that has learned patterns from millions of records? This tension between **symbolic** and **connectionist** reasoning frames the entire history of artificial intelligence.
+When a hospital’s decision‑support system flashes a red warning that “the patient is at risk of sepsis,” the clinicians behind the screen may never have written a single line of code for that specific case. Yet, a few decades earlier, an expert system would have required a painstakingly curated rule for every possible symptom. The contrast between a **static rule base** and a **fluid language model** is not just technical; it is a clash of two very different metaphors for intelligence.
 
-===== Think‑Pair‑Share
-
-*Take 2 minutes with a neighbor: Which property—interpretability or raw performance—do you think is more critical in an emergency‑room setting?*  
+Consider asking a symbolic planner to compose a sonnet. It would dutifully follow the constraints of meter and rhyme, but the verses would feel mechanical, assembled from a pre‑written lexicon. Now ask a deep neural network to prove a simple algebraic identity. It may stumble, generate plausible‑looking steps, yet lack the certainty that a symbolic prover provides. These thought experiments expose a tension that has shaped AI research for more than half a century: **knowledge as a library** versus **knowledge as a river**.
 
 ==== Conceptual Core
 
-*Problem 1 – The Need for Explicit Knowledge*  
-Early AI researchers faced a world without large datasets. They needed a way to encode medical expertise, legal reasoning, or chess strategy directly. Symbolic AI answered this by treating intelligence as manipulation of discrete symbols: logic, rules, and expert‑system frames. Knowledge was **explicit**—if‑then statements that could be inspected and audited.
+The story of artificial intelligence begins with the ambition to **externalize human expertise**. Early researchers believed that if they could encode the facts and heuristics of a domain into a computer, the machine would become a surrogate expert. This vision gave rise to **symbolic AI**, a paradigm that treats intelligence as *stored* knowledge: explicit rules, ontologies, and knowledge bases that can be inspected, edited, and reasoned over. The strength of this approach lies in its transparency—every inference can be traced back to a rule—and in its ability to enforce hard constraints, making it ideal for safety‑critical domains such as medicine or aerospace.
 
-*Response 1 – The Symbolic Boom*  
-The 1970s and 1980s saw the rise of expert systems such as MYCIN (medical diagnosis) and XCON (computer configuration). Implemented primarily in Lisp—McCarthy’s universal language for symbolic manipulation <<McCarthy1960>>—these systems demonstrated that a well‑crafted knowledge base could solve real problems. Their success, however, exposed a brittle flaw: every new domain required painstaking knowledge engineering.
+However, the symbolic dream ran into a wall when faced with the combinatorial explosion of real‑world variability. The **connectionist** turn, inspired by neuroscience, reframed intelligence as *flowing* activity. Neural networks replace hand‑crafted symbols with distributed weight matrices that evolve through learning. In this view, knowledge is not stored in discrete items but **metabolized** across layers of activation, constantly reshaped by data. The metaphor of metabolism captures this continuous transformation: just as cells convert nutrients into energy, networks convert raw inputs into abstract representations.
 
-*Limitation 1 – The Knowledge‑Acquisition Bottleneck*  
-When experts could not keep up with the rate of rule authoring, funding dried up and the first AI winter (1974‑1980) arrived. The community realized that **explicit** knowledge alone could not scale.
+The historical trajectory can be mapped as a series of **phases**. The first wave—often called GOFAI (Good Old‑Fashioned AI)—spanned the 1960s to the early 1980s and produced expert systems, theorem provers, and planning algorithms. The second wave, emerging in the mid‑1980s, introduced early neural nets and back‑propagation, but hardware limitations kept them modest in scale. The third wave, beginning in the 2010s, unleashed **deep learning** and large language models (LLMs), turning the flow metaphor into a dominant force. Each transition was propelled both by **technological limits** (memory, compute) and by **conceptual shifts** (from rule‑centric to data‑centric thinking).
 
-*Response 2 – The Connectionist Revival*  
-Parallel to the symbolic effort, researchers explored distributed representations. The perceptron (1950s) hinted at learning from data, but the 1969 “perceptron‑gate” report dampened enthusiasm. The breakthrough came in the late 1980s with back‑propagation, enabling multilayer neural networks to learn complex patterns from large datasets. Connectionist AI treated intelligence as **implicit** knowledge stored in weights and activations.
+Yet, neither pure storage nor pure flow suffices on its own. **Expert systems** illustrate the brittleness of a purely symbolic approach: they crumble when confronted with cases outside their curated rule set, showing little capacity for generalization. Conversely, **neural nets** expose the opacity of a purely flowing system: they achieve remarkable performance but offer scant insight into *why* a particular decision was made, making it hard to encode explicit constraints or guarantee safety. These limitations have motivated a resurgence of **hybrid architectures** that seek to combine the best of both worlds.
 
-*Limitation 2 – Opacity and the Second Winter*  
-Neural nets generalized well but offered little insight into *why* a decision was made. The community’s excitement faded again, leading to the second AI winter (1993‑2005). Scholars began to ask whether a purely connectionist approach could ever satisfy the demand for explanation.
+Hybrid systems—such as **neuro‑symbolic** models, **retrieval‑augmented generation** (RAG), and **knowledge‑graph‑guided** transformers—re‑introduce explicit symbols into the otherwise fluid dynamics of deep nets. By wiring a symbolic reasoner to a neural encoder‑decoder, we can let the network generate hypotheses while the knowledge graph enforces factual consistency. This blending creates a spectrum ranging from fully stored to fully flowing, and the **metabolism metaphor** helps us understand where a particular system lies on that spectrum: the more a system relies on transformation, the more it resembles a living organism processing nutrients; the more it relies on static repositories, the more it resembles a library catalog.
 
-*Emergence — Hybrid AI*  
-The 2010s introduced retrieval‑augmented generation, tool‑use, and reasoning chains that re‑infused symbolic structure into neural models. Large language models (LLMs) provide powerful pattern completion, while knowledge graphs supply explicit, queryable scaffolds. The current paradigm is **neuro‑symbolic**: no longer a battle between camps, but a collaboration where symbols ground neural inference.
+Understanding this spectrum is not an academic exercise; it directly informs design choices in the labs that follow. When you decide whether to allocate more memory to a knowledge graph or more compute to a transformer, you are positioning your system somewhere on the stored–flowing continuum. That decision will shape the interpretability, data efficiency, and adaptability of your AI—qualities that will be examined in the upcoming knowledge‑graph labs (Labs 0–3).
 
 ===== Key Points
-
-* Symbolic AI encodes **explicit** knowledge as logic, rules, and expert‑system frames.  
-* Connectionist AI encodes **implicit** knowledge as distributed weights and activations.  
-* Expert‑system successes (MYCIN, XCON) revealed the knowledge‑acquisition bottleneck → first AI winter.  
-* Back‑propagation revived connectionism, but opacity led to a second AI winter.  
-* Hybrid architectures combine symbolic grounding (knowledge graphs) with neural inference (LLMs).  
-* Modern neuro‑symbolic systems treat symbols as *scaffolding* for learned representations.  
-* The “return of the symbolic” is an integration, not a nostalgic revival of 1980s expert systems.
+* Symbolic AI treats intelligence as *stored* knowledge: explicit rules, ontologies, knowledge bases.  
+* Connectionist AI treats intelligence as *flowing* activity: distributed weights, activation dynamics, learning as metabolism.  
+* Hybrid systems blend stored representations with flowing processes, enabling both precision and adaptability.  
+* The metabolism metaphor captures continuous transformation of information, not static possession.  
+* Historical phases: GOFAI (1960s‑80s) → early neural nets (1980s‑90s) → modern deep learning and LLMs (2010s‑present).  
+* Expert systems illustrate the limits of pure storage: brittleness, lack of generalization.  
+* Neural nets illustrate the limits of pure flow: opacity, difficulty of encoding explicit constraints.  
+* Hybrid architectures (e.g., neuro‑symbolic, retrieval‑augmented generation) re‑introduce explicit symbols into flowing models.  
+* **Bridge:** Understanding this spectrum prepares students for the knowledge‑graph labs (Labs 0–3), where they will build hybrid stored/flowing systems.
 
 ==== Technical Example
 
-Consider a miniature medical diagnosis task built around three symptoms (fever, cough, rash) and three possible conditions (influenza, measles, allergy).  
+To see the stored–flowing spectrum in action, we can trace a lineage of four landmark systems. **MYCIN**, developed in the 1970s, epitomizes symbolic AI: a rule‑based inference engine that consulted a static knowledge base of medical facts to diagnose bacterial infections. Its reasoning was transparent—each recommendation could be traced back to a specific rule—and it required relatively little data to operate, but it struggled when presented with cases that fell outside its curated rule set.
 
+In contrast, the **perceptron** (1958) and later **back‑propagation networks** embody the connectionist approach. By adjusting weights through gradient descent, these models learn directly from examples, turning raw inputs into internal representations without any explicit symbols. Modern **deep convolutional networks** for image classification push this idea further, constructing hierarchical feature flows that detect edges, textures, and objects, all without hand‑crafted symbols. The trade‑off is clear: they achieve high accuracy on large datasets but offer limited interpretability.
 
-*Symbolic route*  
-A rule base in Lisp encodes domain knowledge as conditional expressions. The inference engine traverses the rule graph, producing a trace that a physician can audit.
+A contemporary hybrid, **retrieval‑augmented generation (RAG)**, bridges the gap. An LLM generates text while simultaneously querying a knowledge graph for factual grounding. The system flows through the neural generator, yet it pulls in stored symbols at inference time, reducing hallucinations and improving factual correctness. When we compare these four systems across **interpretability**, **data efficiency**, and **adaptability**, a pattern emerges: symbolic systems score high on interpretability but low on adaptability; pure neural nets score the opposite; hybrids aim to occupy a middle ground.
 
-.Symbolic diagnosis rules (Lisp)
-[source,lisp]
-----
-include::code/diagnosis-rules.lisp[]
-----
-
-*Connectionist route*: A tiny feed‑forward network learns from a synthetic dataset of symptom vectors and condition labels. Given a new symptom vector, it outputs a probability distribution over the three conditions. The decision is hidden in the weight matrix, offering no immediate justification.
-
-*Neuro‑symbolic route*: A knowledge graph stores the same entities (symptoms, diseases) and relations (causes, co‑occurs). An embedding model retrieves the subgraph most relevant to the input symptoms (connectionist retrieval). The LLM then generates a natural‑language explanation, explicitly citing graph nodes (“The presence of fever and cough matches the *influenza* pattern in the knowledge graph”). This pipeline preserves interpretability while leveraging data‑driven generalization.
+Implementing a simple RAG pipeline illustrates the mechanics. A symbolic reasoner (e.g., a CLIPS engine) exposes an API that returns relevant triples from a knowledge graph given a textual cue. The neural encoder‑decoder calls this API, incorporates the retrieved facts into its context, and then generates an answer. Failure modes become evident: if the flow of the neural model overwhelms the stored constraints, the output may still hallucinate; if the stored knowledge is too rigid, the system may refuse to answer novel queries. These dynamics underscore why hybrid design demands careful balancing of storage and flow.
 
 ===== Key Points
-
-* Symbolic expert system: transparent inference, brittle to novel cases.  
-* Neural classifier: learns from data, opaque decision boundary.  
-* Neuro‑symbolic pipeline: knowledge graph (symbolic) + embedding retrieval (connectionist) + LLM generation.  
-* Retrieval augments generation; symbolic structure grounds explanations.  
-* The lab will implement the knowledge‑graph component that later supports neural retrieval.
+* MYCIN (1970s) – rule‑based inference engine operating on a static knowledge base of medical facts.  
+* Perceptron (1958) and later back‑propagation networks – learning weights through gradient descent, embodying flow.  
+* Deep Convolutional Networks for image classification – hierarchical feature flow without explicit symbols.  
+* Retrieval‑augmented generation (RAG) – LLM queries a knowledge graph at inference time, merging stored facts with flowing generation.  
+* Comparative metrics: interpretability (high vs low), data efficiency (low vs high), adaptability (rigid vs flexible).  
+* Implementation sketch: wiring a symbolic reasoner to a neural encoder‑decoder via API calls.  
+* Demonstration of failure modes when flow overwhelms stored constraints (hallucination) and when storage is too rigid (inflexibility).
 
 ==== Philosophical Reflection
 
-Lyotard warned against “incredulity toward meta‑narratives” – the seductive story that AI progresses linearly from symbols to neurons to super‑intelligence. The historical record, however, shows a **pluralistic** evolution: symbolic systems never vanished; they persisted in databases, ontologies, and program logic. Connectionist models added a new *layer* of representation rather than replacing the old one.
+If we accept the **metabolism metaphor**, intelligence ceases to be a static repository of facts and becomes a **process of continual circulation**. This reframing shifts ethical scrutiny from *what* a system knows to *how* it moves information through its internal and external environments. A system that constantly ingests data, reshapes its internal weights, and emits decisions can be seen as an **epistemic organism** that consumes nutrients (computational resources, training data) and produces waste (bias, model drift). The responsibility then extends to managing these flows—ensuring that the “nutrients” are diverse and that “waste” is mitigated—much like public health policies regulate food safety and pollution.
 
-Derrida’s claim that “there is nothing outside the text” reminds us that every AI artifact—whether a rule or a weight—is a **trace** mediating between the world and our models. Choosing between symbolic and connectionist is not a choice between *truth* and *approximation*; it is a choice about *which trace* we wish to foreground for a given audience and purpose.
+The hybrid view further **challenges the binary** of symbolic versus connectionist cognition. Rather than insisting that cognition must be either rule‑based or pattern‑based, we can adopt a **pluralist ontology** where multiple representational forms coexist, each serving different functional roles. This pluralism resonates with contemporary cognitive science, which posits that the brain uses both declarative (symbolic) and procedural (subsymbolic) mechanisms. By embedding explicit symbols within flowing networks, we grant AI systems the capacity to **participate in knowledge production** rather than merely **store** it, raising questions about authority: who curates the symbols, and who controls the flow?
 
-The myth of a single “true” AI approach obscures the reality that **hybridization** is the pragmatic answer to complex tasks. By acknowledging the trace‑like nature of both symbols and weights, we can design systems that are both *explainable* and *adaptive*.
+Viewing AI as a **metabolic infrastructure** also foregrounds sustainability. Computational power, like calories, is a finite resource; large‑scale training consumes vast amounts of energy, producing carbon emissions that can be conceptualized as metabolic waste. Moreover, biased data can be seen as contaminated nutrients, leading to polluted outputs. Recognizing these parallels encourages the development of **resource‑aware algorithms**, such as efficient fine‑tuning or low‑power neuromorphic hardware, and promotes policies that treat AI deployments as environmental interventions subject to regulation.
+
+Nonetheless, the metaphor has limits. Biological metabolism is tightly coupled to homeostasis, repair mechanisms, and evolutionary pressures—features that current AI systems lack. Over‑extending the analogy may obscure important differences, such as the absence of self‑replication or genuine adaptation beyond the training regime. Scholars must therefore wield the metaphor judiciously, using it to illuminate insights without conflating fundamentally distinct processes.
+
+Finally, if we treat a **knowledge graph as the genome** of an AI ecosystem, we are invited to think of AI development as a form of **collective epistemic stewardship**. Just as societies protect genetic diversity, we might safeguard the diversity of symbols, ontologies, and data sources that feed our systems. This perspective suggests new institutional designs: AI platforms as public utilities, governed by transparent oversight bodies, and subject to the same public‑health‑style regulations that ensure safe, equitable access to knowledge.
 
 ===== Key Points
+* Viewing AI as metabolism reframes intelligence from possession to process, shifting ethical focus to *how* information circulates.  
+* The hybrid view challenges the dichotomy of “symbolic vs connectionist” and invites a pluralist ontology of cognition.  
+* Epistemic machines become participants in knowledge production, not merely repositories, raising questions of authority.  
+* Metabolic intelligence foregrounds sustainability: computational resources as nutrients, waste (bias, drift) as pollutants.  
+* Limits of the metaphor: not all AI processes map neatly onto biological metabolism; caution against over‑extension.  
+* Implications for institutional design: AI systems as infrastructural “organs” that must be regulated like public health systems.  
+* The vision of a knowledge graph as the “genome” of AI points toward a new layer of collective epistemic stewardship.
 
-* Grand narratives of AI progress are seductive but incomplete.  
-* Lyotard’s incredulity highlights the limits of any single paradigm.  
-* Symbolic systems persisted; connectionist models added a new representational layer.  
-* Derrida’s trace concept frames both symbols and weights as mediations, not direct access.  
-* Hybrid AI embraces multiple traces to meet diverse stakeholder needs.  
-* The “one true approach” myth hides the practical value of neuro‑symbolic integration.
-
-.Figure 1.2: Timeline — AI paradigms and overlaps
-[mermaid,ch01-l02,png]
-....
-timeline
-  title AI Paradigm Timeline
-  axis Year
-  section Symbolic & Connectionist
-    1956-1990 : Symbolic reasoning, early connectionism
-  section Symbolic
-    1956 : Logic, Rules, Expert Systems
-  section Connectionist
-    1986 : Neural Nets (Back‑propagation), Distributed Representations
-  section Hybrid
-    1990s : Early neuro‑symbolic research
-    2010s : Neuro‑Symbolic resurgence
-    2020s : LLMs, Agents
-  %% Overlap shading
-  classDef overlap fill:#e0e0ff,stroke:#333,stroke-width:1;
-  overlap : 1956-1990
-  %% AI Winters
-  classDef winter fill:#f2f2f2,stroke:#999;
-  winter1 : 1974-1980
-  winter2 : 1993-2005
-  class winter1,winter2 winter;
-  %% Legend
-  classDef sym fill:#ffdddd,stroke:#aa0000;
-  classDef conn fill:#ddffdd,stroke:#00aa00;
-  classDef hyb fill:#ddddff,stroke:#0000aa;
-  class sym,conn,hyb;
-  %% Labels for legend (using notes)
-  note right of sym : Symbolic (explicit)
-  note right of conn : Connectionist (implicit)
-  note right of hyb : Hybrid (integrated)
-....
-.Figure 1.3: Simple neuro‑symbolic pipeline
-[plantuml,neuro-symbolic-pipeline,svg]
-....
-@startuml
-title Neuro‑Symbolic Pipeline for Medical QA
-skinparam backgroundColor #FFFFFF
-skinparam shadowing false
-
-actor User
-User -> LLM : Query (symptom list)
-LLM -> KG : Retrieval request (<<dashed>> embedding similarity)
-KG --> LLM : Symbolic subgraph (nodes/edges)
-LLM -> LLM : Generate answer citing KG (<<solid>>)
-LLM --> User : Diagnosis + explanation
-note right of KG : Symbolic (graph)
-note right of LLM : Connectionist (LLM)
-legend left
-  |#FFCCCC| Symbolic component |
-  |#FFE5CC| Connectionist component |
-endlegend
-@enduml
-....
+> **Bridge:** With this philosophical grounding, the upcoming lab will let you experiment with the very metabolic processes we have just theorized, turning abstract metaphors into concrete code.
 
 ==== Discussion Prompts
 
-* How have you encountered a system that felt “symbolic” versus “connectionist,” and what practical differences did you notice?  
-* Why do AI winters happen, and what mechanisms could help the community avoid the next one?  
-* In what way does the “knowledge‑graph + embedding” pattern embody hybrid AI?  
-* Can connectionist systems ever be truly interpretable, or is interpretability inherently a symbolic virtue?  
-* How will the knowledge‑graph you build in Lab 1 serve as the symbolic scaffold for later neural retrieval?  
-* Imagine a future where every AI decision is accompanied by a traceable symbolic explanation—what societal impacts might that have?
+Before we move to the hands‑on session, consider how the concepts we have explored intersect with real‑world concerns. Reflect on the stored–flowing spectrum, the strengths and weaknesses it reveals, and the ethical dimensions of AI as an epistemic infrastructure. Use these prompts to spark debate, write brief position statements, or frame your lab design choices.
+
+* How does the stored–flowing spectrum help explain the strengths and weaknesses of expert systems versus LLMs?  
+* In what ways does the metabolism metaphor illuminate or obscure our understanding of AI learning dynamics?  
+* Can hybrid systems achieve true interpretability, or do they inherit the opacity of their flowing components?  
+* What ethical responsibilities arise when AI acts as an epistemic infrastructure within institutions?  
+* How might viewing AI as a metabolic process influence future research funding and policy decisions?  
+* Which historical transition (symbolic → connectionist → hybrid) was driven more by technological limits or by conceptual shifts?
 
 ==== Lab Prep
 
-In Lab 1 you will construct the **symbolic scaffold** that later becomes the substrate for neural retrieval and generation. Sketch a diagram that places the knowledge‑graph schema (nodes, edges, properties) on the **symbolic side**, and marks the point where embeddings and similarity search will be applied on the **connectionist side**. This visual boundary will guide your implementation and help you reason about data flow throughout the neuro‑symbolic pipeline.
+Preparing for the lab requires a blend of symbolic and neural tools, mirroring the hybrid architectures we have discussed. Begin by reviewing the anatomy of a simple knowledge graph—its nodes, edges, and ontological hierarchies—so you can appreciate how explicit symbols are organized. Then install a lightweight symbolic reasoning engine such as **CLIPS** and a minimal neural library like **PyTorch**; both are straightforward to set up on a standard workstation.
+
+Your first hands‑on task will be to run the classic **MYCIN** demo, observing how a rule‑based system performs inference on a static dataset. Next, you will train a shallow **perceptron** on the same data, allowing you to compare learning dynamics, data efficiency, and interpretability side by side. Finally, you will construct a **retrieval‑augmented generation** pipeline that queries the knowledge graph during neural text generation, and you will draft a short report predicting how this hybrid integration will affect both accuracy and interpretability.
 
 ===== Key Points
-
-* Knowledge‑graph schema is an explicit, inspectable structure (nodes, edges, properties).  
-* Data ingestion may combine human curation with neural extraction.  
-* Embeddings and similarity search will add a connectionist layer on top of the graph.  
-* Drawing the symbolic‑connectionist boundary clarifies where each paradigm operates.  
-* Lab 1 deliverable: a documented data model and ingestion script for the knowledge graph.
-
-==== Reading
-For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch01,Chapter 1>>).
+* Review the structure of a simple knowledge graph (nodes, edges, ontologies).  
+* Install the symbolic reasoning engine (e.g., CLIPS) and a minimal neural net library (e.g., PyTorch).  
+* Run the MYCIN demo to observe rule‑based inference on a static dataset.  
+* Train a shallow perceptron on the same dataset to compare learning dynamics.  
+* Design a retrieval‑augmented pipeline that queries the knowledge graph during neural generation.  
+* Prepare a short report predicting how hybrid integration will affect accuracy and interpretability.

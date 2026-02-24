@@ -1,11 +1,228 @@
-json
-{
-  "load_data": {"config_path": "string"},
-  "train": {
-    "model_type": "enum[linear,tree,ensemble]",
-    "hyperparams": {"learning_rate": "float", "max_depth": "int"},
-    "data_handle": "string"
-  },
-  "evaluate": {"model_path": "string", "eval_data": "string"},
-  "export_model": {"model_path": "string", "dest_uri": "string"}
+=== 7. Declarative Machine Learning Pipelines with JSON
+
+[.epigraph]
+____
+*“Imagine you are asked to ship a model that predicts house prices. The client wants a single file that tells every step—from raw CSV to a Docker image—without you having to rewrite code for each new project. How do you capture that complexity in a way that both humans and machines can understand?”*
+____
+
+==== Hook: The Real‑World Tension
+
+You are a data scientist on a fast‑moving product team. Yesterday you built a gradient‑boosted tree that reduced prediction error by 12 %. Today the product manager asks for the same model to be deployed to three different environments (staging, production, and a partner’s sandbox) and to be retrained nightly with fresh data. The naïve solution is to copy‑paste a long script, edit a few file paths, and hope nothing breaks. In practice, that approach quickly spirals into a maintenance nightmare: environment‑specific secrets leak, hyper‑parameters drift, and the team spends more time debugging configuration than improving the model.
+
+What if the entire workflow—data ingestion, model selection, training, evaluation, and export—could be described in a single, machine‑readable file? Such a file would serve as a contract between data scientists, engineers, and auditors, guaranteeing that the same steps are executed every time, regardless of who runs the pipeline. The tension between flexibility (the need to experiment) and reproducibility (the need to standardize) is at the heart of modern AI engineering. In the next 90 minutes we will explore how a modest JSON schema can resolve that tension, turning an ad‑hoc script into a declarative pipeline that is both auditable and extensible.
+
+==== Conceptual Core: Why a Declarative Schema?
+
+A *declarative* configuration describes *what* should happen, leaving the *how* to a generic engine. In contrast, an *imperative* script encodes every procedural detail. By moving the “what” into a JSON document we gain three immediate benefits:
+
+1. **Separation of concerns** – data scientists focus on model logic, while ops engineers manage execution environments.  
+2. **Version‑controlled reproducibility** – the JSON file lives in Git, so every change is tracked and can be rolled back.  
+3. **Extensibility through composition** – new stages (e.g., feature‑store lookup) can be added without touching the core engine.
+
+The schema we will adopt consists of four top‑level keys: `load_data`, `train`, `evaluate`, and `export_model`. Each key groups related parameters, mirroring the logical stages of a typical ML workflow. The design follows a *nested object* pattern, where primitive types (`string`, `float`, `int`) enforce type safety, and enumerations (`enum[linear,tree,ensemble]`) constrain choices to known, tested implementations. This structure is deliberately minimal yet expressive enough to cover most supervised‑learning pipelines.
+
+[NOTE]
+====
+**Common Pitfall:** Treating the JSON as a free‑form bag of options leads to silent failures. Always validate against a schema (e.g., using `jsonschema` in Python) before execution.
+====
+
+Below are the key conceptual points that underpin the schema:
+
+* **Separation of concerns** – the JSON isolates configuration from code, enabling parallel work streams.  
+* **Declarative vs. imperative** – the engine interprets the JSON, turning high‑level intent into concrete actions.  
+* **Type safety** – explicit `string`, `float`, and `int` declarations catch mismatches early.  
+* **Enumerated choices** – `model_type` limits selection to vetted algorithms, reducing accidental misuse.  
+* **Nested hyper‑parameters** – the `hyperparams` object groups related settings, simplifying overrides.  
+* **Extensibility** – additional stages (e.g., `feature_engineering`) can be inserted without breaking existing pipelines.  
+* **Versioning** – embedding a `schema_version` field allows gradual evolution while preserving backward compatibility.  
+* **Default handling** – the engine supplies sensible defaults (e.g., `learning_rate: 0.01`) when fields are omitted.  
+* **Auditability** – a single JSON file serves as a provenance record for compliance and debugging.  
+* **Portability** – because JSON is language‑agnostic, the same file can drive pipelines written in Python, R, or Java.
+
+The following PlantUML diagram visualizes the high‑level flow that the JSON drives:
+
+[plantuml, pipeline-flow, svg, title="Declarative ML Pipeline Flow"]
+....
+@startuml
+!define RECTANGLE class
+skinparam rectangle {
+  BackgroundColor<<Stage>> #F5F5F5
+  BorderColor<<Stage>> #666666
 }
+title Declarative ML Pipeline Flow
+
+RECTANGLE LoadData <<Stage>> as LD {
+  config_path: string
+}
+RECTANGLE Train <<Stage>> as TR {
+  model_type: enum
+  hyperparams: object
+}
+RECTANGLE Evaluate <<Stage>> as EV {
+  eval_data: string
+}
+RECTANGLE Export <<Stage>> as EX {
+  dest_uri: string
+}
+
+LD --> TR : data_handle
+TR --> EV : model_path
+EV --> EX : model_path
+
+@enduml
+....
+
+The diagram emphasizes that each stage consumes the artifact produced by the previous one, and that the JSON keys (`load_data`, `train`, …) are the explicit contracts governing those hand‑offs.
+
+==== Technical Example: From JSON to Running Code
+
+Consider the following concrete JSON file, `pipeline.json`, that implements a simple house‑price predictor using a gradient‑boosted decision tree:
+
+```json
+{
+  "schema_version": "1.0",
+  "load_data": {
+    "config_path": "configs/house_prices.yaml"
+  },
+  "train": {
+    "model_type": "ensemble",
+    "hyperparams": {
+      "learning_rate": 0.05,
+      "max_depth": 6,
+      "n_estimators": 200
+    },
+    "data_handle": "data/house_prices.csv"
+  },
+  "evaluate": {
+    "model_path": "artifacts/model.pkl",
+    "eval_data": "data/house_prices_test.csv"
+  },
+  "export_model": {
+    "model_path": "artifacts/model.pkl",
+    "dest_uri": "s3://ml-models/house_price/v1/model.pkl"
+  }
+}
+```
+
+A minimal Python driver that respects this schema looks like the snippet below. It demonstrates five essential operations:
+
+```python
+import json, yaml, joblib, logging
+import pandas as pd
+from sklearn.ensemble import GradientBoostingRegressor
+from sklearn.metrics import mean_absolute_error
+
+# 1️⃣ Load and validate the JSON configuration
+with open('pipeline.json') as f:
+    cfg = json.load(f)
+
+# 2️⃣ Load data according to the YAML config referenced in load_data
+with open(cfg['load_data']['config_path']) as f:
+    data_cfg = yaml.safe_load(f)
+
+df = pd.read_csv(cfg['train']['data_handle'])
+X, y = df[data_cfg['features']], df[data_cfg['target']]
+
+# 3️⃣ Map the enum to a concrete class
+model_map = {
+    'linear':  lambda hp: joblib.load(hp['model_path']),
+    'tree':    lambda hp: joblib.load(hp['model_path']),
+    'ensemble': lambda hp: GradientBoostingRegressor(**hp)
+}
+model = model_map[cfg['train']['model_type']](cfg['train']['hyperparams'])
+
+# 4️⃣ Train, evaluate, and persist the model
+model.fit(X, y)
+joblib.dump(model, cfg['export_model']['model_path'])
+
+# 5️⃣ Evaluate on hold‑out data
+test_df = pd.read_csv(cfg['evaluate']['eval_data'])
+X_test, y_test = test_df[data_cfg['features']], test_df[data_cfg['target']]
+preds = model.predict(X_test)
+mae = mean_absolute_error(y_test, preds)
+logging.info(f"Evaluation MAE: {mae:.3f}")
+```
+
+**Key technical take‑aways** from this example:
+
+* **Parsing** – `json.load` reads the declarative contract; `yaml.safe_load` demonstrates mixed‑format configuration.  
+* **Enum → class mapping** – a dictionary translates `model_type` into a concrete estimator, keeping the driver generic.  
+* **Hyper‑parameter injection** – the `hyperparams` object is unpacked directly into the scikit‑learn constructor via `**`.  
+* **Artifact handling** – training writes `model.pkl`; evaluation and export stages reference the same path, guaranteeing consistency.  
+* **Logging & error handling** – the driver logs key metrics and would raise a `KeyError` if required fields were missing, illustrating the importance of schema validation.  
+
+The second PlantUML diagram drills into the JSON hierarchy, making the nesting and type constraints explicit:
+
+[plantuml, schema-hierarchy, svg, title="JSON Schema Hierarchy"]
+....
+@startuml
+skinparam backgroundColor #FDF6E3
+skinparam node {
+  BackgroundColor #EEE8D5
+  BorderColor #657B83
+}
+title JSON Schema Hierarchy
+
+node "pipeline.json" {
+  node "load_data" {
+    rectangle "config_path: string"
+  }
+  node "train" {
+    rectangle "model_type: enum[linear,tree,ensemble]"
+    node "hyperparams" {
+      rectangle "learning_rate: float"
+      rectangle "max_depth: int"
+      rectangle "n_estimators: int"
+    }
+    rectangle "data_handle: string"
+  }
+  node "evaluate" {
+    rectangle "model_path: string"
+    rectangle "eval_data: string"
+  }
+  node "export_model" {
+    rectangle "model_path: string"
+    rectangle "dest_uri: string"
+  }
+}
+@enduml
+....
+
+This visual reinforces how each top‑level key groups related settings, and how the nested `hyperparams` object isolates model‑specific knobs from the rest of the pipeline.
+
+==== Philosophical Reflection: Flexibility, Governance, and the Human Factor
+
+The shift from imperative scripts to declarative JSON is not merely a technical convenience; it reshapes the social contract of AI development. By codifying the pipeline in a data‑driven artifact, we hand over *authority* from the individual coder to the configuration file. This raises a series of philosophical questions:
+
+1. **Who owns the schema?** In a mature organization the schema becomes a shared asset, curated by a cross‑functional team of data scientists, platform engineers, and compliance officers. The responsibility for extending the schema (e.g., adding a `feature_store` block) therefore shifts from a single “hero” developer to a governance process.  
+2. **What is the cost of flexibility?** Allowing arbitrary hyper‑parameters and optional stages makes the schema adaptable, but also opens the door to “configuration sprawl” where each project diverges subtly. Enforcing *semantic versioning* and *linting rules* can mitigate drift while preserving the ability to experiment.  
+3. **How does this affect auditability?** A single JSON file provides a clear provenance trail: auditors can trace exactly which data source, model type, and hyper‑parameters produced a given artifact. This transparency is essential for regulatory regimes that demand model cards, data sheets, and reproducibility evidence.  
+4. **What about the human‑in‑the‑loop?** Declarative pipelines do not eliminate the need for expert judgment; they merely make that judgment explicit and repeatable. The tension between *automation* and *human insight* persists, and educators must teach students when to override defaults versus when to trust the pipeline.  
+
+Reflecting on these points helps students appreciate that engineering choices are embedded in broader ethical and organizational contexts. The JSON schema is a microcosm of AI governance: a simple, machine‑readable contract that can be audited, versioned, and extended, but only if the community around it respects the shared conventions it encodes.
+
+==== Discussion Prompts
+
+1. *In what scenarios might an imperative script be preferable to a declarative JSON configuration?*  
+2. *How would you extend the schema to support a feature‑store lookup without breaking existing pipelines?*  
+3. *What validation strategies (e.g., JSON Schema, custom Python validators) best balance strictness and developer productivity?*  
+4. *Consider a regulated industry (e.g., finance). How does a declarative pipeline aid compliance, and what additional metadata might you need to capture?*  
+5. *If a data scientist wants to experiment with a novel algorithm not listed in the `model_type` enum, how should the schema evolve to accommodate innovation while preserving safety?*  
+6. *Discuss the trade‑offs between storing hyper‑parameters in the JSON file versus a separate experiment‑tracking system (e.g., MLflow).*
+
+==== Lab Preparation: Building a JSON‑Driven Iris Classifier
+
+In the upcoming lab you will implement a complete end‑to‑end pipeline for the classic Iris dataset, using the same JSON schema introduced above. The lab consists of three milestones:
+
+* **Milestone 1 – Schema authoring:** Write `iris_pipeline.json` that loads the CSV, selects a `tree` model, and specifies `max_depth` and `min_samples_leaf`.  
+* **Milestone 2 – Engine implementation:** Extend the provided `pipeline_driver.py` to parse the JSON, instantiate a `DecisionTreeClassifier`, train on the training split, and evaluate accuracy on the test split.  
+* **Milestone 3 – Extension & audit:** Add a new `feature_engineering` block that creates polynomial features, update the schema version, and generate a simple audit report (JSON) that records the schema used, timestamps, and evaluation metrics.
+
+Key points to keep in mind while preparing:
+
+* Ensure the JSON validates against the schema before running the driver.  
+* Use `joblib.dump` to persist the trained model and `joblib.load` for downstream stages.  
+* Log all major actions (data loading, model training, evaluation) to a `pipeline.log` file for traceability.  
+* Commit both the JSON file and the driver script to the provided Git repository; the CI pipeline will automatically run the workflow and verify the audit report.
+
+By the end of the lab you will have a reusable, version‑controlled pipeline that can be swapped out for any tabular classification task, reinforcing the concepts discussed in this lecture.

@@ -1,10 +1,64 @@
-bash
-$ git clone https://github.com/example/student-ai.git
-$ cd student-ai
-$ tree -L 2
-.
-├── orchestration      # orchestrator service (entry point)
-├── llm                # embeddings, generation, caching
-├── memory             # document store, graph DB, retrieval logic
-├── reasoning          # logical inference, query planning
-└── tools              # search, audit, domain‑specific adapters
+=== 1.8: The student‑ai/ Stack — Capstone Overview
+:leveloffset: 2
+
+[.epigraph]
+____
+“The most powerful tool we have is not a program, but the way we let information flow through it.” +
+— Ada Lovelace, *Notes on the Analytical Engine* (adapted)
+____
+
+==== Hook
+* You open the student‑ai/ repository and see a folder named “knowledge‑graph” – what does it actually do?
+* How can a static code base exhibit the metabolism of a living organism?
+* Does the stack you are about to explore already “think”, or is it merely a scaffold for thinking?
+
+==== Conceptual Core
+
+When you first glance at the directory tree of *student‑ai/*, the layout looks like any other software project: source files, a `requirements.txt`, a `README`. Yet hidden among these familiar artifacts is a **knowledge graph** that is meant to act as the circulatory system of the entire stack. Imagine a city where roads, power lines, and water pipes are all laid out before any traffic ever moves. The roads exist, but they only become meaningful when cars, buses, and cyclists start flowing through them. In the same way, the graph stores entities and relations, but intelligence emerges only when agents traverse, transform, and augment that structure. This shift from static storage to dynamic circulation is the heart of our capstone vision.
+
+Intelligence, in the post‑modern framing of this book, is best understood as a **process** rather than a possession. Traditional AI textbooks often speak of “knowledge” as a collection of facts or of “skill” as a set of learned weights. Both are *stored* components: they sit in memory, awaiting retrieval. What truly characterizes an intelligent system, however, is the **flow** that moves those stored items through inference, planning, and action. We therefore speak of *transformation*, *circulation*, and **metabolism**—terms borrowed from biology to highlight self‑regulation, homeostasis, and adaptation. A neural network’s weight matrix is a stored substrate; the forward‑pass computation that turns an input vector into an output is the flowing substrate. When these two substrates are tightly coupled, the system can adjust its own storage in response to the flow, just as a living organism remodels its tissues in response to metabolic demands.
+
+Real‑world AI systems are rarely pure symbols or pure connectionist nets; they are **hybrids** that blend stored and flowing components. Early symbolic AI treated the mind as a rule‑based processor, a kind of digital bureaucracy that shuffled symbols according to pre‑written procedures. Connectionist approaches later emphasized distributed representations and gradient‑driven learning, focusing on the *flow* of activation across layers. The cognitive turn of the 1990s and 2000s recognized that neither perspective alone could capture the full richness of cognition. Hybrid architectures—think of language models that retrieve documents from a vector store before generating text—embody the same principle that underlies our capstone: stored knowledge provides a substrate, while flowing inference supplies the dynamism.
+
+From a broader perspective, AI agents act as **epistemic machines**: they generate, filter, and propagate knowledge across networks of other agents, databases, and human users. Each query to the knowledge graph is a micro‑experiment in epistemology, testing what the system *knows* and how it *learns* to know more. The graph itself becomes a *metabolic hub*, a place where new facts are ingested, old connections are pruned, and emergent patterns are distilled into higher‑order concepts. This hub does not sit in isolation; it is embedded in the **infrastructure** of cloud containers, CI pipelines, and version‑controlled repositories, and it is further woven into **institutions**—the university, research labs, and even corporate knowledge bases that rely on it. In this sense, the stack participates in the larger social and organizational metabolism of information.
+
+Understanding the stack as a metabolic system also reframes how we think about *control* and *maintenance*. In biology, metabolism is regulated by feedback loops: hormones signal when to store glucose and when to release it. Analogously, our agents monitor graph metrics—such as node centrality or edge weight drift—and trigger retraining or schema updates when thresholds are crossed. This self‑regulating loop prevents the graph from becoming a stale encyclopedia and ensures that the system remains responsive to new data streams, user feedback, or shifting domain requirements. The metaphor thus provides a concrete vocabulary for discussing robustness, scalability, and ethical stewardship.
+
+> **Bridge:** Grasping the metabolic hub of the student‑ai/ stack will let you design agents that truly circulate knowledge, a skill you’ll practice in the upcoming labs.
+
+==== Bridge
+* Understanding this hub prepares you for Labs 0–3, where you will instantiate and query the graph.
+
+==== Technical Example
+
+The physical layout of the *student‑ai/* repository mirrors the conceptual separation between **stored** and **flowing** elements. At the top level you will find three sibling directories: `src/` (executable code), `data/` (static datasets, schema files), and `kg/` (the knowledge‑graph module). The `kg/` folder contains a Neo4j database definition, a set of Cypher scripts for schema creation, and a thin Flask‑based RESTful API that exposes graph queries over HTTP. This API is the entry point for any downstream agent that wishes to *draw* from the stored substrate.
+
+A typical agent pipeline begins by requesting an embedding for a user‑provided query via the API. The graph returns a set of candidate nodes, each annotated with a similarity score derived from pre‑computed node embeddings. The agent then applies a transformation function—often a lightweight neural module—that refines the candidates, ranks them, and finally composes a natural‑language answer. The result is sent back to the user, and, crucially, the pipeline also writes a new edge back into the graph to record the interaction, thereby closing the metabolic loop. This write‑back is captured by a logging middleware that timestamps each transformation, stores the intermediate representations, and visualizes the entire trace in a dashboard. By examining the dashboard you can see, at a glance, how information entered the system, how it was reshaped, and where it exited—a living portrait of the stack’s metabolism.
+
+Scalability is achieved through two complementary strategies. First, the graph is sharded across multiple Neo4j instances, each responsible for a subset of the ontology (e.g., courses, research papers, student profiles). Second, the flow modules—embedding lookup, similarity scoring, and answer generation—are containerized and orchestrated with Docker Compose, allowing them to run in parallel across a Kubernetes cluster. When the query volume spikes, the orchestrator spins up additional pods, each pulling from the appropriate shard. This separation of concerns mirrors the biological division between organs that store resources (liver, adipose tissue) and those that process them (muscles, brain), reinforcing the metabolism metaphor at an architectural level.
+
+==== Philosophical Reflection
+
+Viewing AI as a **metabolism** forces us to confront the fact that these systems are no longer passive tools but active participants in the circulation of information that shapes societies. When a recommendation engine routes news articles to millions of readers, it is effectively redistributing epistemic resources, amplifying some signals while attenuating others. The metabolic metaphor foregrounds this distributive power: just as a diseased metabolism can poison a body, a biased or poorly regulated AI metabolism can poison public discourse. This raises the stakes for designers, who must now consider not only algorithmic accuracy but also the *health* of the information ecosystem they help sustain.
+
+The metaphor also highlights its own limits. Biological metabolism is grounded in physical chemistry, with well‑defined energy flows and waste products. Cognitive phenomena such as qualia, intentionality, or collective imagination do not map cleanly onto nutrient‑absorption analogues. By stretching the metaphor, we risk obscuring the distinctive features of mind—its normative dimensions, its capacity for self‑reflection, its grounding in lived experience. Recognizing these mismatches prevents us from reifying the metaphor into a doctrine; instead, we treat it as a heuristic that illuminates certain aspects (feedback, adaptation, homeostasis) while leaving room for other explanatory tools.
+
+Epistemic agency emerges precisely at the intersection of stored knowledge and flowing inference. The knowledge graph supplies a *collective memory* that any agent can draw upon, but the agent’s reasoning pipeline determines how that memory is *interpreted* and *re‑expressed*. Responsibility, therefore, shifts from the static code that defines the graph schema to the dynamic processes that manipulate it. A bug in a logging middleware may be benign when the system is idle, but once the flow intensifies—say, during an exam‑season surge—the same bug can cascade into erroneous grades or misallocated resources. Accountability must follow the flow, tracing not just who wrote a line of code but also which transformation amplified its effect.
+
+Finally, the institutional embedding of the stack can either reinforce existing power structures or democratize knowledge. If the graph is owned by a single department and only a privileged few have write access, the metabolism becomes a closed loop that perpetuates the department’s epistemic hegemony. Conversely, if the graph is open‑source, version‑controlled, and governed by a transparent consortium, the flow of information can become a public good, enabling cross‑disciplinary research and student‑led innovation. Future hybrid systems may blur the line between tool and organism so thoroughly that we will need new ethical frameworks—perhaps borrowing from bioethics—to adjudicate issues of consent, agency, and rights for *synthetic metabolisms*.
+
+==== Discussion Prompts
+* In what ways does the metabolism metaphor help or hinder our understanding of AI behavior?  
+* How does the hybrid nature of stored and flowing intelligence affect system transparency?  
+* What ethical responsibilities arise when an AI’s “metabolism” influences real‑world decisions?  
+* Can the knowledge graph be considered a form of collective memory for the student‑ai/ community?  
+* How might institutional deployment of this stack reshape academic or corporate knowledge practices?  
+* What criteria would you use to evaluate whether a given AI component is more “stored” or more “flowing”?
+
+==== Lab Prep
+* Clone the student‑ai/ repository and checkout the “main” branch.  
+* Install Neo4j locally or connect to the provided cloud instance.  
+* Run the starter script to populate the knowledge graph with sample nodes and edges.  
+* Execute the example agent to observe a full information‑metabolism cycle.  
+* Modify a node property and re‑run the agent to see the effect on downstream inference.  
+* Prepare a short report on how the graph’s structure influences the agent’s output for Lab 0.

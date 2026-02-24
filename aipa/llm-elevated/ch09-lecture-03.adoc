@@ -7,7 +7,7 @@ ____
 
 ==== Hook – A Real‑World Tangle
 
-Imagine you are building an autonomous travel planner. The agent sends a request to a flight‑search API, receives the following JSON payload, and must decide what to do next:
+Imagine you are building an autonomous travel planner that must book a round‑trip flight for a user who will catch a connecting train in two hours. The planner first calls *Provider A*’s flight‑search API and receives the following JSON payload:
 
 ```json
 {
@@ -20,45 +20,56 @@ Imagine you are building an autonomous travel planner. The agent sends a request
 }
 ```
 
-The agent cannot simply “ignore” this message. It must interpret the *status*, extract the *payload* for diagnostics, and use the *metadata* to decide whether to retry, fall back to an alternative provider, or hand the problem over to a human operator. This tension—*how an AI turns raw observations into safe, purposeful action*—is the conceptual core of today’s lecture.
+The planner cannot simply “ignore” this message. It must decide, *in the next few seconds*, whether to retry Provider A, fall back to Provider B, or hand the problem to a human operator. This tension—*how an autonomous agent turns raw observations into safe, purposeful action*—is the conceptual core of today’s lecture.
+
+[NOTE]
+====
+**Quick checkpoint (2 min).** In the chat, type one word that describes the first action you think the planner should take (e.g., “retry”, “fallback”, “escalate”). We’ll revisit the answers after the schema is introduced.
+====
 
 ==== Conceptual Core
 
-*Paragraph 1 – Why a Uniform Schema?*  
-A uniform result schema (`status`, `payload`, `metadata`) gives every downstream component a predictable contract. Without it, each tool would speak its own language, forcing the agent to write bespoke parsers that quickly become brittle. The schema therefore acts as a **semantic glue**, enabling the agent to treat any tool as a black‑box whose output can be reasoned about uniformly.
+*Paragraph 1 – The Problem of Heterogeneous Outputs*  
+When the planner talks to Provider A, Provider B, or a future “train‑search” tool, each service returns a *different* JSON shape: some embed the error code under `error.code`, others use `statusCode`, and a few even omit a top‑level status altogether. If the planner had to write a custom parser for every tool, the codebase would explode, and a single schema change in a third‑party API could break the entire system. A **uniform result schema**—a contract that every tool must obey—solves this by giving the planner a single, predictable entry point for *any* observation.
 
-*Paragraph 2 – Designing for Idempotence and Observability*  
-`status` is a binary indicator (`success` | `error`) that guarantees idempotence: the same request repeated under identical conditions yields the same status, allowing safe retries. `payload` carries the *observable*—the actual data on success or the diagnostic details on failure—while `metadata` records execution context (`elapsed_ms`, `tool_version`). Together they provide the observability needed for governance, debugging, and performance tuning.
+*Paragraph 2 – Anatomy of the Uniform Schema*  
+The contract consists of three fields:
 
-*Paragraph 3 – Classifying Errors*  
-Errors fall into two broad categories:  
+1. **`status`** – a binary indicator (`"success"` | `"error"`).  
+2. **`payload`** – the *observable*: on success, the data the planner needs (flight options); on error, a diagnostic object (`code`, `message`).  
+3. **`metadata`** – execution context (`elapsed_ms`, `tool_version`, optional `request_id`).  
 
-1. **Transient** – caused by temporary conditions (network hiccups, rate limits, timeouts).  
-2. **Permanent** – caused by immutable problems (invalid arguments, exhausted quota, unsupported operation).  
+Because `status` is idempotent, the planner can safely repeat a call under identical conditions and expect the same flag, which is a prerequisite for reliable retry logic. `payload` isolates the *what* (the knowledge) from the *how* (the transport), while `metadata` supplies the *why* (timing, versioning) that later audits and governance processes demand.
 
-Distinguishing these categories is essential because it determines the *retry strategy* versus *fallback or escalation*.
+*Paragraph 3 – Classifying Errors for Adaptive Behaviour*  
+Not all errors are created equal. We distinguish two broad families:
 
-*Paragraph 4 – Retry, Back‑off, and Circuit‑Breaker*  
-For transient errors we employ a bounded retry loop with exponential back‑off, e.g. wait 1 s, then 2 s, then 4 s, up to a configurable maximum. A circuit‑breaker monitors cumulative latency; if a tool repeatedly exceeds its deadline, the breaker trips, aborting further calls and logging the failure. This protects the system from runaway execution and preserves resources for higher‑priority tasks.
+* **Transient errors** – temporary glitches such as network hiccups, rate‑limit throttling, or the timeout shown above. They usually disappear after a short pause or a slight parameter tweak.  
+* **Permanent errors** – structural problems like malformed arguments, exhausted quota, or an unsupported query. Retries are futile; the planner must either switch to a different tool or involve a human.
 
-*Paragraph 5 – Observation as a Constraint on Reasoning*  
-Every observation constrains the agent’s hypothesis space. A successful `payload` expands possibilities (the plan can continue), whereas an error `payload` contracts them (the plan must be revised). The agent therefore treats the observation as a **feedback constraint**, feeding it into its internal belief model before generating the next action.
+The schema makes this classification explicit: the `code` field follows a taxonomy (`TIMEOUT`, `RATE_LIMIT`, `INVALID_ARG`, `QUOTA_EXCEEDED`, …). The planner’s decision engine can map each code to a *strategy* (retry, fallback, escalation) without peeking into the tool’s internal implementation.
 
-*Paragraph 6 – Governance, Logging, and Human‑in‑the‑Loop*  
-`metadata` enables audit trails: elapsed time, tool version, and error codes are recorded in an observation log. When the error is permanent or the circuit‑breaker trips, the system can automatically **escalate to a human operator**, preserving safety and accountability.
+*Paragraph 4 – Retry, Back‑off, and Circuit‑Breaker in Action*  
+For transient errors the planner launches a bounded retry loop with **exponential back‑off**: wait 1 s, then 2 s, then 4 s, capping at a configurable maximum (often 8 s). The back‑off mitigates thundering‑herd effects on overloaded services. Simultaneously a **circuit‑breaker** watches cumulative latency and failure count; if Provider A exceeds its deadline three times in a row, the breaker *opens* and the planner instantly skips further calls to that provider, logging a `CIRCUIT_OPEN` event. This protects the overall workflow from getting stuck on a single flaky service and frees resources for higher‑priority tasks (e.g., confirming the train reservation).
+
+*Paragraph 5 – Observations as Constraints on the Agent’s Hypothesis Space*  
+Every JSON result contracts or expands the planner’s *hypothesis space*—the set of possible travel itineraries it is currently considering. A successful `payload` adds concrete flight legs, widening the space of viable itineraries. An error `payload` prunes branches: a timeout tells the planner that *any* itinerary relying on Provider A’s data is currently unavailable, so it must either (a) try Provider B, (b) re‑plan using only known flights, or (c) ask the user for a manual decision. In this way, the uniform schema turns raw observations into a **feedback constraint** that the planner feeds back into its internal belief model before generating the next action.
+
+*Paragraph 6 – Governance, Auditing, and Human‑in‑the‑Loop*  
+`metadata` is the audit trail’s backbone. By persisting `elapsed_ms`, `tool_version`, and a unique `request_id` for every call, the system can later answer questions such as “Did the planner exceed the SLA for flight‑search?” or “Which version of Provider A caused the most timeouts?” When a permanent error or a circuit‑breaker trip occurs, the planner automatically **escalates to a human operator**, presenting the `payload` (error code and message) together with the `metadata`. This escalation preserves safety, satisfies regulatory requirements for human oversight, and gives operators the context they need to make an informed decision.
 
 ===== Key Points
 
-* Uniform result schema (`status`, `payload`, `metadata`) provides a stable contract.  
-* Idempotent `status` enables safe retry loops.  
-* `payload` carries the observation; `metadata` supplies execution context.  
-* Errors are classified as **transient** or **permanent**.  
-* Transient errors trigger exponential back‑off retries.  
+* Uniform result schema (`status`, `payload`, `metadata`) gives every tool a predictable contract.  
+* `status` is binary and idempotent, enabling safe retry loops.  
+* `payload` carries the observation; on error it contains a diagnostic `code` and `message`.  
+* `metadata` records execution context (latency, version, request ID) for observability.  
+* Errors are classified as **transient** or **permanent** via a shared taxonomy.  
+* Transient errors trigger exponential back‑off retries bounded by a maximum attempt count.  
 * Permanent errors invoke fallback tools or human escalation.  
-* Circuit‑breaker enforces configurable timeouts and prevents runaway calls.  
-* Observation constrains the agent’s hypothesis space and planning.  
-* Logging of `metadata` supports governance and debugging.  
-* The pattern promotes composability of heterogeneous tools.
+* A circuit‑breaker monitors failure frequency and latency, opening after a configurable threshold.  
+* Observations act as constraints that prune or expand the agent’s hypothesis space.  
+* Auditable `metadata` supports governance, debugging, and compliance with AI safety standards.  
 
 ==== Execution Pipeline Diagram
 
@@ -86,6 +97,10 @@ else error
     Tool --> Executor : {"status":"error","payload":errorInfo,"metadata":meta}
 end
 Executor --> Planner : observation (uniform JSON)
+note right of Planner
+  Updates hypothesis space
+  Logs metadata
+end note
 @enduml
 ----
 
@@ -98,22 +113,18 @@ title Error Handling, Retry, and Feedback Loop
 !define RECTANGLE class
 RECTANGLE "Tool Call" as Call
 RECTANGLE "Result JSON" as Result
+diamond "status = error?" as Decision
 RECTANGLE "Retry Loop\n(Exp‑Backoff)" as Retry
 RECTANGLE "Fallback Tool" as Fallback
 RECTANGLE "Human Escalation" as Human
 
 Call --> Result : invoke
-Result --> Call : status?
-alt transient error
-    Call --> Retry : retry?
-    Retry --> Call : repeat
-else permanent error
-    Call --> Fallback : try alternative
-    alt fallback fails
-        Call --> Human : escalation
-    end
-end
-
+Result --> Decision : return JSON
+Decision --> Retry : transient?
+Decision --> Fallback : permanent?
+Retry --> Call : repeat (≤3 attempts)
+Fallback --> Human : still fails?
+Human --> Call : manual resolution
 Result --> "Agent\nHypothesis Space" : observation constrains
 @enduml
 ----
@@ -159,9 +170,16 @@ class ToolExecutor:
         time.sleep(delay)
 
     def execute(self, tool_name: str, **kwargs) -> Dict[str, Any]:
+        # --------------------------------------------------------------
+        # 1️⃣  Guard against an open circuit‑breaker
+        # --------------------------------------------------------------
         if self.breaker.is_tripped():
-            raise ToolError("CIRCUIT_OPEN", f"{tool_name} circuit breaker is open")
+            raise ToolError("CIRCUIT_OPEN",
+                            f"{tool_name} circuit breaker is open")
 
+        # --------------------------------------------------------------
+        # 2️⃣  Resolve the concrete tool implementation
+        # --------------------------------------------------------------
         tool = self.registry.get(tool_name)
         if tool is None:
             raise ToolError("NOT_FOUND", f"Tool {tool_name} not registered")
@@ -169,75 +187,99 @@ class ToolExecutor:
         attempt = 0
         while True:
             try:
-                # Simulate a timeout guard (real code would use async or signals)
+                # ------------------------------------------------------
+                # 3️⃣  Run the tool under a timeout guard (simplified)
+                # ------------------------------------------------------
                 start = time.time()
                 result = tool.run(**kwargs, timeout=self.timeout_ms)
                 elapsed = int((time.time() - start) * 1000)
 
-                # Uniform success schema
+                # ------------------------------------------------------
+                # 4️⃣  Build the **uniform success schema**
+                # ------------------------------------------------------
                 return {
                     "status": "success",
                     "payload": result.data,
                     "metadata": {
                         "elapsed_ms": elapsed,
-                        "tool_version": tool.version
+                        "tool_version": tool.version,
+                        "request_id": kwargs.get("request_id", "unknown")
                     }
                 }
             except TimeoutError:
-                # Transient error – retry with back‑off
+                # ----------- Transient error – retry with back‑off ----------
                 self._exponential_backoff(attempt)
                 attempt += 1
                 if attempt > 3:   # bounded retries
                     self.breaker.record_failure()
-                    raise ToolError("TIMEOUT", f"{tool_name} exceeded {self.timeout_ms} ms")
+                    raise ToolError("TIMEOUT",
+                                    f"{tool_name} exceeded {self.timeout_ms} ms")
             except ValueError as exc:
-                # Permanent error – no retry, fall back or escalate
+                # ----------- Permanent error – no retry --------------------
                 raise ToolError("INVALID_ARGUMENT", str(exc))
             except Exception as exc:
-                # Unknown permanent error
+                # ----------- Unknown permanent error -----------------------
                 raise ToolError("FAILURE", str(exc))
 ```
 
-*Explanation of key steps*  
+*Walk‑through of the implementation*  
 
-1. **Uniform schema** – The `return` dictionary always contains `status`, `payload`, and `metadata`.  
-2. **Error classification** – `TimeoutError` is treated as *transient*; `ValueError` (invalid arguments) is *permanent*.  
-3. **Exponential back‑off** – The `_exponential_backoff` method doubles the wait time on each retry, capped at 8 seconds.  
-4. **Circuit‑breaker** – After three failed retries the breaker trips, preventing further calls and surfacing a `CIRCUIT_OPEN` error.  
-5. **Metadata collection** – `elapsed_ms` and `tool_version` are recorded for observability and governance.
+1. **Uniform schema construction** – The `return` dictionary always contains the three required keys, guaranteeing downstream code can rely on a stable shape.  
+2. **Error classification** – `TimeoutError` is mapped to the transient `TIMEOUT` code, while `ValueError` becomes the permanent `INVALID_ARGUMENT`. All other exceptions fall back to a generic `FAILURE`.  
+3. **Exponential back‑off** – The private method `_exponential_backoff` doubles the wait time on each attempt, capping at eight seconds to avoid unbounded delays.  
+4. **Circuit‑breaker logic** – After three consecutive timeouts the breaker trips, causing subsequent calls to raise `CIRCUIT_OPEN` immediately.  
+5. **Metadata enrichment** – `elapsed_ms`, `tool_version`, and a `request_id` are captured for audit trails and later visualisation.
+
+===== Key Points
+
+* The executor always emits a **uniform JSON** (`status`, `payload`, `metadata`).  
+* `TimeoutError` → **transient** → exponential back‑off with a hard retry limit.  
+* `ValueError` → **permanent** → immediate escalation or fallback.  
+* Circuit‑breaker records failures and prevents further calls after a threshold.  
+* `metadata` supplies latency, version, and request identifiers for observability.  
+* The pattern cleanly separates *what* the tool returned from *how* the agent should react.
 
 ==== Philosophical Reflection
 
-The uniform result schema does more than tidy up code; it **structures the epistemic relationship** between an autonomous agent and the world. By forcing every observation into a three‑part contract, we make explicit what the agent *knows* (`payload`), *how confident* it is (`status`), and *what context* shaped that knowledge (`metadata`). This transparency is a prerequisite for **trust**: a human overseer can audit the agent’s belief updates, verify that timeouts were handled responsibly, and confirm that escalation policies were respected.
+The uniform result schema does more than tidy up code; it **structures the epistemic relationship** between an autonomous agent and the world. By forcing every observation into a three‑part contract, we make explicit what the agent *knows* (`payload`), *how confident* it is (`status`), and *under which circumstances* that knowledge was produced (`metadata`). This transparency is a prerequisite for **trust**: a human overseer can audit the agent’s belief updates, verify that timeouts were handled responsibly, and confirm that escalation policies were respected.
 
-Moreover, treating observations as **constraints** on the hypothesis space mirrors the scientific method: data prune the set of viable theories, and errors signal the need for new experiments. In an AI system, this constraint‑driven reasoning prevents the agent from persisting in a dead‑end plan, thereby embodying a form of *self‑corrective humility*. From an ethical standpoint, such humility is essential for safe interruptibility—if the agent can recognize that its current line of reasoning is no longer justified, it can gracefully defer to a human, avoiding catastrophic over‑commitment.
+Treating observations as **constraints on the hypothesis space** mirrors the scientific method: data prune the set of viable theories, and errors signal the need for new experiments. In the travel‑planner scenario, a timeout contracts the set of itineraries that depend on Provider A, forcing the planner either to explore alternatives or to ask the user for a manual decision. This constraint‑driven reasoning embodies a form of *self‑corrective humility*—the agent recognises the limits of its current knowledge and yields gracefully rather than persisting in a dead‑end plan. From an ethical standpoint, such humility is essential for *safe interruptibility*: the system can step back when its evidence no longer supports the current course of action.
 
-Finally, the schema’s inclusion of `metadata` embeds **accountability** into the fabric of computation. Every decision can be traced back to a concrete latency measurement and tool version, enabling post‑mortem analyses and compliance with emerging AI governance standards. In this way, a simple JSON shape becomes a linchpin for both technical robustness and the broader societal contract between autonomous systems and their users.
+Finally, embedding `metadata` into every result **codifies accountability**. Each decision can be traced back to a concrete latency measurement, tool version, and request identifier, enabling post‑mortem analyses and compliance with emerging AI governance standards. In this way, a simple JSON shape becomes a linchpin for both technical robustness and the broader societal contract between autonomous systems and their users.
+
+===== Key Take‑aways
+
+* Uniform schemas turn raw observations into **explicit epistemic triples** (status, payload, metadata).  
+* Explicit status flags give the agent a **confidence signal** that guides retry vs. escalation.  
+* Payloads act as **constraints** that prune or expand the agent’s hypothesis space.  
+* Metadata provides an **audit trail**, supporting governance, debugging, and regulatory compliance.  
+* The pattern enforces **self‑corrective humility**, preventing the agent from over‑committing to invalid plans.  
+* By making error taxonomy visible, the schema enables **transparent risk management** and safer human‑in‑the‑loop hand‑offs.
 
 ==== Discussion Prompts
 
 1. *When should an autonomous agent prefer escalation to a human over exhausting all fallback tools?*  
-2. *How does the choice of `status` granularity (binary vs. multi‑level) affect the agent’s planning horizon?*  
-3. *In what ways could an adversary manipulate `metadata` to mislead the agent’s hypothesis space?*  
-4. *Compare exponential back‑off with linear retry strategies: what trade‑offs arise in latency‑sensitive domains?*  
-5. *How might the uniform schema evolve to support multimodal payloads (e.g., images, audio) while preserving observability?*  
-6. *Discuss the ethical implications of automatically classifying errors as “transient” – could this hide systemic biases?*
+2. *How does the granularity of `status` (binary vs. multi‑level) affect the planner’s ability to reason about partial successes?*  
+3. *In what ways could an adversary manipulate `metadata` (e.g., forged `elapsed_ms`) to mislead the agent’s hypothesis space?*  
+4. *Compare exponential back‑off with linear retry strategies: what trade‑offs arise in latency‑sensitive domains such as travel planning?*  
+5. *How might the uniform schema evolve to support multimodal payloads (e.g., images of boarding passes or audio confirmations) while preserving observability?*  
+6. *Discuss the ethical implications of automatically classifying errors as “transient”: could systematic biases be hidden behind this label?*  
 
 ==== Lab Preparation
 
-In the upcoming lab you will:
+In the upcoming lab you will put the concepts into practice:
 
 * Implement a mock tool that randomly produces success, timeout, and permanent errors.  
 * Extend the `ToolExecutor` to log every JSON result to a central observation store (e.g., a SQLite table).  
-* Visualize the agent’s hypothesis space as a graph that shrinks on error observations and expands on successful payloads.  
+* Visualize the planner’s hypothesis space as a graph that **shrinks** on error observations and **expands** on successful payloads.  
 * Design a simple escalation UI that presents the `payload` and `metadata` to a human operator for manual resolution.  
 
-**Key Lab Steps**  
+**Key Lab Steps**
 
 1. Clone the starter repository and run `python mock_tool.py`.  
-2. Modify `execute()` to record each result in `observations.db`.  
-3. Use NetworkX (or a similar library) to plot hypothesis‑space dynamics.  
-4. Implement a command‑line prompt that triggers human escalation when the circuit‑breaker trips.  
-5. Write a short reflection (≈ 200 words) on how the uniform schema influenced your debugging workflow.
+2. Modify `execute()` to insert each result into `observations.db` with a timestamp.  
+3. Use NetworkX (or a similar library) to plot hypothesis‑space dynamics after each call.  
+4. Implement a command‑line prompt that triggers human escalation automatically when the circuit‑breaker opens.  
+5. Write a short reflection (≈ 200 words) on how the uniform schema influenced your debugging workflow and what limitations you discovered.
 
 *End of Lecture*

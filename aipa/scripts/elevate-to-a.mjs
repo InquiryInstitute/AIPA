@@ -121,42 +121,40 @@ function numToSlugDerive(num, allSlugs) {
   return allSlugs.has(slug) ? slug : null
 }
 
-/** Build num -> slug: from review dir headers when possible, else from source lecture === num, else derive from num. */
-function buildNumToSlug(reviewDir, slugToPath) {
-  const allSlugs = new Set(Object.keys(slugToPath))
+/** Build num -> slug from source lecture headers only (canonical). Review headers are often wrong (e.g. 1.1 in ch07-lecture-05). */
+function buildNumToSlug(slugToPath) {
   const numToSlug = {}
-  if (fs.existsSync(reviewDir)) {
-    const files = fs.readdirSync(reviewDir).filter(f => f.endsWith('.md'))
-    for (const f of files) {
-      const slug = path.basename(f, '.md')
-      const content = fs.readFileSync(path.join(reviewDir, f), 'utf8')
-      const firstLine = content.split('\n')[0]
-      const m = firstLine.match(/^#\s*Review:\s*([\d.]+[a-z]?):\s*(.+)$/i)
-      if (m) numToSlug[m[1]] = slug
-    }
-  }
   for (const [slug, lecturePath] of Object.entries(slugToPath)) {
     try {
       const first = fs.readFileSync(lecturePath, 'utf8').split('\n').find(l => l.match(/^===?\s+[\d.]+[a-z]?:/))
       const m = first && first.match(/^===?\s+([\d.]+[a-z]?):/)
-      if (m && !numToSlug[m[1]]) numToSlug[m[1]] = slug
+      if (m) numToSlug[m[1]] = slug
     } catch (_) {}
+  }
+  if (numToSlug['2.2'] === undefined && Object.keys(slugToPath).some(s => s.includes('use-cases'))) {
+    const useCaseSlug = Object.keys(slugToPath).find(s => s.includes('use-cases'))
+    if (useCaseSlug) numToSlug['2.2'] = useCaseSlug
   }
   return numToSlug
 }
 
 const ELEVATE_SYSTEM = `You are the faculty author of AIPA (Artificial Intelligence: A Postmodern Approach). Your task is to revise a lecture so it reaches **A** (exemplary, 90-minute ready).
 
+**Target density and depth (90-minute lecture):**
+- **Word targets:** Total lecture ~2,500–3,500 words (main prose). Conceptual Core ~800–1,200 words; Technical Example ~400–600 words; Philosophical Reflection ~400–600 words.
+- **Section structure:** Conceptual Core 4–6 paragraphs, 6–12 Key Points; Technical Example 2–3 paragraphs, 5–8 Key Points; Philosophical Reflection 2–3 paragraphs, 5–8 Key Points; Discussion Prompts 5–6; Lab Prep 1–2 paragraphs, 4–6 Key Points.
+- **Depth:** Each section must be substantive—concrete examples, clear development, no thin or definition-only dumps. Reflection should extend the story (stakes, limits, design choices). Include a forward bridge to lab or next lecture where appropriate.
+
 A lecture is **A** when it has:
-- **Hook:** Conceptual Core opens with a scenario, question, or tension—not a bare definition.
+- **Hook:** Conceptual Core opens with a scenario, question, or tension—not a bare definition. Example: opening with "Intelligence is the ability to..." is weak; instead open with "A system that passes benchmarks but cannot explain its decisions forces us to ask: what kind of intelligence is that?"
 - **Development:** Ideas build stepwise; definitions framed as answers to a question already raised.
 - **Closing:** Conceptual Core or Philosophical Reflection ends with implication, forward look, or bridge to lab/next.
-- **Conceptual Core:** 4–6 paragraphs; 6–12 Key Points.
-- **Technical Example:** 2–3 paragraphs; 5–8 Key Points.
-- **Philosophical Reflection:** 2–3 paragraphs; 5–8 Key Points.
+- **Conceptual Core:** 4–6 paragraphs, 6–12 Key Points (~800–1,200 words).
+- **Technical Example:** 2–3 paragraphs, 5–8 Key Points (~400–600 words).
+- **Philosophical Reflection:** 2–3 paragraphs, 5–8 Key Points (~400–600 words).
 - **Discussion Prompts:** 5–6 open-ended; **Lab Prep:** 1–2 paragraphs, 4–6 Key Points.
 
-Rules: Preserve exact AsciiDoc and PlantUML syntax ([.epigraph], [plantuml,...], pass:q[...], <<ref>>). Apply the critic's recommendations. Output **only** the revised AsciiDoc—no preamble or commentary. Start with the first line (e.g. === 1.1: Title) and end with the last line of the last section.`
+Rules: Preserve exact AsciiDoc and PlantUML syntax ([.epigraph], [plantuml,...], pass:q[...], <<ref>>). Apply the critic's recommendations. Expand any section that is below the word or paragraph targets. Output **only** the revised AsciiDoc—no preamble or commentary. Start with the first line (e.g. === 1.1: Title) and end with the last line of the last section.`
 
 const GATEWAY_RETRY_ON_STATUS = [502, 503, 504]
 const GATEWAY_RETRY_DELAY_MS = 5000
@@ -212,25 +210,28 @@ async function main() {
   const gradeRows = parseGradesFile(gradesContent)
   const lectures = findLectures()
   const slugToPath = Object.fromEntries(lectures.map(p => [slugFromPath(p), p]))
-  const numToSlug = buildNumToSlug(REVIEWS_DIR, slugToPath)
+  const numToSlug = buildNumToSlug(slugToPath)
 
   const subA = gradeRows.filter(r => r.grade !== 'A')
-  let toProcess = subA
-  if (limit) toProcess = toProcess.slice(0, limit)
   const allSlugs = new Set(Object.keys(slugToPath))
-  console.log(`Sub-A lectures: ${subA.length}; to elevate: ${toProcess.length} (dryRun=${dryRun})`)
+  const seenSlug = new Set()
+  let toProcess = []
+  for (const r of subA) {
+    const slug = numToSlug[r.num] || numToSlugDerive(r.num, allSlugs)
+    if (!slug || seenSlug.has(slug)) continue
+    seenSlug.add(slug)
+    toProcess.push({ ...r, slug })
+  }
+  if (limit) toProcess = toProcess.slice(0, limit)
+  console.log(`Sub-A lectures: ${subA.length}; unique to elevate: ${toProcess.length} (dryRun=${dryRun})`)
 
   if (!dryRun && toProcess.length && !fs.existsSync(ELEVATED_DIR)) {
     fs.mkdirSync(ELEVATED_DIR, { recursive: true })
   }
 
   for (let i = 0; i < toProcess.length; i++) {
-    const { num, title, grade, reason } = toProcess[i]
-    const slug = numToSlug[num] || numToSlugDerive(num, allSlugs)
-    if (!slug) {
-      console.warn(`  Skip ${num}: no slug in review dir`)
-      continue
-    }
+    const row = toProcess[i]
+    const { num, title, grade, slug } = row
     const lecturePath = slugToPath[slug]
     if (!lecturePath) {
       console.warn(`  Skip ${slug}: no source path`)

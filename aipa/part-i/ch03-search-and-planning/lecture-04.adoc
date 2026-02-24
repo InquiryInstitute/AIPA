@@ -3,7 +3,8 @@
 
 Imagine you are facing the last move in a tic‑tac‑toe match.  
 The board shows two X’s in a row and your opponent threatens an immediate win.  
-What single move guarantees at least a draw, no matter how cleverly your opponent replies?
+What single move guarantees at least a draw, no matter how cleverly your opponent replies?  
+This tiny dilemma already contains the whole of *adversarial search*: a question about which *future* we can force when another intelligent agent is actively trying to thwart us.
 
 [.epigraph]
 "Play is the highest form of research."
@@ -14,71 +15,92 @@ What single move guarantees at least a draw, no matter how cleverly your opponen
 ==== Example Prompts
 
 * "What's the best move in this game?" — _Minimax: alternate turns, opponent minimizes our utility_
-* "Evaluate this board position." — _Evaluation function: static score; alpha‑beta prunes branches_
+* "Evaluate this board position." — _Evaluation function: static score; α‑β prunes branches_
 * "Find the optimal play against a rational opponent." — _Game tree: state space includes opponent's moves_
 
 ==== Conceptual Core
 
-**Looking ahead to win or not lose.**  
-When we ask “If I could see every possible continuation, which move should I pick?” we are implicitly building a *game tree*: a branching representation of every legal state that can arise from the current position.  The root is the position we face now; each edge is a legal move; the leaves are terminal outcomes (win, loss, draw).
+**From a single question to a full tree.**  
+When we ask “If I could see every possible continuation, which move should I pick?” we are implicitly constructing a *game tree*: a branching representation of every legal state that can arise from the current position.  The root is the position we face now; each edge is a legal move; the leaves are terminal outcomes (win, loss, draw).  The tree grows outward until the game ends or we decide to stop because the horizon is too far.
 
-**Game‑tree anatomy.**  
-Each node stores a complete description of the board *and* whose turn it is.  Because the two players alternate, the tree naturally splits into MAX nodes (our turn) and MIN nodes (the opponent’s turn).  This alternating structure lets us treat the opponent as another part of the search space rather than as a static environment.
+**Game‑tree anatomy and the minimax intuition.**  
+Each node stores a complete description of the board *and* whose turn it is.  Because the two players alternate, the tree naturally splits into **MAX** nodes (our turn) and **MIN** nodes (the opponent’s turn).  This alternating structure lets us treat the opponent as another part of the search space rather than as a static environment.  The *minimax* principle then answers the question: *“If it is my turn, which child gives me the best worst‑case result?”*  Formally:
 
-**From intuition to recursion: the minimax principle.**  
-Ask yourself: “If it is my turn, which child gives me the best worst‑case result?”  The answer is the **minimax** recursion:  
-
-* Terminal nodes return their *utility* (win = +1, loss = ‑1, draw = 0).  
-* At a MAX node we take the **maximum** of the children’s values – we assume we will choose the best move.  
-* At a MIN node we take the **minimum** – we assume the opponent will choose the move that hurts us most.  
+* Terminal nodes return a **utility** (win = **+1**, loss = **‑1**, draw = **0**).  
+* At a **MAX** node we take the **maximum** of the children’s values – we assume we will choose the best move.  
+* At a **MIN** node we take the **minimum** – we assume the opponent will choose the move that hurts us most.  
 
 The child of the root with the highest (for MAX) or lowest (for MIN) minimax value is the optimal move.
 
-**Why we prune: α‑β intuition with a live trace.**  
-During a depth‑first walk we keep two bounds:  
+**Mini‑case study: a concrete walk‑through.**  
+Return to the opening board from the hook:
 
-* **α (alpha)** – the best value MAX can already guarantee.  
-* **β (beta)** – the best value MIN can already guarantee.  
+```
+ X |   |  
+---+---+---
+   | O |  
+---+---+---
+   |   |  
+```
 
-When exploring a MAX node, any child that raises α above β makes the remaining siblings irrelevant: they cannot improve the final decision and are **pruned**.  The same logic applies symmetrically at MIN nodes.  Figure 3.4 illustrates a depth‑2 tree where the left subtree raises α to 3, causing the right subtree (β = 2) to be cut off before its leaves are examined.
+Suppose it is **X**’s turn (a **MAX** node).  X can play in any of the six empty squares.  If X chooses the centre‑right cell, the board becomes:
 
-**Limited depth, evaluation, and the horizon effect.**  
-Real games such as chess or Go are far too large to search to terminal states.  We therefore impose a depth limit *d* and evaluate the frontier with a heuristic *evaluation function* that approximates true utility.  Propagating these estimates upward yields a *bounded* minimax value, but it also creates a **horizon effect**: threats that lie just beyond depth *d* remain invisible, potentially leading to short‑sighted blunders.  The standard minimax model also assumes a perfectly rational opponent; relaxing this assumption (e.g., modeling bounded rationality) is a natural extension.
+```
+ X |   | X
+---+---+---
+   | O |  
+---+---+---
+   |   |  
+```
+
+Now it is **O**’s turn (a **MIN** node).  O can block the immediate threat by playing bottom‑right, yielding a leaf with utility **‑1** (X loses).  If O instead plays elsewhere, X will complete a three‑in‑a‑row on the next move, giving utility **+1**.  The MIN node therefore returns the *minimum* of its children, **‑1**, because O will choose the blocking move.  Repeating this reasoning for every initial X move produces a table of minimax values: the centre‑left and centre‑right moves each return **0** (draw), while any other move returns **‑1** (loss).  Consequently, the optimal strategy for X is to play either centre‑left or centre‑right – exactly the move that guarantees a draw in the opening scenario.
+
+**α‑β pruning: discarding the irrelevant before we even look.**  
+The minimax recursion is exhaustive: it evaluates every leaf in the tree.  In practice this is impossible for anything beyond the smallest games.  α‑β pruning introduces two *global* bounds that let us stop exploring branches that cannot affect the final decision:
+
+* **α (alpha)** – the best value that **MAX** can already guarantee.  
+* **β (beta)** – the best value that **MIN** can already guarantee.  
+
+During a depth‑first walk, whenever we discover that **α ≥ β** at a node, we know that the opponent can force a result at least as good (for them) as the one we have already found, so the remaining siblings are **pruned**.  *Think‑pair‑share*: hand out a tiny three‑level tree on a slip of paper and ask students to identify which leaf will be pruned before it is evaluated.  The answer illustrates the dramatic reduction in work – often cutting the effective branching factor by half or more.
+
+**Depth limits, the horizon effect, and design choices.**  
+Real games such as chess or Go are astronomically larger than tic‑tac‑toe, so we impose a depth limit *d* and replace the true utility at the frontier with a *heuristic evaluation function*.  Propagating these estimates upward yields a *bounded* minimax value, but it also creates a **horizon effect**: threats that lie just beyond depth *d* remain invisible, potentially leading to short‑sighted blunders.  Designing a good evaluation function therefore becomes a central engineering task – it encodes domain expertise (material balance in chess, territory in Go, two‑in‑a‑row threats in tic‑tac‑toe).  Later chapters will show how learning algorithms can *learn* such heuristics from data, turning the hand‑crafted evaluation into a trainable model.
 
 ===== Key Points
 
-* Game tree: nodes = states (board + player), edges = legal moves, alternating MAX/MIN  
-* Minimax recursion: terminal → utility; MAX → max of children; MIN → min of children  
+* Game tree: nodes = states (board + player), edges = legal moves, alternating **MAX**/**MIN**  
+* Minimax recursion: terminal → utility; **MAX** → max of children; **MIN** → min of children  
 * Optimal move = child of root with best minimax value for the player to act  
-* α‑β pruning keeps α (best for MAX) and β (best for MIN); prune when α ≥ β  
-* Figure 3.4 visualises the α‑β cut‑off in a concrete depth‑2 tree  
-* Depth‑limited search replaces terminal utilities with heuristic evaluation  
-* Horizon effect: unseen future moves can invalidate shallow decisions  
+* Mini‑case study demonstrates concrete minimax values on a tic‑tac‑toe board  
+* α‑β pruning keeps global α (best for **MAX**) and β (best for **MIN**); prune when α ≥ β  
+* Pruning can be identified before leaf evaluation – active‑learning moment for students  
+* Depth‑limited search replaces terminal utilities with heuristic evaluation, introducing the horizon effect  
+* Evaluation functions embed expert knowledge; later chapters cover learning them automatically  
 * Rational‑opponent baseline can be enriched with bounded or probabilistic models  
 
 ==== Technical Example
 
 **Plain minimax on tic‑tac‑toe.**  
-A board is stored as a nine‑character string, e.g. `"XOX  O   "`.  The terminal test scans rows, columns, and diagonals for three‑in‑a‑row or a full board, returning +1 for a win, ‑1 for a loss, and 0 for a draw.  A naïve recursive minimax explores every legal move, calls itself on the resulting child state, and finally returns the minimax value of the root.
+A board is stored as a nine‑character string, e.g. `"XOX  O   "`.  The terminal test scans rows, columns, and diagonals for three‑in‑a‑row or a full board, returning **+1** for a win, **‑1** for a loss, and **0** for a draw.  A naïve recursive minimax explores every legal move, calls itself on the resulting child state, and finally returns the minimax value of the root.  The pseudocode is intentionally simple so that the underlying idea – “choose the move that maximises the worst‑case outcome” – is crystal clear.
 
 **Adding α‑β pruning with a step‑by‑step trace.**  
-The recursive function now receives two extra arguments, `alpha` (initially ‑∞) and `beta` (initially +∞).  At a MAX node we update `alpha` with the best value seen so far; at a MIN node we update `beta`.  After each child we test `if alpha >= beta` – when true we abort the loop, discarding the remaining siblings.  In the depth‑2 tree of Figure 3.4 the left MIN node yields a child value 3, raising α to 3.  When the algorithm reaches the right MIN node, β is already 2, so the condition α ≥ β holds and the entire right subtree is pruned without evaluating its leaves.
+The recursive function now receives two extra arguments, `alpha` (initially ‑∞) and `beta` (initially +∞).  At a **MAX** node we update `alpha` with the best value seen so far; at a **MIN** node we update `beta`.  After each child we test `if alpha >= beta` – when true we abort the loop, discarding the remaining siblings.  In the depth‑2 tree of Figure 3.4 the left **MIN** node yields a child value **3**, raising **α** to **3**.  When the algorithm reaches the right **MIN** node, **β** is already **2**, so the condition **α ≥ β** holds and the entire right subtree is pruned without evaluating its leaves.  A short print‑out trace (shown in the lab starter code) lets students see the exact moment the cut‑off occurs.
 
-**Scaling up and iterative deepening.**  
-Running plain minimax on tic‑tac‑toe visits roughly **9 000** nodes, whereas the α‑β version visits only **2 500**, a 72 % reduction.  For larger domains (e.g., Connect Four) we combine three techniques:  
+**Scaling up: depth limits, iterative deepening, and evaluation functions.**  
+Running plain minimax on tic‑tac‑toe visits roughly **9 000** nodes, whereas the α‑β version visits only **2 500**, a 72 % reduction.  For larger domains (e.g., Connect Four) we combine three techniques:
 
-1. Limit search depth (e.g., *d* = 6).  
-2. Use an evaluation function that counts open‑ended “four‑in‑a‑row” patterns.  
-3. Apply *iterative deepening* so that each deeper iteration refines the previous result and respects a time budget.
+1. **Depth limit** – restrict the search to *d* = 6 plies.  
+2. **Heuristic evaluation** – count open‑ended “four‑in‑a‑row” patterns, assign weights to centre control, etc.  
+3. **Iterative deepening** – repeatedly run depth‑limited searches with increasing *d*; each iteration re‑uses the move ordering discovered previously, which dramatically improves α‑β effectiveness under a strict time budget.  
 
-These tricks let the same algorithm explore far deeper positions than a naïve search ever could.
+These tricks let the same algorithm explore far deeper positions than a naïve search ever could, and they set the stage for the learning‑based evaluation functions introduced in Chapter 7.
 
 ===== Key Points
 
-* Tic‑tac‑toe state = 9‑character string; terminal test returns utility (+1/‑1/0)  
+* Tic‑tac‑toe state = 9‑character string; terminal test returns utility (**+1**/‑1/**0**)  
 * Plain minimax recursively explores the full tree  
 * α‑β adds `alpha`/`beta` parameters; prune when `alpha >= beta`  
-* Trace on Figure 3.4 shows α = 3 after left subtree, causing right subtree to be cut off  
+* Trace on Figure 3.4 shows **α = 3** after left subtree, causing right subtree to be cut off  
 * Node count: ~9 000 (plain) vs. ~2 500 (α‑β) on tic‑tac‑toe  
 * Depth limit + heuristic evaluation enable search in larger games  
 * Iterative deepening provides anytime results and respects time limits  
@@ -86,19 +108,19 @@ These tricks let the same algorithm explore far deeper positions than a naïve s
 
 ==== Philosophical Reflection
 
-**Baseline rationality versus bounded rationality.**  
-Minimax gives us a worst‑case guarantee: if we can force at least a draw against a perfect opponent, we will never lose.  Yet real opponents are limited—they make mistakes, have incomplete information, and may not always choose the utility‑minimising move.  Introducing probabilities for opponent actions or limiting their computational budget yields *bounded‑rational* models that more faithfully capture human play, but they also require us to replace the simple min‑operator with expected‑value calculations.
+**Rational versus bounded rational opponents.**  
+Minimax gives us a worst‑case guarantee: if we can force at least a draw against a perfect opponent, we will never lose.  Yet real opponents are limited—they make mistakes, have incomplete information, and may not always choose the utility‑minimising move.  In security‑games, for instance, an attacker may lack the computational resources to evaluate every possible intrusion path, leading to *bounded‑rational* behaviour.  Modeling this uncertainty replaces the simple **min** operator with an *expected‑value* calculation or a stochastic policy, turning the deterministic game tree into a probabilistic decision process.
 
 **Evaluation functions as encoded expertise.**  
-In complex games the search algorithm is only as good as the heuristic that judges non‑terminal positions.  Designing a strong evaluation function is an act of knowledge engineering: chess programmers count material, piece activity, and king safety; Go programmers estimate territory and influence; even in tic‑tac‑toe a simple count of two‑in‑a‑row threats can dramatically improve play.  Thus “intelligence” is split between combinatorial search (the engine) and domain knowledge (the evaluator), a pattern that recurs throughout AI.
+In complex games the search algorithm is only as good as the heuristic that judges non‑terminal positions.  Designing a strong evaluation function is an act of knowledge engineering: chess programmers count material, piece activity, and king safety; Go programmers estimate territory and influence; even in tic‑tac‑toe a simple count of two‑in‑a‑row threats can dramatically improve play.  This split—*search* versus *knowledge*—mirrors the broader AI divide between combinatorial optimisation and statistical learning.  Later chapters will show how deep neural networks can *learn* evaluation functions from millions of self‑play games, effectively automating the expert‑knowledge step.
 
 **Ethical and multi‑agent horizons.**  
-When adversarial search is applied to security, finance, or autonomous systems, the assumption of a perfectly rational adversary can lead to over‑defensive designs or missed opportunities.  Incorporating uncertainty about opponent motives, or allowing for partially aligned goals, pushes us toward the broader field of *multi‑agent reasoning* explored in Chapter 8.  Understanding the limits of minimax therefore prepares us to build agents that negotiate, cooperate, or compete under realistic constraints.
+When adversarial search is applied to security, finance, or autonomous systems, the assumption of a perfectly rational adversary can lead to over‑defensive designs (wasting resources) or, conversely, to dangerous under‑estimation of malicious intent.  Incorporating uncertainty about opponent motives, or allowing for partially aligned goals, pushes us toward the broader field of *multi‑agent reasoning* explored in Chapter 8.  Understanding the limits of minimax therefore prepares us to build agents that negotiate, cooperate, or compete under realistic constraints, and to recognise when a game‑theoretic model must be enriched with learning, communication, or ethical safeguards.
 
 ===== Key Points
 
 * Minimax provides a worst‑case baseline against a perfect opponent  
-* Bounded‑rational or probabilistic opponent models capture realistic behavior  
+* Bounded‑rational or probabilistic opponent models capture realistic behaviour  
 * Evaluation functions embed expert knowledge and shape search outcomes  
 * Over‑reliance on perfect rationality can produce ethically questionable or inefficient strategies  
 * Minimax is a stepping stone toward richer multi‑agent reasoning (Chapter 8)  
@@ -117,36 +139,51 @@ skinparam node {
 skinparam backgroundColor #FFFFFF
 skinparam shadowing false
 
-' Legend
-note right of R
+' Compact legend at bottom
+legend left
   <<MAX>> = MAX (our player)
   <<MIN>> = MIN (opponent)
-end note
+end legend
 
 ' root node (MAX)
-node "Root\nMAX" <<MAX>> as R {
-  note right: α = -∞\nβ = +∞
-}
+node "Root\nMAX" <<MAX>> as R
+note right of R
+  α = -∞
+  β = +∞
+end note
 
 ' level‑1 MIN nodes
 node "A\nMIN" <<MIN>> as A
 node "B\nMIN" <<MIN>> as B
-R --> A : α = -∞ / β = +∞
-R --> B : α = 3 / β = +∞
+R --> A
+R --> B
 
 ' leaves of A (explored)
 node "+3" as L1
 node "-1" as L2
-A --> L1 : α = 3
-A --> L2 : α = 3
+A --> L1 : value = +3
+A --> L2 : value = -1
 
 ' leaves of B (pruned subtree)
-node "0" as L3
-node "+2" as L4
+node "? (pruned)" as L3
+node "? (pruned)" as L4
 B -[#red,dashed]-> L3
 B -[#red,dashed]-> L4
 note over B #FFCCCC
   β ≤ α  →  prune subtree
+end note
+
+' Global α/β annotations
+note top of R
+  Global α = 3, β = +∞
+end note
+note top of B
+  Global α = 3, β = 2
+end note
+
+' Depth‑limit annotation
+note bottom of R
+  (depth limit d = 2 for illustration)
 end note
 @enduml
 ....
@@ -155,17 +192,17 @@ Take‑away: mastering minimax and α‑β equips you with a solid baseline that
 
 ==== Discussion Prompts
 
-* When does the “rational opponent” assumption break down in practice?  
-* How would you design an evaluation function for a game you know well?  
-* Is adversarial search a good model for real‑world competition, or do we need richer opponent models?  
-* Where does “intelligence” reside in minimax—the search algorithm or the evaluation function?  
-* In what domains outside games might game‑tree search be useful, and what adaptations would be required?  
+* When does the “rational opponent” assumption break down in practice, and how might we model that breakdown?  
+* How would you design an evaluation function for a game you know well—what features would you prioritize?  
+* Is adversarial search a good model for real‑world competition, or do we need richer opponent models that incorporate uncertainty and communication?  
+* Where does “intelligence” reside in minimax—the search algorithm, the evaluation function, or the combination of both?  
+* In what domains outside games (e.g., cybersecurity, finance, autonomous driving) might game‑tree search be useful, and what adaptations would be required?  
 * How does the minimax framework prepare you for the multi‑agent reasoning tools covered in Chapter 8?
 
 ==== Lab Prep
 
 **Lab 2 – Building a tic‑tac‑toe adversarial engine.**  
-Implement a minimax player that can always force at least a draw in the tic‑tac‑toe scenario introduced at the start of the lecture.  Extend the implementation with α‑β pruning, measure the node‑count reduction, and experiment with a simple depth‑limited evaluation function.  Although the core course deliverable focuses on retrieval and ranking, this optional lab deepens your understanding of state‑space search, heuristic design, and the trade‑offs highlighted by the horizon effect.
+Your challenge: write a program that *proves* it can never lose at tic‑tac‑toe.  Start by implementing a plain minimax player, then extend it with α‑β pruning and measure the node‑count reduction.  Finally, add a depth‑limit and a simple evaluation function (e.g., count two‑in‑a‑row threats) to observe the horizon effect in action.  Although the core course deliverable focuses on retrieval and ranking, this optional lab deepens your understanding of state‑space search, heuristic design, and the trade‑offs highlighted by the horizon effect.
 
 ===== Key Points
 
@@ -173,6 +210,7 @@ Implement a minimax player that can always force at least a draw in the tic‑ta
 * Measure and compare node counts with and without pruning  
 * Add a depth limit and a basic evaluation function to explore the horizon effect  
 * Optional extension reinforces state‑space and heuristic concepts for later chapters  
+* Reflect on how the same techniques scale to larger games (Connect Four, Othello)  
 
 ==== Reading
 For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch03,Chapter 3>>).

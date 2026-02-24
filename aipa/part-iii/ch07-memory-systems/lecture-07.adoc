@@ -1,3 +1,252 @@
-Context:
-[Chunk 1] … 
-[Chunk 2] …
+=== 7.1: Memory Systems
+
+[.epigraph]
+____
+*“You open your photo‑gallery app and, within a heartbeat, yesterday’s pictures appear as if the phone already knew which memories you’d want to see.”*  
+Why does the system seem to “remember” the right images instantly, while other files sit silently on the disk?
+____
+
+==== Hook: The Mystery of Instant Recall
+
+Imagine you are scrolling through a massive library of images stored on a cloud service. The moment you type “vacation 2023,” the first few thumbnails pop up instantly, even though the full collection occupies terabytes on remote storage. Now picture the opposite extreme: you open the same app, type a rare keyword, and watch a loading spinner crawl for minutes while the device drags data across the network. The contrast is stark—one experience feels like a reflex, the other like a chore.  
+
+*What mechanisms allow a computer to keep the “right” data close at hand, and how do those mechanisms echo the way humans forget and remember?*  
+
+In this lecture we will unpack the three major memory subsystems that make such feats possible, trace their biological inspirations, and see how they are implemented in modern AI pipelines.
+
+==== Conceptual Core: From Neurons to Caches
+
+When a web browser loads a page, the first thing it does is consult a tiny, ultra‑fast store on the device—its **browser cache**. If the requested resource (an image, a script, a stylesheet) is already there, the page appears instantly. If not, the browser reaches out to the operating system’s RAM, then to the SSD, and finally to the remote server. This concrete scenario mirrors the classic three‑store model from cognitive psychology:
+
+1. **Sensory (or short‑term) memory** – a fleeting buffer that holds raw input for milliseconds.  
+2. **Working memory** – an active workspace where information is manipulated.  
+3. **Long‑term memory** – a durable archive that can be retrieved after days, months, or years.
+
+In engineered systems the mapping is almost literal:
+
+* **Registers / L1 Cache** – the “sensory” store of the CPU, holding the most recent values for immediate computation.  
+* **L2/L3 Caches / Main Memory (RAM)** – the “working memory” where data lives long enough to be reused across many instructions.  
+* **SSD / HDD / Cloud Object Stores** – the “long‑term” repository that persists beyond a single program run.
+
+Both brains and silicon face the same fundamental trade‑off: *speed vs. capacity vs. energy*. Neurons fire quickly but can only sustain activity for short bursts; silicon transistors switch in nanoseconds but are limited by physical space and power budgets. The solution in both domains is a **hierarchy** that moves information up and down according to need.
+
+Key points about the three tiers:
+
+* **Latency hierarchy** – each level adds an order of magnitude of delay (nanoseconds → microseconds → milliseconds → seconds).  
+* **Capacity hierarchy** – as latency grows, so does the amount of data that can be stored (bytes → megabytes → gigabytes → terabytes).  
+* **Energy hierarchy** – accessing deeper storage consumes more energy per bit transferred.  
+* **Policy hierarchy** – each tier employs its own replacement policy (e.g., LRU for caches, wear‑leveling for SSDs, archival tiering for cloud).  
+* **Coherence mechanisms** – caches must stay consistent with main memory; similarly, working memory must stay synchronized with long‑term knowledge bases.  
+* **Predictive prefetching** – both brains and CPUs anticipate future demands, loading likely‑needed items ahead of time.  
+* **Forgetting as resource management** – eviction in caches frees space for newer data, just as synaptic pruning frees neural bandwidth.  
+* **Bias amplification risk** – preferentially keeping “hot” items can reinforce existing patterns, whether in a CPU cache or a recommendation system.
+
+These principles give rise to a *memory hierarchy* that is both efficient and robust. The hierarchy is not a static stack; data constantly flows up and down based on usage patterns, algorithmic hints, and system policies.
+
+[plantuml, memory-hierarchy, png]
+----
+@startuml
+skinparam backgroundColor #F9F9F9
+skinparam node {
+  BackgroundColor #FFFFFF
+  BorderColor #CCCCCC
+}
+top to bottom direction
+
+node "CPU Registers\n(≈ns)" as reg
+node "L1 Cache\n(≈1‑2 ns)" as l1
+node "L2 Cache\n(≈5‑10 ns)" as l2
+node "Main Memory (DRAM)\n(≈100 ns)" as ram
+node "SSD / HDD\n(≈0.1‑10 ms)" as storage
+node "Cloud Object Store\n(≈10‑100 ms)" as cloud
+
+reg --> l1 : read/write
+l1 --> l2 : miss
+l2 --> ram : miss
+ram --> storage : evict / load
+storage --> cloud : backup / restore
+
+' write‑back / coherence arrows
+l1 <-- l2 : write‑back / MESI
+l2 <-- ram : write‑back
+storage <-- cloud : restore
+
+note right of cloud
+  Persistent archive
+end note
+@enduml
+----
+*Figure 1: A vertical memory hierarchy showing latency, capacity, and bidirectional data flow.*
+
+**Conceptual Core – Key Points**
+
+* Short‑term (sensory) memory ↔ registers/L1 cache: ultra‑fast, tiny, volatile.  
+* Working memory ↔ RAM + L2/L3 caches: moderate speed, moderate capacity, mutable.  
+* Long‑term memory ↔ SSD/HDD/Cloud: high capacity, persistent, slower access.  
+* Hierarchical policies (LRU, LFU, CLOCK, wear‑leveling) manage what stays where.  
+* Predictive prefetching reduces perceived latency by loading likely‑needed items early.  
+* Coherence protocols (MESI, directory‑based) keep multiple copies consistent.  
+* Energy cost rises dramatically from registers to cloud storage, influencing design choices.  
+* Forgetting (eviction) is a design principle that frees resources and shapes system behavior.  
+
+==== Real‑World Bridge to Code
+
+Before we dive into a toy implementation, consider how browsers, CDNs, and even modern language runtimes already embody the hierarchy we just described. A browser stores recently fetched resources in an **in‑memory cache** (L1/L2), writes less‑used assets to a **disk cache** (L3), and relies on the remote server (cloud) for everything else. When you revisit a site, the browser first checks the in‑memory cache, then the disk cache, and finally the network—exactly the three‑level lookup we will model in Python. This concrete example makes the abstract hierarchy tangible and motivates the code that follows.
+
+==== Technical Example: Building a Three‑Level LRU Cache in Python
+
+To see these ideas in action, we will implement a minimal three‑level cache that mimics the hierarchy described above. The cache will expose a single `get(key)` interface; internally it will consult the L1, L2, and L3 stores in order, promoting items upward on a hit and evicting the least‑recently‑used entry when a level overflows.
+
+[source,python]
+----
+from collections import OrderedDict
+
+class LRUCacheLevel:
+    """A simple LRU store for one hierarchy tier."""
+    def __init__(self, capacity, name):
+        self.capacity = capacity
+        self.store = OrderedDict()
+        self.name = name
+
+    def get(self, key):
+        if key in self.store:
+            # Move to end to mark as recently used
+            self.store.move_to_end(key)
+            print(f"{self.name} HIT for {key}")
+            return self.store[key]
+        print(f"{self.name} MISS for {key}")
+        return None
+
+    def put(self, key, value):
+        if key in self.store:
+            self.store.move_to_end(key)
+        self.store[key] = value
+        if len(self.store) > self.capacity:
+            evicted = self.store.popitem(last=False)  # LRU eviction
+            print(f"{self.name} EVICT {evicted[0]}")
+            return evicted
+        return None
+
+class HierarchicalCache:
+    """Three‑level cache: L1 → L2 → L3 → backing store."""
+    def __init__(self, caps):
+        # caps = (l1, l2, l3) capacities
+        self.l1 = LRUCacheLevel(caps[0], "L1")
+        self.l2 = LRUCacheLevel(caps[1], "L2")
+        self.l3 = LRUCacheLevel(caps[2], "L3")
+        self.backing_store = {}  # Simulated SSD / cloud
+
+    def get(self, key):
+        # Try L1 → L2 → L3 → backing store
+        for level in (self.l1, self.l2, self.l3):
+            value = level.get(key)
+            if value is not None:
+                self._promote(key, value, level)
+                return value
+        # Miss in all caches – load from backing store
+        value = self.backing_store.get(key, f"Data_for_{key}")
+        print(f"Backing STORE LOAD for {key}")
+        self.backing_store[key] = value
+        self.l3.put(key, value)   # Insert into deepest cache
+        return value
+
+    def _promote(self, key, value, from_level):
+        # Move the item up one level if not already at L1
+        if from_level is self.l2:
+            self.l1.put(key, value)
+        elif from_level is self.l3:
+            self.l2.put(key, value)
+
+    def put_backing(self, key, value):
+        """Update the long‑term store and invalidate stale copies."""
+        self.backing_store[key] = value
+        for level in (self.l1, self.l2, self.l3):
+            if key in level.store:
+                del level.store[key]
+
+# Demo
+cache = HierarchicalCache((2, 3, 5))
+for k in range(1, 8):
+    cache.get(k)          # Populate caches, cause evictions
+cache.get(3)              # Should hit in L2 and promote to L1
+cache.get(1)              # Likely miss in L1/L2/L3, reload from backing
+----
+**Explanation of the Example – Key Steps**
+
+* **Level definition** – each `LRUCacheLevel` tracks usage order with an `OrderedDict`.  
+* **Hit / miss reporting** – prints illustrate which tier serviced the request, making the hierarchy visible.  
+* **Promotion logic** – on a hit in L2 or L3, the entry is copied upward, mirroring how CPUs move hot data toward faster caches.  
+* **Eviction handling** – when a level exceeds its capacity, the least‑recently‑used entry is evicted and, if needed, cascades down to the next tier.  
+* **Backing store simulation** – represents SSD / cloud; a miss at all three levels triggers a load, after which the data lands in the deepest cache (L3).  
+* **Invalidation** – `put_backing` demonstrates how updates to long‑term storage must purge stale copies, analogous to coherence protocols.  
+* **Traceability** – the printed trace (e.g., “L2 HIT for 3”, “L1 PUT 3”) makes abstract latency and capacity concepts concrete, preparing you for the lab where you will extend this cache to handle multi‑threaded access and persistent logging.
+
+Running the demo yields a trace such as:
+
+```
+L1 MISS for 1
+L2 MISS for 1
+L3 MISS for 1
+Backing STORE LOAD for 1
+L1 MISS for 2
+L2 MISS for 2
+L3 MISS for 2
+Backing STORE LOAD for 2
+...
+L2 HIT for 3
+L1 PUT 3
+...
+```
+
+The trace makes the abstract concepts of latency, capacity, and replacement policy concrete, preparing you for the lab where you will extend this cache to handle multi‑threaded access and persistence.
+
+==== Philosophical Reflection: Forgetting, Persistence, and the Ethics of Artificial Memory
+
+If a computer can keep *everything* forever, why would we ever want it to forget? Human cognition shows that selective forgetting is not a bug but a feature: it frees mental bandwidth, protects us from information overload, and even shapes our identity by allowing us to reinterpret the past. In engineered systems, eviction policies perform an analogous role, discarding data that is unlikely to be needed soon so that limited fast storage can serve current workloads.
+
+* **Forgetting as a design principle** – By intentionally evicting stale entries, we reduce latency, lower energy consumption, and improve predictability.  
+* **Memory as power** – Persistent storage confers the ability to surveil, profile, and influence users long after an interaction ends. The decision to retain or delete data becomes an ethical one.  
+* **Bias amplification** – If a cache preferentially keeps data that matches recent patterns, it may reinforce existing biases in a learning system, limiting exposure to novel or minority examples.  
+* **Right to be forgotten** – Regulations such as GDPR compel us to design mechanisms that can reliably erase data from all tiers, including deep archives and backups.  
+* **Emergent agency** – As AI agents acquire richer memory stores, questions arise about their “personalities”: do long‑term memories shape an agent’s goals, and should we grant them agency over what they retain?  
+
+These considerations remind us that memory systems are not neutral infrastructure; they embody values about what we deem worth remembering and what we are willing to let fade. Designing transparent, controllable eviction mechanisms is therefore a prerequisite for trustworthy AI.
+
+**Philosophical Reflection – Key Points**
+
+* Forgetting frees resources and shapes cognition, both biologically and computationally.  
+* Eviction policies are ethical choices, influencing privacy, bias, and energy use.  
+* Persistent AI memory raises questions of agency, accountability, and the right to be forgotten.  
+* Designing transparent, controllable eviction mechanisms is a prerequisite for trustworthy AI.  
+* Memory hierarchy design must balance performance with societal impact.  
+
+==== Bridging to the Lab
+
+Having seen how a three‑level cache works and why forgetting matters, the next step is to put those ideas into a concrete AI service. In tomorrow’s lab you will extend the cache so that a dialogue bot can *prune* conversations older than a configurable horizon, thereby honoring the “right‑to‑be‑forgotten” principle discussed above. This bridge ties the technical mechanics of eviction directly to the ethical imperatives we have just explored, ensuring that your implementation is both efficient and responsible.
+
+==== Discussion Prompts
+
+1. *How does the latency‑capacity trade‑off in hardware caches compare to the speed‑accuracy trade‑off in human working memory?*  
+2. *In what ways might cache eviction policies unintentionally encode cultural or algorithmic biases?*  
+3. *Consider a personal assistant that stores every conversation indefinitely. What technical safeguards would you implement to honor a user’s “right to be forgotten”?*  
+4. *If an AI system’s long‑term memory includes outdated facts, how should it reconcile new evidence without discarding valuable context?*  
+5. *Can we design a memory hierarchy that dynamically reallocates capacity based on workload characteristics, similar to how attention shifts in the brain?*  
+6. *What are the energy‑budget implications of keeping large models in fast memory versus streaming them from slower storage?*  
+
+==== Lab Preparation: Building a Cache‑Aware Dialogue Bot
+
+In tomorrow’s lab you will extend the three‑level LRU cache you just examined to serve a simple chatbot. The bot will:
+
+* Store recent dialogue turns in the L1/L2 caches for rapid context retrieval.  
+* Persist the full conversation history in an on‑disk JSON log (the “long‑term store”).  
+* Implement a *forgetting* policy that prunes dialogues older than a configurable horizon, demonstrating ethical data deletion.  
+
+**Lab Prep – Key Points**
+
+* Review the `HierarchicalCache` class and identify where thread‑safety must be added (e.g., using `threading.Lock`).  
+* Prepare a small dataset of sample user‑bot exchanges (≈ 20 turns) to load into the backing store before the session.  
+* Sketch a flow diagram (similar to Figure 1) that includes the bot’s inference engine, the cache hierarchy, and the persistence layer.  
+* Think about how you will measure latency improvements when the cache hits versus when the bot reads from disk.  
+* Plan a simple test that issues a “delete‑conversation‑older‑than‑X‑days” command and verifies that all tiers (L1, L2, L3, and JSON log) have been cleared.  
+
+By the end of the session you will have a working prototype that illustrates how memory hierarchy concepts translate directly into responsive, ethically aware AI applications.

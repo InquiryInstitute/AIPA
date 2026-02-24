@@ -1,4 +1,300 @@
-python
-def embed(text: str) -> np.ndarray: ...
-def generate(prompt: str, **kwargs) -> str: ...
-def cache(key: str, value: Any) -> None: ...
+=== 8. Embedding, Generation, and Caching
+
+[.epigraph]
+____
+*“Imagine you are building a customer‑support chatbot that must answer any query in under 200 ms, 24 hours a day, while keeping the cloud bill low. The user types a question, the system must understand it, generate a response, and deliver it instantly. How do you make such a pipeline both fast and affordable?”*
+____
+
+==== Hook: The Latency‑Cost Tension
+
+When a user asks, “How do I reset my password?” the naïve implementation sends the raw text to a large language model (LLM) every single time.  
+*Each call costs dollars and seconds.*  
+If the same question is asked thousands of times a day, the bill explodes and the user experiences noticeable lag.  
+
+**Question:** *Can we reuse the expensive work the model already performed without sacrificing answer quality?*  
+
+The answer lies in three tightly coupled operations:
+
+1. **Embedding** – turning raw text into a dense vector that captures meaning.  
+2. **Generation** – feeding that vector (or a prompt derived from it) to the LLM to obtain a response.  
+3. **Caching** – storing the result of step 2 so that future identical or near‑identical inputs can skip the costly generation step.
+
+The rest of this lecture unpacks each operation, shows how they compose into a production‑ready pipeline, and reflects on the broader implications of reusing model outputs.
+
+==== Conceptual Core
+
+===== 1. Embeddings: The Language Model’s “Perception”
+
+Embeddings are high‑dimensional numeric representations of text.  
+They are produced by the first few layers of a transformer and encode syntactic and semantic relationships such that *similar* sentences map to *nearby* points in vector space.
+
+*Key points*
+
+* **Dimensionality matters.** Typical embeddings range from 256 → 1 024 dimensions; higher dimensions capture nuance but increase storage and compute cost.  
+* **Cost is non‑trivial.** A single call to an embedding endpoint (e.g., OpenAI’s `text‑embedding‑ada‑002`) costs ≈ $0.0001 and takes ~0.3 s for a 100‑token sentence.  
+* **Determinism.** For a given model and input, the embedding is deterministic, which is essential for reliable cache keys.  
+* **Use‑cases.** Retrieval‑augmented generation, semantic search, clustering, and similarity‑based routing all start with embeddings.  
+
+Embedding functions therefore become the *perception* stage of any LLM‑powered system: they translate raw language into a form the machine can reason about efficiently.
+
+===== 2. Generation: From Vector to Text
+
+Once we have a vector, we must turn it back into natural language.  
+Two common patterns exist:
+
+* **Direct vector‑to‑text** (rare, requires a model trained to decode embeddings).  
+* **Prompt‑based generation** (the de‑facto standard): we embed the user query, retrieve the most relevant context, and construct a textual prompt that includes the original query plus any retrieved passages.
+
+*Key points*
+
+* **Prompt engineering** is the art of shaping the LLM’s behavior. Temperature, max‑tokens, and system messages control creativity vs. determinism.  
+* **Latency dominates cost.** A single `gpt‑3.5‑turbo` call averages 0.8 s and costs $0.002 per 1 000 tokens.  
+* **Determinism vs. variability.** Setting `temperature=0` yields repeatable outputs, which is crucial when caching.  
+* **Safety filters** (content moderation, toxicity checks) are often applied after generation but before caching.  
+
+The generation step is the *action* stage: it produces the answer that the user will see.
+
+##### 2.1. The Role of Prompt Templates
+
+A well‑crafted template isolates the variable parts (the user query, retrieved snippets) from the fixed instruction.  
+Example:
+
+```
+You are a helpful support assistant.
+User query: {query}
+Relevant knowledge: {knowledge}
+Answer concisely in < 50 words.
+```
+
+Consistent templates guarantee that identical inputs produce identical outputs when `temperature=0`, a prerequisite for effective caching.
+
+===== 3. Caching: Turning Expensive Work into a Reusable Asset
+
+Caching is a classic systems‑engineering technique, but in the context of LLM pipelines it raises unique questions about *what* to cache, *when* to invalidate, and *how* to respect privacy.
+
+*Key points*
+
+* **Cache key design.** A robust key is usually a cryptographic hash of the *canonical* prompt (post‑template, pre‑generation).  
+* **Granularity.** Caching at the *prompt* level is finer than caching at the *raw query* level because different prompts can lead to different answers for the same query.  
+* **TTL (time‑to‑live).** Knowledge bases evolve; a TTL of 24 h prevents stale information from persisting indefinitely.  
+* **Hit‑rate impact.** In a real‑world support bot, a 70 % cache hit rate can cut average latency from 1.1 s to ≈ 0.3 s and reduce cost by > 60 %.  
+* **Privacy.** Storing user‑generated content requires compliance with GDPR, HIPAA, etc.; anonymization or per‑session caches may be required.  
+
+Caching thus becomes the *memory* stage: it remembers expensive work so the system can answer faster next time.
+
+===== 4. Putting It All Together: The End‑to‑End Pipeline
+
+1. **Receive** raw user text.  
+2. **Normalize** (lower‑case, strip whitespace).  
+3. **Embed** the normalized text → vector `v`.  
+4. **Construct** a deterministic prompt using a fixed template.  
+5. **Hash** the prompt → cache key `k`.  
+6. **Lookup** `k` in the cache.  
+   * **Hit:** Return cached response immediately.  
+   * **Miss:** Call the LLM, obtain response `r`, store `(k, r)` with appropriate TTL, then return `r`.  
+
+The pipeline is a closed loop where the cache continuously learns the distribution of queries and reduces repeated work.
+
+===== 5. Trade‑offs and Design Decisions
+
+| Decision | Benefit | Cost / Risk |
+|----------|---------|-------------|
+| **Deterministic prompts (temp = 0)** | Reliable cache hits | Less creative answers |
+| **Long TTL** | Fewer recomputations | Stale knowledge |
+| **Vector‑based similarity cache** | Handles paraphrases | Additional index overhead |
+| **In‑memory cache (Redis)** | Sub‑millisecond lookups | Volatile; requires persistence strategy |
+
+Understanding these trade‑offs lets engineers tailor the pipeline to their product’s SLAs and budget.
+
+==== Technical Example
+
+Below is a minimal, runnable Python example that demonstrates the three functions introduced earlier.  
+The code uses *placeholder* implementations for `embed` and `generate`; in a production setting you would replace them with calls to OpenAI, Cohere, or a self‑hosted model.
+
+[source,python]
+----
+import hashlib
+import json
+import time
+from typing import Any, Dict, Optional
+
+# -------------------------------------------------
+# 1️⃣ Embedding stub – in reality this would call an external service
+# -------------------------------------------------
+def embed(text: str) -> list[float]:
+    """
+    Convert `text` into a deterministic 8‑dimensional vector.
+    The function is deliberately cheap for illustration.
+    """
+    # Simple deterministic pseudo‑embedding: hash → 8 floats
+    h = hashlib.sha256(text.encode()).digest()
+    return [b / 255.0 for b in h[:8]]
+
+# -------------------------------------------------
+# 2️⃣ Generation stub – replace with real LLM call
+# -------------------------------------------------
+def generate(prompt: str, temperature: float = 0.0, max_tokens: int = 64) -> str:
+    """
+    Mock LLM that echoes the prompt with a canned answer.
+    Deterministic when temperature == 0.0.
+    """
+    if temperature == 0.0:
+        return f"Answer (deterministic) to: {prompt[:50]}..."
+    else:
+        return f"Answer (creative) to: {prompt[:50]}..."
+
+# -------------------------------------------------
+# 3️⃣ Cache abstraction – simple in‑process dict
+# -------------------------------------------------
+class SimpleCache:
+    def __init__(self):
+        self.store: Dict[str, Any] = {}
+
+    def get(self, key: str) -> Optional[Any]:
+        return self.store.get(key)
+
+    def set(self, key: str, value: Any, ttl: int = 86400) -> None:
+        # TTL handling omitted for brevity
+        self.store[key] = value
+
+cache = SimpleCache()
+
+# -------------------------------------------------
+# 4️⃣ Pipeline glue
+# -------------------------------------------------
+def canonical_prompt(query: str, knowledge: str = "") -> str:
+    template = (
+        "You are a helpful support assistant.\n"
+        "User query: {query}\n"
+        "Relevant knowledge: {knowledge}\n"
+        "Answer concisely."
+    )
+    return template.format(query=query.strip(), knowledge=knowledge.strip())
+
+def cache_key(prompt: str) -> str:
+    return hashlib.sha256(prompt.encode()).hexdigest()
+
+def answer_query(query: str) -> str:
+    # Step 1: embed (not used directly here but shown for completeness)
+    _ = embed(query)                     # side‑effect: could be stored for similarity search
+
+    # Step 2: build deterministic prompt
+    prompt = canonical_prompt(query)
+
+    # Step 3: cache lookup
+    key = cache_key(prompt)
+    cached = cache.get(key)
+    if cached:
+        print("[Cache hit]")
+        return cached
+
+    # Step 4: generate
+    print("[Cache miss] calling LLM …")
+    response = generate(prompt, temperature=0.0)
+
+    # Step 5: store in cache
+    cache.set(key, response)
+    return response
+
+# -------------------------------------------------
+# 5️⃣ Demo run
+# -------------------------------------------------
+if __name__ == "__main__":
+    queries = [
+        "How do I reset my password?",
+        "How do I reset my password?",   # duplicate to trigger cache hit
+        "What is the refund policy?"
+    ]
+    for q in queries:
+        start = time.time()
+        ans = answer_query(q)
+        elapsed = time.time() - start
+        print(f"Query: {q}\\nResponse: {ans}\\nLatency: {elapsed:.3f}s\\n")
+----
+*Technical take‑aways*
+
+* The **hash of the canonical prompt** is the cache key; any change in whitespace or template wording changes the key.  
+* **Deterministic generation** (`temperature=0`) guarantees that a cache miss will always store the same answer, making future hits reliable.  
+* **Embedding** is shown but not used for similarity caching; swapping the `SimpleCache` for a vector‑aware store (e.g., FAISS + Redis) would enable *near‑duplicate* hits.  
+* **Latency measurement** demonstrates a typical miss (≈ 0.02 s for the stub) versus a hit (≈ 0.000 s), mirroring real‑world reductions when the LLM call costs seconds.
+
+==== Philosophical Reflection
+
+The engineering tricks that make LLM‑driven services cheap and fast also raise profound questions about the nature of knowledge, responsibility, and agency.
+
+* **Staleness vs. Consistency.** Caching immutable answers improves latency but can lock the system into outdated facts. Should a system prioritize *freshness* (re‑querying the model every time) or *stability* (reusing the same answer for weeks)?  
+* **Bias Amplification.** If a biased response is cached, every subsequent user receives the same bias, magnifying its impact. Cache invalidation policies must therefore consider *ethical* as well as *technical* criteria.  
+* **Privacy Leakage.** Storing user‑generated prompts or model outputs can inadvertently expose personal data. Engineers must decide whether to **hash** inputs, **anonymize** stored values, or adopt *ephemeral* caches that disappear after a session.  
+* **Transparency.** Users rarely know that the answer they receive was *reused* from a prior request. Should systems disclose cache hits, perhaps with a “cached response” badge, to preserve trust?  
+* **Economic Power Dynamics.** By reducing per‑call costs, caching enables smaller startups to compete with cloud giants. Yet it also concentrates the *knowledge* of large models in a few cached artifacts, potentially creating new monopolies over “canonical answers.”  
+
+These reflections remind us that every line of code sits inside a larger sociotechnical ecosystem. Designing pipelines is not merely a performance exercise; it is an act of shaping how AI interacts with society.
+
+==== Discussion Prompts
+
+1. *When is it ethically acceptable to serve a cached answer that may contain outdated or harmful information?*  
+2. *How would you design a cache‑key strategy that tolerates paraphrases while still guaranteeing deterministic retrieval?*  
+3. *What are the trade‑offs between in‑memory caches (e.g., Redis) and persistent vector stores (e.g., Milvus) for LLM pipelines?*  
+4. *If a user’s query includes personally identifiable information (PII), should that data ever be stored in a cache? Why or why not?*  
+5. *Consider a multilingual chatbot. How does language affect embedding similarity and cache hit rates?*  
+6. *How might you integrate a “freshness” signal (e.g., knowledge‑base version) into the cache‑key to automatically invalidate stale entries?*
+
+==== Lab Preparation
+
+In the upcoming lab you will:
+
+* Implement a **real** embedding call using OpenAI’s `text‑embedding‑ada‑002`.  
+* Build a **deterministic prompt template** and generate a SHA‑256 cache key.  
+* Replace the `SimpleCache` with a **Redis** instance, configuring a 24‑hour TTL.  
+* Instrument the pipeline to log hit‑rate, average latency, and cost per 1 000 queries.  
+* Extend the cache to support **vector similarity** look‑ups for paraphrased queries (using FAISS or Annoy).  
+
+*Key lab objectives*
+
+* Translate abstract functions (`embed`, `generate`, `cache`) into production‑grade services.  
+* Quantify the economic impact of caching on a realistic workload.  
+* Reflect on the ethical considerations discussed earlier by adding a *privacy filter* before caching.  
+
+==== Diagram: Embedding‑Generation‑Caching Pipeline
+
+[plantuml,embed-gen-cache,svg]
+----
+@startuml
+title Embedding‑Generation‑Caching Pipeline
+actor User
+participant "Client App" as App
+participant "Embedding Service" as Emb
+participant "Prompt Builder" as Builder
+participant "LLM Generator" as Gen
+database "Cache DB" as Cache
+participant "Response Formatter" as Formatter
+
+User -> App : send(query)
+App -> Emb : embed(query)
+Emb --> App : vector
+App -> Builder : build_prompt(query, vector)
+Builder --> App : prompt
+App -> Cache : lookup(hash(prompt))
+alt cache hit
+    Cache --> App : cached_response
+else cache miss
+    App -> Gen : generate(prompt)
+    Gen --> App : raw_response
+    App -> Formatter : format(raw_response)
+    Formatter --> App : final_response
+    App -> Cache : store(hash(prompt), final_response)
+    Cache --> App : ack
+end
+App --> User : final_response
+@enduml
+----
+
+The diagram visualizes the data flow, decision point (hit vs. miss), and where each of the three core functions lives in the system.
+
+==== Closing & Bridge
+
+By the end of today’s session you should see how *embedding*, *generation*, and *caching* form a virtuous loop: embeddings give the system a stable perception of language; deterministic generation turns that perception into action; caching turns action into memory. Together they enable AI services that are both *responsive* and *economically viable*.
+
+Next week we will explore **retrieval‑augmented generation** (RAG), where the cache is replaced—or complemented—by a dynamic knowledge store that can be updated in real time. Think about how the principles you just learned—deterministic prompts, robust keys, ethical invalidation—will need to evolve when the “cached” content is no longer static but a living document.
+
+*Takeaway:* **Fast, cheap AI is not magic; it is the result of disciplined engineering choices that respect both system constraints and societal values.**

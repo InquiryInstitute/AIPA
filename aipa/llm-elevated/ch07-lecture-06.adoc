@@ -7,39 +7,41 @@ ____
 
 ==== Hook
 
-You are building a customer‑service chatbot that must keep track of a user’s order history, previous complaints, and even the tone of the conversation. In a naïve implementation the language model receives only the latest user utterance and a static prompt; after a few turns it “forgets” everything that happened earlier. The question that drives today’s lecture is **how can we give a large language model a reliable, searchable memory so that each response is grounded in what has already been said?** We will explore a concrete pipeline that combines Retrieval‑Augmented Generation (RAG) with a persistent memory store, examine its trade‑offs, and reflect on the deeper epistemic implications of machine memory.
+Picture a busy e‑commerce site during a holiday sale. A customer, Maya, opens a chat window and asks, “Where is my order #12345?” The bot, built on a vanilla large language model, replies with a generic apology because it only sees the last utterance and has no notion of Maya’s prior order‑history query. In the real world this would spark frustration, a support ticket, and possibly a lost sale. The tension that drives today’s lecture is **how to give a conversational LLM a reliable, searchable memory so that every response is anchored in what has already been said and in external facts that the model itself does not store**. We will unpack a concrete five‑step pipeline, see it in action, and then step back to ask what it means for a machine to “remember”.
 
 ==== Conceptual Core
 
-Memory for LLM‑driven agents can be understood as a *pipeline* that repeatedly performs five operations:
+Memory for LLM‑driven agents can be understood as a *pipeline* that repeats five tightly coupled operations on every turn. Throughout this section we will follow a running example: a user asks the bot to “change the shipping address for order #12345”. Each operation is motivated by a concrete problem that would arise if the step were omitted.
 
 1. **Capture the user query.**  
-   The raw utterance is the entry point for every turn. It must be sanitized and optionally enriched with metadata (timestamp, user ID, channel).  
+   The raw utterance arrives from the front‑end, but before it can be processed we must *sanitize* (remove PII, escape special characters) and *enrich* it with metadata such as a timestamp, a unique user identifier, and the communication channel (web, voice, SMS). Without this enrichment the downstream retriever cannot apply recency weighting or enforce access controls, and the system becomes vulnerable to injection attacks.
 
 2. **Retrieve relevant context.**  
-   A vector‑store (FAISS, Elastic, Pinecone, …) is queried with the embedding of the user query. The store returns the *k* most similar snippets, which may be whole documents, paragraph‑level excerpts, or previously generated responses.  
+   A vector‑store (FAISS, Elastic, Pinecone, …) is queried with an embedding of the sanitized query. The store returns the *k* most similar snippets, which may be whole documents, paragraph‑level excerpts, or previously generated responses. The quality of these snippets hinges on two factors: (a) the fidelity of the embedding model (semantic similarity vs. lexical overlap) and (b) the granularity of the index (storing whole orders versus line‑by‑line transaction logs). If the retriever pulls an outdated shipping address, the bot will propagate the wrong information.
 
 3. **Compose a prompt and generate an answer.**  
-   The retrieved snippets are concatenated with a system instruction and the user query to form a context‑aware prompt. The LLM then produces a response that is grounded in the retrieved evidence.  
+   The retrieved snippets are concatenated with a system instruction (e.g., “You are a helpful customer‑service assistant”) and the user query to form a *context‑aware* prompt. Because LLMs have a hard token limit, we must decide how much of each snippet to keep, possibly summarising or truncating. The LLM then produces a response that is *grounded* in the retrieved evidence rather than hallucinating from its internal weights alone.
 
 4. **Optionally invoke external tools.**  
-   If the LLM determines that additional information is required (e.g., a live weather forecast or a database lookup), it can emit a tool‑call which is executed and whose result is injected back into the prompt for a second‑stage generation.  
+   If the LLM detects a gap—say it needs the current shipping status from an order‑management API—it can emit a structured tool‑call (often a JSON payload). The orchestrator executes the call, receives the result, and injects it back into the prompt for a second‑stage generation. This step lets the system extend beyond static corpora to live, authoritative data.
 
 5. **Persist the interaction.**  
-   The query, retrieved context, generated answer, and any tool results are stored in a *memory buffer* (often a SQLite or PostgreSQL table). This buffer becomes part of the retriever’s corpus for subsequent turns, closing the feedback loop.
+   The full turn—query, retrieved context, generated answer, any tool results, and the metadata—gets stored in a *memory buffer* (commonly a relational table). Future retrievals treat these stored episodes as part of the corpus, closing the feedback loop. Persisted episodes must be timestamped, tagged (e.g., “order‑update”), and, where required, encrypted or set to expire to satisfy privacy regulations.
 
 *Key Points – Conceptual Core*
 
-* Memory is **episodic**: each turn is a discrete episode that can be indexed and recalled later.  
-* Retrieval quality hinges on **embedding fidelity** and **index granularity** (document vs. snippet).  
-* The **context window** of the LLM imposes a hard limit on how much retrieved text can be injected.  
-* Tool calls enable **dynamic grounding** beyond static knowledge bases.  
-* Persisted episodes must be **timestamped** and **tagged** to support recency‑weighted retrieval.  
-* Privacy considerations require **encryption** or **expiration policies** for stored user data.  
+* Memory is **episodic**: each turn is a discrete, indexable episode.  
+* Retrieval quality depends on **embedding fidelity** and **index granularity**.  
+* The LLM’s **context window** imposes a hard ceiling on how much retrieved text can be injected.  
+* **Tool calls** enable dynamic grounding beyond static knowledge bases.  
+* Persisted episodes must be **timestamped**, **tagged**, and **encrypted** for privacy compliance.  
+* **Recency‑weighted retrieval** helps the agent focus on the most recent, relevant facts.  
+* **Bias amplification** can occur when early mistakes are stored and later retrieved.  
+* **Token budgeting** (splitting, summarising) is essential to stay within model limits.  
 
 ==== Technical Example
 
-Below is a fully annotated Python script that implements the five‑step pipeline. The code is deliberately verbose to illustrate *why* each line exists, not merely *what* it does.
+Below is a fully annotated Python script that implements the five‑step pipeline. The surrounding prose explains *why* each block exists, not merely *what* it does, so you can follow the logical flow before diving into the code.
 
 [source,python]
 ----
@@ -54,10 +56,12 @@ import numpy as np
 # 1️⃣ Capture user input
 # ----------------------------------------------------------------------
 def get_user_query():
-    """Read a line from stdin and attach metadata."""
+    """Read a line from stdin, sanitise it, and attach metadata."""
     query = input("🗣️  You: ")
+    # Simple sanitisation – strip leading/trailing whitespace
+    clean_query = query.strip()
     return {
-        "text": query,
+        "text": clean_query,
         "timestamp": datetime.utcnow().isoformat(),
         "user_id": os.getenv("USER_ID", "anonymous")
     }
@@ -67,9 +71,12 @@ def get_user_query():
 # ----------------------------------------------------------------------
 def retrieve_snippets(query_text, k=4):
     """Embed the query, search FAISS, and return top‑k snippets."""
-    # Assume we have a pre‑trained embedding model
+    # Assume a deterministic embedding function is available
     query_vec = embed_text(query_text)               # → np.ndarray
     distances, indices = faiss_index.search(query_vec, k)
+    # Guard against empty results
+    if indices.shape[1] == 0:
+        return []
     snippets = [metadata[i]["text"] for i in indices[0]]
     return snippets
 
@@ -79,7 +86,8 @@ def retrieve_snippets(query_text, k=4):
 def generate_answer(query, snippets):
     """Build a prompt that includes system instructions and retrieved snippets."""
     system_prompt = "You are a helpful customer‑service assistant."
-    context = "\n---\n".join(snippets)                # separate snippets clearly
+    # Separate snippets clearly; truncate if token budget is exceeded
+    context = "\n---\n".join(snippets)
     full_prompt = f"{system_prompt}\n\nContext:\n{context}\n\nUser: {query}"
     response = openai.ChatCompletion.create(
         model="gpt-4o-mini",
@@ -93,7 +101,7 @@ def generate_answer(query, snippets):
 def maybe_call_tool(answer):
     """Detect a placeholder token and call an external API."""
     if "<weather>" in answer:
-        # Simple mock: always return sunny
+        # Real implementation would perform an HTTP request here
         weather = "Sunny, 22°C"
         return answer.replace("<weather>", weather)
     return answer
@@ -147,11 +155,16 @@ if __name__ == "__main__":
 *Key Points – Technical Example*
 
 * **Sanitise** user input before embedding to avoid injection attacks.  
-* **Embedding function** must be deterministic; otherwise retrieval becomes unstable.  
-* **FAISS index** should be refreshed periodically to incorporate newly stored episodes.  
-* **Prompt construction** should respect the LLM’s token limit; truncate or summarise snippets if needed.  
-* **Tool‑call detection** can be implemented via a simple placeholder or a structured JSON schema.  
-* **Memory persistence** uses a relational table to enable ad‑hoc SQL queries (e.g., “retrieve last 5 turns”).  
+* **Deterministic embeddings** keep retrieval stable across runs.  
+* **FAISS index** must be refreshed (re‑indexed) whenever new episodes are stored.  
+* **Prompt construction** respects the LLM’s token limit; truncate or summarise snippets when necessary.  
+* **Tool‑call detection** can be a simple placeholder or a structured JSON schema; the latter enables richer orchestration.  
+* **Memory persistence** in a relational table enables ad‑hoc SQL queries (e.g., “last 5 turns for user X”).  
+* **Error handling** for empty retrieval results prevents the LLM from receiving an empty context.  
+* **Logging** of token counts and latency helps diagnose performance bottlenecks.  
+
+*Bridge Paragraph*  
+The script above mirrors the conceptual pipeline word‑for‑word: `get_user_query` implements **Capture**, `retrieve_snippets` performs **Retrieve**, `generate_answer` carries out **Compose & Generate**, `maybe_call_tool` embodies **Optional Tool Call**, and `store_interaction` executes **Persist**. By keeping the code structure aligned with the high‑level steps, we make the system both transparent to developers and auditable for compliance teams.
 
 ==== Data‑Flow Diagram
 
@@ -168,33 +181,34 @@ rectangle "Retriever\n(2️⃣)" as R
 rectangle "Prompt Builder\n(3️⃣)" as P
 rectangle "LLM\n(3️⃣)" as L
 rectangle "Tool Call\n(4️⃣)" as T
-rectangle "Memory Store\n(5️⃣)" as M
+database "Memory Store\n(5️⃣)" as M
 
-User --> Q : utterance
+User --> Q : utterance (text, metadata)
 Q --> R : query text
-R --> P : retrieved snippets
-P --> L : full prompt
-L --> T : tool request (optional)
-T --> L : tool result
+R --> P : top‑k snippets
+P --> L : full prompt (system + context + user)
+L --> T : tool request (JSON) <<optional>>
+T --> L : tool result (e.g., weather)
 L --> M : answer + metadata
-M --> R : stored episodes (feedback loop)
+M --> R : stored episodes (vectorised) <<feedback>>
 @enduml
 ----
-*Figure 1. End‑to‑end pipeline for a memory‑augmented conversational agent.*
+*Figure 1. End‑to‑end pipeline for a memory‑augmented conversational agent, now showing payload types and the feedback loop from the memory store back to the retriever.*
 
 ==== Philosophical Reflection
 
-When a machine can retrieve past interactions and incorporate them into new responses, we begin to ask **what counts as “knowledge” for an artificial system?** Retrieval‑augmented generation gives the appearance of memory, yet the underlying LLM remains a statistical predictor. The distinction between *remembered evidence* (retrieved snippets) and *generated inference* (LLM output) mirrors the human tension between episodic recollection and conceptual reasoning. This raises epistemic questions: does the system “know” the weather because it queried an API, or merely *pretends* to know by stitching together a tool result into its answer?
+When a machine can retrieve past interactions and weave them into new answers, we are forced to ask **what counts as “knowledge” for an artificial system?** Retrieval‑augmented generation gives the illusion of memory, yet the underlying LLM remains a statistical predictor that has never *experienced* the retrieved facts. The line between *remembered evidence* (the snippets) and *generated inference* (the LLM’s prose) mirrors the human tension between episodic recollection and abstract reasoning. Does a bot that says, “Your order shipped yesterday” because it fetched a live API response *know* the shipping status, or is it merely *pretending* to know by stitching together a fresh data point?
 
-Beyond epistemology, the persistent storage of user queries introduces **ethical obligations**. Users may expect the right to be forgotten, yet a naïve memory buffer can become a repository of personal data. Designers must balance utility (better answers) against privacy (data minimisation, encryption, expiration policies). Moreover, the feedback loop—where stored episodes influence future retrieval—can amplify biases: if early mistakes are memorised, they may propagate. Recognising these limits prepares us for the next lecture, where we will explore **hierarchical knowledge graphs** that compress episodic memory into long‑term, structured representations.
+Beyond epistemology, the persistent storage of user utterances raises **ethical obligations**. Users may invoke a “right to be forgotten”, but a naïve memory buffer can become a de‑facto surveillance log. Designers must therefore embed data‑minimisation, encryption at rest, and automatic expiration policies. Moreover, the feedback loop—where stored episodes influence future retrieval—can amplify early mistakes. If the bot once mis‑identified an order number and stored that error, subsequent turns may repeatedly surface the same misinformation, a phenomenon akin to “confirmation bias” in human memory. Recognising these limits prepares us for the next lecture, where we will explore **hierarchical knowledge graphs** that compress episodic traces into structured, long‑term representations, reducing both storage overhead and bias propagation.
 
 *Key Points – Philosophical Reflection*
 
-* Memory‑augmented LLMs blur the line between *recall* and *reasoning*.  
 * Retrieval provides *grounded evidence*; generation supplies *interpretation*.  
-* Persistent storage raises **privacy** and **right‑to‑be‑forgotten** concerns.  
-* Bias can be **reinforced** through self‑referential memory loops.  
-* Future work will shift from episodic buffers to **knowledge graphs** for scalable long‑term memory.  
+* The system “knows” only insofar as it can reliably retrieve and correctly integrate external data.  
+* Persistent storage creates a **privacy tension**: utility vs. the right‑to‑be‑forgotten.  
+* Self‑referential memory loops can **reinforce bias** and propagate errors.  
+* Ethical design demands **encryption**, **access controls**, and **data‑expiry** policies.  
+* Future architectures will shift from raw episodic buffers to **knowledge graphs** for scalable, trustworthy long‑term memory.  
 
 ==== Discussion Prompts
 
@@ -207,18 +221,19 @@ Beyond epistemology, the persistent storage of user queries introduces **ethical
 
 ==== Lab Preparation
 
-You will work in pairs on a Jupyter notebook that contains the skeleton of the script above. The lab consists of three tasks:
+You will work in pairs on a Jupyter notebook that contains the skeleton of the script above. The lab consists of three tasks, each designed to surface a different trade‑off in memory‑augmented agents.
 
-1. **Swap the vector store.** Replace the FAISS index with an ElasticSearch backend and observe changes in retrieval latency and relevance.  
-2. **Add a weather‑API tool call.** Implement a real HTTP request to `api.openweathermap.org` and integrate its result into the prompt.  
-3. **Experiment with context size.** Vary *k* (number of retrieved snippets) and the maximum token length of the prompt; record how answer coherence changes.
+1. **Swap the vector store.** Replace the FAISS index with an ElasticSearch backend and observe changes in retrieval latency, relevance scores, and index‑size handling.  
+2. **Add a real weather‑API tool call.** Implement an HTTP request to `api.openweathermap.org`, parse the JSON response, and inject the temperature into the final answer.  
+3. **Experiment with context size.** Vary *k* (the number of retrieved snippets) and the maximum token length of the prompt; record how answer coherence, factuality, and response time change.
 
 *Lab Key Points*
 
-* Ensure the new store is **re‑indexed** after each run.  
-* Validate API responses before injecting them into the LLM.  
+* Re‑index the new store after each run to keep vectors in sync.  
+* Validate API responses (status code, schema) before feeding them to the LLM.  
 * Log the token count of each prompt to stay within the model’s limits.  
-* Reflect on any “forgetting” incidents and propose a mitigation.  
+* Observe “forgetting” incidents when the context window truncates older snippets and propose a mitigation (e.g., summarisation).  
+* Reflect on latency vs. relevance trade‑offs introduced by the different back‑ends.  
 
 ==== Closing & Bridge
 

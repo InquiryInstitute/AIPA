@@ -5,84 +5,232 @@
 "Without comparison, we have only anecdotes."
 — NIST, _AI Risk Management Framework_ <<NIST2023>> (evaluation)
 
-*Evaluate rigorously: A/B tests, statistical significance.*
+==== Hook: A Real‑World Dilemma
 
-==== Example Prompts
-
-* "Does the new config beat the baseline?" — _A/B test: control vs. treatment; significance_
-* "Compare these two models." — _Statistical comparison; p-value, confidence intervals_
-* "What is rigorous evaluation?" — _Multiple metrics; effect size; report honestly_
+Your product team has just finished a pilot of a new conversational‑agent configuration—*Chatbot‑X v2*—that promises **2 % higher user‑satisfaction** and **10 % lower latency**. After a week of limited rollout, the support desk is split: half of the agents are already using v2, while the other half remain on the legacy v1. Management asks, *“Do we ship this to all users now, or should we wait for more evidence?”* The tension is palpable: a faster, happier chatbot could win market share, but an unnoticed regression (e.g., a subtle bias in response style) could damage brand trust. The answer hinges on a disciplined, statistical comparison—not on a handful of anecdotal screenshots or a single success story. In the next ninety minutes we will turn this dilemma into a rigorous A/B experiment, interpret the results responsibly, and embed the practice into AI governance.
 
 ==== Conceptual Core
 
-Without comparison, we have only anecdotes. Does the new prompt beat the old one? Does the new model reduce errors? We need more than a single run or a handful of examples—we need controlled comparison and a way to distinguish signal from noise. That is what rigorous evaluation provides: A/B testing, statistical significance, and honest reporting.
+*Paragraph 1 – Framing the Counterfactual*  
+The core question is not “Did we see a better number?” but “Would the same users have experienced that outcome if we had **not** changed the system?” A controlled comparison creates the counterfactual by allocating traffic to a **control arm** (Chatbot‑X v1) and a **treatment arm** (Chatbot‑X v2). Random assignment—whether per request, per user session, or per geographic region—ensures that, on average, the two arms are balanced on all observed and unobserved characteristics (device type, time of day, user expertise). This balance is the statistical foundation that lets us attribute any systematic difference in outcomes to the treatment rather than to confounding factors.
 
-A/B testing: split traffic between control (baseline) and treatment (new config). Random assignment ensures groups are comparable. Compare metrics: accuracy, latency, cost, user satisfaction. Statistical significance: the p-value is the probability of observing a difference as large or larger than we saw, assuming the null hypothesis (no real difference). Confidence intervals (e.g., 95% CI) give a range of plausible values for the true effect. Multiple comparisons: if we test many hypotheses, we inflate the chance of false positives. Correct with Bonferroni (strict) or FDR (less conservative). Effect size: significance tells us the result is unlikely to be chance; effect size tells us how large the difference is. A tiny improvement can be "significant" with enough data; is it meaningful? Reporting: communicate difference, CI, p-value, and sample size. Evidence and inference: we infer from samples to populations. The limits of statistical testing: significance ≠ importance; we can miss effects (type II) or get false positives (type I). Report honestly—include negative results.
+*Paragraph 2 – Crafting a Testable Hypothesis*  
+A well‑designed A/B test begins with a **pre‑registered hypothesis** that translates a business goal into a statistical statement. For Chatbot‑X we might write: *“Version 2 reduces average response latency by at least 5 % while increasing user‑satisfaction scores by at least 1 %.”* The hypothesis defines **primary metrics** (latency, satisfaction) and **secondary metrics** (token cost, fairness score). Pre‑registration—recorded in a shared experiment registry—locks the hypothesis, metric definitions, and analysis plan before any data are seen, protecting against post‑hoc rationalisation.
+
+*Paragraph 3 – Sample‑Size Planning and Power*  
+Before launching, we must ask: “How many requests do we need to detect the promised effect with high confidence?” A **power analysis** uses the expected effect size, the desired statistical power (commonly 80 % or 90 %), and the acceptable Type I error rate (α = 0.05). For latency, a 5 % reduction translates to roughly 15 ms on a baseline of 300 ms. Assuming a standard deviation of 60 ms, a two‑sided t‑test with 80 % power requires about 45 000 requests per arm. For satisfaction, a 1 % lift on a 85 % baseline with a standard deviation of 12 % needs roughly 70 000 requests per arm. The larger of the two determines the experiment duration. Documenting these calculations in the experiment plan is a best‑practice requirement.
+
+*Paragraph 4 – Inference, Confidence, and Effect Size*  
+After data collection, we compute **test statistics** (difference of means for latency, difference of proportions for satisfaction) and evaluate them under the **null hypothesis** of no effect. The **p‑value** tells us how surprising the observed statistic would be if the null were true; a conventional threshold α = 0.05 flags results that are unlikely to be due to chance. More informative are **confidence intervals (CIs)**, which give a plausible range for the true effect (e.g., “latency improves by 8 ms ± 3 ms, 95 % CI”). **Effect size** (Cohen’s d for latency, risk‑ratio for satisfaction) quantifies practical significance independent of sample size, allowing decision‑makers to weigh the benefit against deployment cost.
+
+*Paragraph 5 – Multiple Comparisons, Interim Looks, and Early Stopping*  
+Real‑world experiments rarely involve a single metric. If we test latency, satisfaction, cost, and a fairness score simultaneously, the probability of at least one false positive inflates. **Bonferroni correction** (α / k) is conservative; **Benjamini‑Hochberg** controls the false‑discovery rate more powerfully. Moreover, many teams peek at interim results to accelerate decisions. **Sequential analysis** (e.g., O’Brien‑Fleming boundaries) or **group‑sequential designs** allow early stopping for efficacy or futility while preserving the overall Type I error rate. Any interim look must be pre‑specified in the analysis plan, and the stopping rule must be applied automatically by the experiment platform.
+
+*Paragraph 6 – Checklist for a Governance‑Ready A/B Test*  
+
+1. **Pre‑register** hypothesis, primary/secondary metrics, sample‑size calculations, and interim‑analysis plan.  
+2. **Randomize** traffic at the granularity that matches the causal question (request, session, or region).  
+3. **Collect** all metrics uniformly, tagging each observation with arm, timestamp, and context variables.  
+4. **Perform** power analysis upfront; verify that the observed sample meets the planned size before unblinding.  
+5. **Compute** p‑value, 95 % CI, and effect size for each metric; apply the chosen multiple‑comparison correction.  
+6. **Implement** sequential monitoring if early‑stopping is desired; log every interim peek.  
+7. **Report** a complete results table (Δ, CI, p‑value, correction method) and visualisations with error bars.  
+8. **Interpret** statistical findings in the context of business impact, equity considerations, and regulatory thresholds.  
+9. **Archive** the full experiment artefacts (code, data schema, analysis notebook) for auditability.  
 
 ===== Key Points
 
-* A/B: control vs. treatment
-* Significance: p-value, CI
-* Multiple comparisons
-* Effect size
-* Limits of testing
+* Counterfactual reasoning via randomized control vs. treatment arms  
+* Pre‑registration of hypothesis, metrics, and analysis plan  
+* Power analysis & sample‑size justification for latency & satisfaction  
+* Test statistics, p‑value, confidence interval, and effect size  
+* Multiple‑comparison corrections (Bonferroni, Benjamini‑Hochberg)  
+* Sequential analysis and early‑stopping rules  
+* Transparent reporting (tables, error‑bar charts)  
+* Governance checklist linking statistical rigor to auditability  
 
 ==== Technical Example
 
-Run an A/B test: compare two agent configurations (e.g., different prompts, models, or retrieval settings). Split traffic 50/50; random assignment per user or per request. Collect metrics: accuracy (on held-out eval), latency (p50, p95), cost (tokens, dollars). Compute significance: two-sample t-test or permutation test. Report: mean difference, 95% CI, p-value, sample size per group. Lab 2: Add A/B testing to the governance simulator. Support control/treatment arms, configurable metrics, and significance testing. Simulate experiments—e.g., does config B beat config A? The simulator becomes a testbed for evaluation before real deployment.
+*Paragraph 1 – Experiment Set‑Up for Chatbot‑X*  
+We implement a 50 / 50 traffic split between **Prompt A** (baseline) and **Prompt B** (new template). Over a 72‑hour window we collect 80 000 requests per arm, exceeding the power‑analysis requirement for both latency and satisfaction. Each request is logged with the schema:
+
+```
+| request_id | arm | latency_ms | satisfaction_score | cost_usd | fairness_flag |
+|------------|-----|------------|--------------------|----------|----------------|
+| 000001     | A   | 312        | 0.84               | 0.0045   | 0              |
+| 000002     | B   | 298        | 0.86               | 0.0042   | 1              |
+| …          | …   | …          | …                  | …        | …              |
+```
+
+The `fairness_flag` is a binary indicator derived from a downstream bias detector (1 = potentially unfair response). All fields are collected automatically by the governance simulator, which timestamps each row and stores the randomisation seed for reproducibility.
+
+*Paragraph 2 – Power Confirmation and Interim Monitoring*  
+Before unblinding, we confirm that the observed sample size meets the planned 45 000‑request threshold for latency and 70 000 for satisfaction. Using the `statsmodels` library we run a **group‑sequential test** with O’Brien‑Fleming boundaries, checking the p‑value after every 20 000 requests per arm. The code snippet below illustrates the workflow:
+
+```python
+import pandas as pd, numpy as np, statsmodels.stats.api as sms
+
+df = pd.read_csv('chatbot_x_ab.csv')
+def interim_test(df, n):
+    sub = df.iloc[:n]
+    lat_a = sub[sub.arm=='A'].latency_ms
+    lat_b = sub[sub.arm=='B'].latency_ms
+    t, p = sms.ttest_ind(lat_a, lat_b, usevar='pooled')
+    return p
+
+for n in [20000, 40000, 60000, 80000]:
+    p = interim_test(df, n*2)   # *2 because each arm contributes n rows
+    print(f'Interim n={n*2}: p={p:.4f}')
+```
+
+The interim p‑values never cross the O’Brien‑Fleming efficacy boundary, so the experiment runs to completion. This disciplined monitoring prevents premature conclusions while still offering a safety net for futility.
+
+*Paragraph 3 – Final Analysis, Bootstrapped CIs, and Decision*  
+At the full sample we compute the primary statistics:
+
+```python
+from scipy import stats
+import matplotlib.pyplot as plt
+
+# Latency
+lat_a = df[df.arm=='A'].latency_ms
+lat_b = df[df.arm=='B'].latency_ms
+diff_lat = lat_b.mean() - lat_a.mean()
+ci_lat = stats.bootstrap((lat_b - lat_a,), np.mean, confidence_level=0.95)
+
+# Satisfaction
+sat_a = df[df.arm=='A'].satisfaction_score
+sat_b = df[df.arm=='B'].satisfaction_score
+diff_sat = sat_b.mean() - sat_a.mean()
+ci_sat = stats.bootstrap((sat_b - sat_a,), np.mean, confidence_level=0.95)
+
+print(f'Latency Δ={diff_lat:.1f} ms, 95 % CI={ci_lat.confidence_interval}')
+print(f'Satisfaction Δ={diff_sat:.3%}, 95 % CI={ci_sat.confidence_interval}')
+```
+
+Output (rounded):
+
+```
+Latency Δ=-9.2 ms, 95 % CI=(-12.8, -5.6)
+Satisfaction Δ=+1.3 %, 95 % CI=(0.4 %, 2.2 %)
+```
+
+Both primary metrics satisfy the pre‑registered thresholds (≥ 5 % latency reduction ≈ 15 ms, ≥ 1 % satisfaction lift). The effect sizes (Cohen’s d ≈ 0.15 for latency, risk‑ratio ≈ 1.015 for satisfaction) are modest but economically meaningful given the scale of user traffic. The fairness flag shows a negligible increase (Δ = +0.2 %, p = 0.31), which we report as a non‑significant side effect.
+
+The final results table, ready for the governance audit, is:
+
+| Metric          | Δ (Treatment‑Control) | 95 % CI                | p‑value | Correction | Interpretation                              |
+|-----------------|------------------------|------------------------|---------|------------|---------------------------------------------|
+| Latency (ms)    | –9.2                   | (‑12.8, ‑5.6)          | 0.0012  | —          | Meaningful speed gain, meets 5 % target      |
+| Satisfaction    | +1.3 %                 | (0.4 %, 2.2 %)         | 0.0420  | —          | Statistically significant, business‑impactful |
+| Cost (USD)      | –0.0003                | (‑0.0005, ‑0.0001)    | 0.0035  | —          | Small cost reduction, aligns with latency   |
+| Fairness flag   | +0.2 %                 | (‑0.3 %, +0.7 %)       | 0.31    | —          | No evidence of bias increase                |
+
+Because all primary metrics pass the pre‑registered criteria and the multiple‑comparison correction is unnecessary (only one primary metric per family), the governance board authorises a full rollout of Chatbot‑X v2. The lab exercise will ask you to reproduce this workflow inside the governance simulator, add a custom fairness metric, and experiment with an alternative early‑stopping rule.
 
 ===== Key Points
 
-* Run A/B test
-* Compute significance
-* Lab 2: A/B in simulator
+* 50 / 50 traffic split for Prompt A vs. Prompt B  
+* Data schema capturing latency, satisfaction, cost, fairness flag  
+* Power analysis confirming ≥ 45 k requests per arm  
+* Group‑sequential monitoring with O’Brien‑Fleming boundaries  
+* Final analysis: two‑sample t‑test, chi‑square, bootstrapped CIs  
+* Effect‑size interpretation (Cohen’s d, risk‑ratio)  
+* Transparent results table with Δ, CI, p‑value, and business interpretation  
+* Early‑stopping logic integrated into the simulator  
 
 ==== Philosophical Reflection
 
-Evidence and inference: we need comparison to know what works. Anecdotes and single runs are not enough—we need controlled comparison. The limits of statistical testing: we can be wrong (type I, type II). Rigor is a virtue—but it has limits. Significance does not imply importance; non-significance does not imply no effect. Report honestly: include negative results, pre-register when possible, and avoid p-hacking (trying many analyses until one is "significant"). The governance simulator supports rigorous evaluation as a governance practice—decisions should be evidence-based.
+*Paragraph 1 – Evidence as the Backbone of AI Governance*  
+Statistical rigor transforms anecdote into evidence, and evidence is the currency of trustworthy AI governance. When a regulator asks, “Did the new model improve user experience without harming equity?” the answer must rest on a reproducible experiment that isolates the causal impact of the change. Randomized A/B testing supplies the counterfactual, reducing the influence of hidden confounders and making the claim “Chatbot‑X v2 improves latency by 3 %” defensible to auditors, board members, and the public. Moreover, the artefacts—pre‑registration records, randomisation seeds, analysis notebooks—create a verifiable audit trail that can survive legal scrutiny.
 
-When you add A/B testing to the governance simulator (Lab 2), you are building the same kind of check that organizations use before rolling out a new config: control vs. treatment, metrics, significance. Governance is not only policies and cost—it is also the discipline of evidence before we change what the system does.
+*Paragraph 2 – The Ethics of “P‑hacking” and Selective Reporting*  
+The temptation to chase a significant p‑value is especially acute in fast‑moving product teams. Imagine a fintech startup that runs ten variations of a fraud‑detection model, looks at the interim results after a day, and publishes only the variant that shows a 0.5 % reduction in false positives. This **p‑hacking** masks the true false‑positive rate and can expose customers to undetected fraud. Ethical AI governance therefore mandates **pre‑registration** of all hypotheses, **transparent reporting** of every metric (including those that did not improve), and a culture that values null findings as learning signals. In our Chatbot‑X case, we deliberately reported the non‑significant fairness flag to demonstrate that the rollout does not exacerbate bias, even though it was not a primary success metric.
+
+*Paragraph 3 – From Statistical Significance to Responsible Decision‑Making*  
+Statistical significance is a tool, not a moral verdict. A result can be statistically significant yet economically trivial (e.g., a 0.1 % latency gain that costs $1 M to implement). Conversely, a non‑significant result may hide a socially important effect when the sample is under‑powered. Responsible governance therefore interprets numbers in context: weighing effect size against deployment cost, considering equity impacts, and aligning with organisational values such as user privacy or accessibility. The Chatbot‑X rollout decision was justified not only by the p‑values but also by the calculated ROI, the negligible fairness impact, and the alignment with the company’s “fast‑but‑fair” principle. In the next lecture we will extend this reasoning to **causal inference** techniques—instrumental variables, regression discontinuity, and synthetic controls—that let us evaluate policy changes even when randomisation is infeasible.
 
 ===== Key Points
 
-* Comparison = evidence
-* Limits of testing
-* Report honestly
-* A/B in simulator = evidence-based governance; Lab 2
+* Randomized experiments provide the evidential backbone for AI governance  
+* Pre‑registration and full reporting guard against p‑hacking and selective disclosure  
+* Transparency includes publishing null or adverse findings (e.g., fairness flag)  
+* Distinguish statistical significance from practical/economic significance  
+* Ethical responsibility to interpret effect sizes in the broader social context  
+* Decision‑making integrates ROI, equity, and organisational values  
+* Preview of causal‑inference methods for non‑randomized settings  
 
-.Figure 11.4: A/B test design
+==== Closing Bridge
+
+By mastering A/B testing, you now possess a concrete, reproducible method to turn “it looks better” into “the data support a rollout.” Lab 2 will cement this skill, letting you design, run, and automatically report experiments inside the governance simulator. In the next session we will explore how to draw causal conclusions when random assignment is impossible, extending the rigor you have just built to policy‑level decisions.
+
+==== Figure 11.4: Full A/B Test Pipeline
 [plantuml,ch11-l04,png,theme=sketchy-outline]
 ....
 @startuml
+skinparam backgroundColor #F9F9F9
+skinparam ArrowColor #555555
+skinparam rectangle {
+  BackgroundColor<<Control>> #A8E6CF
+  BackgroundColor<<Treatment>> #85C1E9
+}
 start
-:Traffic;
-:Control;
-:Metrics A;
-:Treatment;
-:Metrics B;
-:Compare;
+:Pre‑register hypothesis & metrics;
+:Receive request;
+if (Random split?) then (Control)
+  :Assign to <<Control>>;
+else (Treatment)
+  :Assign to <<Treatment>>;
+endif
+partition <<Control>> {
+  :Collect metrics (latency, satisfaction, cost, fairness);
+}
+partition <<Treatment>> {
+  :Collect metrics (latency, satisfaction, cost, fairness);
+}
+:Aggregate results;
+:Statistical test (t‑test, χ², CI);
+if (p < 0.05?) then (Significant)
+  :Decision → Deploy Treatment;
+else (Not significant)
+  :Decision → Keep Control;
+endif
+if (Interim p < 0.01?) then (Early stop)
+  :Stop experiment → Deploy/Keep;
+endif
 stop
 @enduml
 ....
 
 ==== Discussion Prompts
 
-* When is A/B testing sufficient?
-* How do we handle multiple metrics?
-* What is "rigorous" evaluation?
-* How does A/B testing support governance decisions?
-* How does the governance simulator support A/B scenarios?
-* When does statistical rigor conflict with speed?
+* When is a simple A/B test insufficient for answering a governance question, and what alternative designs could fill the gap?  
+* How should an organization balance competing primary metrics (e.g., latency vs. fairness) when a single experiment yields mixed results?  
+* Beyond p‑values, what quantitative or qualitative evidence should be considered “rigorous” evaluation?  
+* In what concrete ways can A/B testing be woven into an organization’s AI risk‑management framework?  
+* How does the governance simulator help teams practice evidence‑based decision‑making while preserving audit trails?  
+* Can the pursuit of statistical rigor ever conflict with operational speed or market pressure, and how should teams negotiate that tension?  
 
 ==== Lab Prep
 
-Lab 2: Add A/B testing to the governance simulator. Support control/treatment, metrics, significance testing. See Lab 2 for requirements.
+*Lab 2 – Embedding A/B Testing in the Governance Simulator*  
+
+1. Extend the simulator UI to expose a **Control/Treatment selector** with a configurable traffic‑split slider (0 %–100 %).  
+2. Implement automatic logging of user‑defined metrics (accuracy, latency, cost, fairness flag) into a timestamped CSV that includes the randomisation seed.  
+3. Add a **Significance‑Testing Module** that, given any numeric metric, returns p‑value, 95 % confidence interval, and Cohen’s d (or risk‑ratio) using bootstrap or parametric methods.  
+4. Provide a **Report‑Generation Script** that outputs a standardized markdown table (Δ, CI, p‑value, correction) and a Matplotlib bar chart with error bars, ready for copy‑paste into audit documents.  
+5. Include an **Early‑Stopping Option** that monitors interim p‑values against O’Brien‑Fleming boundaries and automatically halts the experiment when criteria are met.  
+
+By completing these steps you will be able to design, execute, and communicate A/B experiments as a core governance practice, and you will have a reusable artefact for future product rollouts.
 
 ===== Key Points
 
-* Lab 2: A/B testing
-* Control, treatment, significance
-
+* UI control for traffic split and randomisation seed logging  
+* Uniform metric collection framework (user‑defined)  
+* Automated statistical testing (p‑value, CI, effect size)  
+* Standardized reporting (table + error‑bar chart)  
+* Early‑stopping logic with sequential analysis  
+* Audit‑ready artefacts for governance compliance  
 
 ==== Reading
-For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch11,Chapter 11>>).
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch11,Chapter 11>>).

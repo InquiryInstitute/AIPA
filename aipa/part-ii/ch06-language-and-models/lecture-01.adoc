@@ -1,11 +1,184 @@
-python
+=== 6.1: Word‑Vector Foundations
+
+[.epigraph]
+____
+“Can a computer answer *‘king is to queen as man is to …’*?  Let’s find out.”
+____
+
+=== Hook
+
+Imagine you are chatting with a virtual assistant that suddenly replies, “*I think you meant ‘queen’*,” when you type *king*.  
+Or picture a search engine that, after you type *“Paris is to France as Berlin is to …”*, instantly suggests *Germany* without any hard‑coded rule.  
+These feats feel trivial to us, yet they expose a deep tension: **how can a machine capture the meaning of words that it has never seen in the exact same sentence?**  
+In the next ninety minutes we will unpack the answer—*distributional word vectors*—and see how a simple algebraic trick lets a computer perform analogical reasoning that once seemed uniquely human.
+
+=== Conceptual Core
+
+Distributional semantics rests on the old linguistic insight that *you shall know a word by the company it keeps*.  
+When a corpus is scanned, each word is represented by a high‑dimensional vector whose coordinates encode how often that word co‑occurs with other words in a sliding window.  
+These vectors live in a **semantic space** where geometric relations mirror linguistic regularities.
+
+*Key Points*  
+- **Corpus‑driven meaning:** Vectors are learned from raw text, not from hand‑crafted dictionaries.  
+- **Dimensionality:** Typical embeddings use 50–300 dimensions, balancing expressive power and tractability.  
+- **Training objectives:** GloVe (Global Vectors) factorises a word‑co‑occurrence matrix; Word2Vec predicts context words (skip‑gram) or the target word (CBOW).  
+- **Static vs. contextual:** The vectors we discuss are *static*—the same for every occurrence of a word.  
+
+Cosine similarity is the workhorse for measuring semantic proximity in this space.  
+Given two vectors **u** and **v**, the cosine of the angle θ between them is  
+
+```
+cos θ = (u·v) / (||u|| ||v||)
+```  
+
+Because vectors are often normalised, the cosine reduces to a simple dot product, yielding a score between –1 (opposite) and 1 (identical).  Geometrically, a higher cosine means the vectors point in a similar direction, which we interpret as “similar meaning”.
+
+*Key Points*  
+- **Angle, not distance:** Cosine captures orientation, ignoring vector length.  
+- **Interpretation:** 0.8 ≈ “very similar”, 0.2 ≈ “weakly related”.  
+- **Normalization:** Prevents high‑frequency words from dominating similarity scores.  
+
+The most celebrated property of word vectors is the **linear analogy hypothesis**: semantic relationships correspond to consistent vector offsets.  
+If **king** – **man** + **woman** ≈ **queen**, then the vector **king – man + woman** should land near **queen** in the space.  This works because gender, royalty, and many other attributes are encoded as roughly parallel directions.
+
+*Key Points*  
+- **Vector arithmetic:** v₁ – v₂ + v₃ ≈ v₄ when the same relation holds between (v₁, v₂) and (v₄, v₃).  
+- **Empirical success:** Works surprisingly well for gender, verb tense, country‑capital, and more.  
+- **Assumptions:** Linear structure presumes a single dominant sense per word and a relatively uniform training corpus.  
+
+Nevertheless, static embeddings have well‑known limitations.  Polysemy collapses multiple senses into one vector, and the training data often carries societal biases that become baked into the geometry.  Understanding these constraints is essential before we deploy embeddings in downstream applications.
+
+*Key Points*  
+- **Polysemy collapse:** “bank” (river) and “bank” (finance) share a single point.  
+- **Bias transmission:** Gendered professions (e.g., *engineer* ↔ *male*) emerge from biased corpora.  
+- **Mitigation strategies:** Post‑hoc debiasing, contextual models (BERT), curated corpora.
+
+=== Technical Example
+
+Below we walk through a complete, reproducible demo using the pre‑trained GloVe vectors (100‑dimensional) provided by the `gensim` library.  Each block is annotated so you can follow the logic even if you have never written Python before.
+
+[source,python]
+----
 import gensim.downloader as api
-model = api.load("glove-wiki-gigaword-100")   # 100‑dim vectors
-def cosine(a, b):
+
+# Load the 100‑dimensional GloVe vectors (≈ 822 MiB download)
+model = api.load("glove-wiki-gigaword-100")
+
+def cosine(a: str, b: str) -> float:
+    """Return the cosine similarity between two in‑vocabulary words."""
     return model.similarity(a, b)
 
+# 1️⃣  Basic similarity check
 print("similarity('king','queen') =", cosine('king', 'queen'))
 
-# Analogy: king - man + woman ≈ ?
-result = model.most_similar(positive=['king', 'woman'], negative=['man'], topn=1)
-print("king - man + woman →", result[0][0])
+# 2️⃣  Show the top‑5 neighbours of “king” for intuition
+print("\nTop‑5 neighbours of 'king':")
+for word, score in model.most_similar('king', topn=5):
+    print(f"  {word}: {score:.3f}")
+
+# 3️⃣  Analogy: king – man + woman → ?
+result = model.most_similar(positive=['king', 'woman'],
+                            negative=['man'],
+                            topn=1)
+print("\nAnalogy result (king - man + woman):", result[0][0])
+----
+
+*Key Points*  
+- **Model loading:** `api.load` fetches a ready‑made embedding; no training required.  
+- **Vocabulary check:** `model.key_to_index` can be inspected to avoid out‑of‑vocabulary (OOV) errors.  
+- **Similarity output:** Returns a float in the range [‑1, 1]; typical semantic pairs exceed 0.5.  
+- **Neighbour inspection:** Listing the nearest neighbours builds intuition about the space.  
+- **Analogy computation:** `most_similar` performs the vector arithmetic internally and returns the highest‑scoring candidate.  
+
+To visualise what the analogy does, consider Figure 1, a 2‑D projection of the four relevant vectors.  The red arrow shows the **gender offset** (woman – man); adding this offset to *king* moves the point toward *queen*.
+
+[plantuml, vector-analogy, png]
+----
+@startuml
+scale 1.2
+skinparam backgroundColor #F9F9F9
+skinparam handwritten true
+
+' Define points
+point "king" as K << (C,#FFAAAA) >>
+point "queen" as Q << (C,#FFAAAA) >>
+point "man" as M << (C,#AAAAFF) >>
+point "woman" as W << (C,#AAAAFF) >>
+
+' Draw axes
+arrow -10,0 --> 10,0 : x
+arrow 0,-10 --> 0,10 : y
+
+' Vectors
+K --> M : man
+K --> W : woman
+K --> Q : queen
+
+' Gender offset
+M --> W : gender\n(offset)
+W --> Q : result
+
+' Analogy arrow
+K -[#red,dashed]-> Q : king - man + woman
+
+@enduml
+----
+
+*Key Points*  
+- **Projection:** The diagram is a PCA reduction; real vectors live in 100‑D.  
+- **Angle interpretation:** The acute angle between *king* and *queen* reflects high cosine similarity.  
+- **Offset direction:** The gender offset is roughly parallel for both royal and common nouns, explaining the analogy’s success.
+
+=== Philosophical Reflection
+
+The elegance of the analogy experiment can mask a more unsettling reality: **pre‑trained embeddings inherit the biases of their source texts**.  When we query `model.most_similar('doctor')`, the top results often include gendered terms like *male* and *female* in disproportionate frequencies, revealing a hidden stereotype.
+
+*Key Points*  
+- **Gender bias:** “engineer” → *male* > *female*; “nurse” → *female* > *male*.  
+- **Cultural bias:** Embeddings trained on English Wikipedia reflect Western-centric worldviews.  
+- **Impact:** Downstream systems (search, recommendation, hiring) may amplify these biases, leading to unfair outcomes.  
+
+Addressing bias is not merely a technical fix but an ethical imperative.  Researchers propose **post‑hoc debiasing** (e.g., neutralising the gender subspace) and **counter‑factual data augmentation** (injecting balanced examples).  Yet each method trades off between preserving useful semantic structure and erasing harmful associations.  As AI practitioners, we must ask: *When is it acceptable to alter a model’s internal geometry, and who decides which biases are “harmful”?*
+
+*Key Points*  
+- **Responsibility:** Transparency about training data and bias mitigation is required for trustworthy AI.  
+- **Debiasing techniques:** Hard‑debiasing, soft‑debiasing, and fine‑tuning on curated corpora.  
+- **Open questions:** How to evaluate “fairness” in a high‑dimensional space?  How to preserve downstream performance while reducing bias?  
+
+=== Discussion Prompts
+
+1. Why does the linear offset `king – man + woman` work for some relations (gender) but fail for others (e.g., *Paris – France + Italy*)?  
+2. In what ways might polysemy (multiple senses) distort cosine similarity scores, and how could we detect such distortions?  
+3. Consider a scenario where a chatbot uses static embeddings to interpret user intent.  What risks arise if the embeddings contain gender or racial bias?  
+4. How would you design an experiment to quantify the “bias magnitude” of a given embedding model?  
+5. If you could replace the static GloVe vectors with a contextual model (e.g., BERT), what new possibilities and challenges would emerge for analogy tasks?  
+6. Reflect on the ethical trade‑off between preserving cultural nuance in embeddings and removing harmful stereotypes.  Where should the line be drawn?
+
+=== Lab Preparation
+
+In the upcoming lab you will extend today’s demo by loading a different pre‑trained model (e.g., *word2vec‑GoogleNews‑300*), computing similarity scores for a set of word pairs you design, and documenting any surprising biases you encounter.  You will also implement a simple debiasing routine that projects vectors onto the subspace orthogonal to the gender direction, then compare pre‑ and post‑debiasing analogy results.
+
+*Lab Tasks*  
+- Load two distinct embedding models and compare their vocabularies.  
+- Write a function `bias_score(word, gender_axis)` that quantifies gender association.  
+- Perform the analogy `king - man + woman` on both models and report the top‑3 candidates.  
+- Apply the debiasing projection and re‑run the analogy; note any changes.  
+- Prepare a short reflective report (≈300 words) discussing the implications of your findings for real‑world NLP applications.
+
+[plantuml, flowchart-demo, png]
+----
+@startuml
+title Embedding Demo Workflow
+start
+:Load pre‑trained model;
+if (Word in vocab?) then (yes)
+  :Lookup vectors;
+  :Compute cosine similarity;
+  :Perform vector arithmetic for analogy;
+  :Return top‑N results;
+else (no)
+  :Handle OOV (fallback or error);
+endif
+stop
+@enduml
+----

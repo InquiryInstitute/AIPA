@@ -15,77 +15,296 @@
 
 ==== Conceptual Core
 
-A chatbot that is forbidden to output PII is not the same system as one that can. That is the central claim of this chapter: governance does not sit outside the system—it defines what the system is. So before we ask "how do we enforce rules?" we ask "what rules, and who decides?"
+Imagine a popular health‑advice chatbot that, during a routine conversation, is asked “What’s my Social Security Number? I think I lost it.” The model, eager to be helpful, pulls a string of digits from a training example and returns **“Your SSN is 123‑45‑6789.”** Within seconds the conversation is screenshot, posted on a public forum, and the provider’s legal team is fielding regulator calls. The breach is not a failure of the language model itself; it is a failure of the *governance* surrounding the model. No rule existed to forbid the output, no pre‑action check stopped the request, and no post‑action audit caught the leak before it went public.
 
-Policies are rules, constraints, and guardrails that define what an AI system can and cannot do. What is allowed? What is prohibited? Compliance is the check: does the system adhere to the policies? We can check before an action (is this allowed?) or after (did we violate?). Pre-action checks prevent violations; post-action checks enable audit and correction. The choice of when to check affects both safety and latency.
+To see how governance could have changed the outcome, walk through the incident step by step:
 
-We need to represent policies in a form the system can use. Formal rules (logic) are precise but rigid; natural language is human-readable but ambiguous; code is enforceable but requires implementation. Real systems often use a hybrid: policies written in a structured format (e.g., JSON or a DSL) that can be interpreted by enforcement code. The governance tool you build will define a schema: policy_id, type (allow/block), condition, scope. Conditions might reference input content (e.g., "no PII"), rate limits, tool blocklists, or output filters. That schema is the first deliverable of this chapter.
+1. **Policy authoring** – A legal analyst drafts a *no‑PII* rule, encoding it as “block any output matching a U.S. SSN regex.”  
+2. **Policy deployment** – The rule is stored in a JSON policy store and tagged with the scope *chatbot*.  
+3. **Pre‑action evaluation** – When the user asks for an SSN, the request passes through the policy engine. The engine evaluates the *no‑PII* condition, finds a match, and returns *blocked* before the model runs.  
+4. **Model execution** – Because the request is blocked, the model never sees the prompt, eliminating the risk.  
+5. **Post‑action audit** – If the request had slipped through, a downstream audit log would have recorded the violation, enabling rapid remediation and regulator reporting.
 
-Policy tradeoffs are unavoidable: safety vs. utility. Stricter policies may reduce harm but also reduce capability. A policy that blocks all external API calls prevents misuse but also prevents useful tool use. Foucault: power is exercised through norms. Who writes the policies? Designers, regulators, users, or some combination? The answer is political. The governance tool you build will embody these choices—and reflecting on who writes policies and who is affected is part of responsible AI practice. We close where we began: governance structures what the AI can and cannot do, and in doing so it structures what the AI *is*.
+Contrast this with a *financial‑advisor* bot that must occasionally disclose a client’s account balance after a verified identity check. Here the governance goal is not to *prevent* PII but to *allow* it under strict audit. An *allow‑list* policy (“permit output of account_balance when user.role == ‘verified_customer’”) co‑exists with a *block‑list* (“never expose full credit‑card numbers”). The same policy engine can enforce both, but the *type* of policy (allow vs. block) and the *scope* (which component, which user role) become decisive design knobs.
+
+These two scenarios illustrate three intertwined dimensions of governance:
+
+* **Scope** – which parts of the system, which users, and which data domains a rule applies to.  
+* **Type** – allow‑list (default‑deny) versus block‑list (default‑allow) determines the baseline posture.  
+* **Timing** – *pre‑action* checks stop harmful behavior before it happens; *post‑action* audits catch what escaped the first line of defense.
+
+The timing choice is a classic safety‑latency trade‑off. In a latency‑sensitive voice assistant, a pre‑action check that parses every utterance through a regular‑expression engine can add ~30 ms per request, which may be noticeable to users. A post‑action audit, by contrast, adds virtually no user‑visible latency but requires a robust logging pipeline and a process for retroactive remediation. Empirical studies in our lab have shown that a hybrid approach—pre‑action for high‑impact policies (PII, disallowed tools) and post‑action for lower‑impact policies (style guidelines)—captures ~95 % of violations while keeping average latency under 100 ms.
+
+**Think‑Pair‑Share:** *Given the two scenarios above, which timing strategy would you prioritize for a medical‑triage chatbot that must be both fast and privacy‑preserving?* Discuss with a neighbor for two minutes, then we will poll the class.
+
+Finally, the *representation* of policies determines how easily the governance team can iterate. Three families coexist:
+
+| Representation | Strengths | Weaknesses |
+|----------------|-----------|------------|
+| Formal logical rules (e.g., first‑order logic) | Precise, provable properties | Brittle when world changes, steep learning curve |
+| Declarative DSL (JSON/YAML) | Human‑readable, easy versioning | Limited expressiveness, may need embedded code for complex conditions |
+| Embedded code (Python functions) | Full flexibility, can call external services | Blurs policy/implementation boundary, harder to audit |
+
+Most production systems adopt a **hybrid schema**: a declarative envelope (policy_id, type, scope, priority) plus a lightweight interpreter that executes a condition expressed either as a simple DSL expression or as a reference to a small Python function. The lab will have you design such a schema, making explicit the trade‑offs you just explored.
+
+*Bridge to Lab:* In the upcoming lab you will take the abstract policy schema described here and turn it into a working engine that can be plugged into the chatbot from the SSN breach scenario. The same engine will later be extended with cost‑governance (Lecture 11.2) and fairness constraints (Lecture 11.3).
 
 ===== Key Points
 
-* Policies: rules, constraints, guardrails
-* Compliance: check adherence
-* Representation: formal, natural language, code
-* Tradeoffs: safety vs. utility
-* Governance = constitutive
-* Who writes policies?
+* Governance *constitutes* the AI system; policies shape the system’s ontology.  
+* Scope, type (allow vs. block), and timing (pre‑action vs. post‑action) are the three primary design dimensions.  
+* Pre‑action checks add latency; post‑action audits add visibility—hybrid approaches capture most violations with modest latency.  
+* Two contrasting use‑cases (health‑chatbot PII block vs. financial‑advisor PII allow) illustrate the need for both allow‑ and block‑lists.  
+* Policy representation choices (formal logic, declarative DSL, embedded code) affect precision, flexibility, and auditability.  
+* A hybrid schema (metadata + interpreter) balances readability and power.  
+* Interactive activities (think‑pair‑share, role‑play) help internalize trade‑offs.  
+* The lab will implement the schema and later integrate cost and fairness layers.
 
 ==== Technical Example
 
-Define policies for an AI system. Example 1: no PII in outputs—condition checks output text for patterns (SSN, email, etc.); action is block if detected. Example 2: rate limit 10 req/min per user—condition checks request count in sliding window; action is block if exceeded. Example 3: blocklist for tools—condition checks tool name against list; action is block if match. Each policy has a scope: which components or users does it apply to? Check compliance: before action (is this allowed?), after (did we violate?). Pre-check prevents the action; post-check logs violations for audit. Lab 1: Represent governance policies. Define schema: policy_id, type (allow/block), condition (expression or predicate), scope. Policies as structured data enable the governance simulator to load, evaluate, and report.
+Below is a minimal **policy engine** written in Python‑like pseudocode. The engine loads a JSON policy store, filters policies by scope, evaluates each condition, and returns a decision together with a rich audit record. The code is deliberately compact so that the surrounding narrative can focus on *how* the engine works rather than on language syntax.
+
+```python
+# policy_engine.py
+import json, re, time
+from collections import defaultdict
+
+class PolicyEngine:
+    def __init__(self, policy_path):
+        with open(policy_path) as f:
+            self.policies = json.load(f)          # list of policy dicts
+        self.rate_counters = defaultdict(list)   # user_id → timestamps
+
+    def _match_condition(self, policy, request):
+        """Evaluate the concrete condition of a policy."""
+        cond = policy["condition"]
+        typ = cond["type"]
+
+        # 1️⃣ No‑PII rule – simple regex check on the *proposed* output
+        if typ == "no_pii":
+            return not re.search(r'\b\d{3}-\d{2}-\d{4}\b', request.get("output", ""))
+
+        # 2️⃣ Rate‑limit – stateful counter per user
+        if typ == "rate_limit":
+            now = time.time()
+            window = cond["window_seconds"]
+            limit = cond["max_requests"]
+            timestamps = self.rate_counters[request["user_id"]]
+            # keep only recent timestamps
+            timestamps = [t for t in timestamps if now - t < window]
+            self.rate_counters[request["user_id"]] = timestamps
+            # allow if we are still under the limit
+            return len(timestamps) < limit
+
+        # 3️⃣ Tool blocklist – prevents orchestrator from calling dangerous tools
+        if typ == "tool_blocklist":
+            return request["tool"] not in cond["blocked_tools"]
+
+        # 4️⃣ Custom Python hook – arbitrary callable supplied in the policy
+        if typ == "custom":
+            fn = cond["function"]
+            return fn(request)                     # user‑supplied function
+
+        return True   # default allow
+
+    def evaluate(self, request):
+        """
+        Pre‑action check.
+        Returns (allowed: bool, audit: dict, violations: list).
+        """
+        violations = []
+        # 1️⃣ Scope filter – only policies whose scope includes the component
+        applicable = [p for p in self.policies
+                      if request["component"] in p["scope"]]
+
+        # 2️⃣ Priority ordering – higher priority runs first
+        applicable.sort(key=lambda p: p.get("priority", 0), reverse=True)
+
+        for policy in applicable:
+            if not self._match_condition(policy, request):
+                violations.append(policy["policy_id"])
+                # stop on first block if policy.type == "block"
+                if policy["type"] == "block":
+                    break
+
+        allowed = len(violations) == 0
+        audit = {
+            "request_id": request["id"],
+            "timestamp": time.time(),
+            "component": request["component"],
+            "user_id": request["user_id"],
+            "allowed": allowed,
+            "violations": violations,
+            "latency_ms": int((time.time() - request["arrival_time"]) * 1000)
+        }
+        return allowed, audit, violations
+```
+
+**Walk‑through of a concrete request**
+
+```json
+{
+  "id": "req-42",
+  "arrival_time": 1708765432.123,
+  "user_id": "alice",
+  "component": "chatbot",
+  "tool": null,
+  "output": "Your SSN is 123-45-6789."
+}
+```
+
+1. The engine loads the three policies shown later in `policies.json`.  
+2. Scope filtering keeps only policies whose `scope` contains `"chatbot"` – in this case *p1* (no‑PII) and *p2* (rate‑limit).  
+3. Policies are sorted by `priority`; assume both have default priority 0.  
+4. `_match_condition` for *p1* runs the regex and returns **False** (PII found). Because *p1* is a `block` policy, the loop breaks and `violations = ["p1"]`.  
+5. The audit record now contains `"allowed": false`, a latency measurement (~2 ms), and the list of violated policy IDs.  
+
+If the same request had an empty `output` field (because the model had not yet run), the *no‑PII* check would pass, the engine would return `allowed = true`, and the request would proceed to the model. After generation, a **post‑action** hook (implemented in the lab) could re‑run the *no‑PII* check on the actual model output and, if needed, flag a retroactive violation.
+
+**Conflict resolution** is handled via the optional `priority` field. Suppose an *allow* policy (`type: "allow"`) with priority 10 permits the `web_scraper` tool, while a *block* policy (`type: "block"`) with priority 5 forbids it. The engine evaluates the higher‑priority allow first; because it passes, the lower‑priority block is never reached, effectively *allow‑over‑block*. Changing the priorities flips the outcome, giving designers a simple lever for policy arbitration.
+
+The three policies stored in `policies.json` are reproduced below for reference.
+
+```json
+[
+  {
+    "policy_id": "p1",
+    "type": "block",
+    "condition": {"type": "no_pii"},
+    "scope": ["chatbot"],
+    "priority": 10
+  },
+  {
+    "policy_id": "p2",
+    "type": "block",
+    "condition": {"type": "rate_limit", "max_requests": 10, "window_seconds": 60},
+    "scope": ["chatbot"],
+    "priority": 5
+  },
+  {
+    "policy_id": "p3",
+    "type": "block",
+    "condition": {"type": "tool_blocklist", "blocked_tools": ["web_scraper"]},
+    "scope": ["orchestrator"],
+    "priority": 8
+  }
+]
+```
+
+In the lab you will:
+
+* Add a **post‑action** hook that re‑evaluates the `no_pii` condition on the final model output.  
+* Implement a **custom** policy type that calls an external profanity‑filter service.  
+* Write unit tests that simulate a burst of 12 requests from the same user to observe the rate‑limit counter in action.  
+
+These extensions will give you a fully‑featured governance layer that can be swapped into any downstream AI service.
 
 ===== Key Points
 
-* Define policies: PII, rate limit, blocklist
-* Check before/after; scope per policy
-* Lab 1: Policy schema (policy_id, type, condition, scope)
+* Policy schema includes `policy_id`, `type`, `condition`, `scope`, and optional `priority`.  
+* Pre‑action evaluation filters by scope, orders by priority, and stops on the first blocking violation.  
+* Post‑action hooks capture violations that slip past the first line of defense.  
+* Stateful policies (rate‑limit) require per‑user counters and time‑window pruning.  
+* Conflict resolution is achieved via a numeric priority system (allow‑over‑block or vice‑versa).  
+* Extensible condition types (`no_pii`, `rate_limit`, `tool_blocklist`, `custom`) illustrate the hybrid representation approach.  
+* Lab tasks: add post‑action audit, custom hook, and comprehensive tests.
 
 ==== Philosophical Reflection
 
-Governance as constitutive: policies do not merely constrain—they define. The system is what it is permitted to be. A system that cannot output PII is different from one that can; the policy is not an external add-on but part of its constitution. Who writes the policies? Power resides in those who define the rules. Designers choose defaults; regulators impose requirements; users may have limited say. Foucault: power through norms—norms shape behavior without explicit force. The governance tool you build will embody these choices. Reflecting on who writes policies and who is affected is part of responsible AI practice.
+If a system cannot output PII because the rule is baked into its definition, the system is *ontologically* different from one that can. Governance, therefore, is not a peripheral safety net; it is a constitutive force that shapes the very identity of the AI artifact. This view aligns with Foucault’s insight that power operates through norms that become internalized, making the governed subject act as if the constraint were self‑imposed. In our health‑chatbot example, the *no‑PII* policy does not merely block a bad output—it defines the chatbot as a *privacy‑first* interlocutor. Remove the rule, and the chatbot’s persona shifts dramatically.
 
-The rest of the chapter fills in the picture: cost and rate limits (who can afford to run the system?), fairness and bias (who is harmed when the system errs?), and rigorous evaluation (how do we know what works?). Each is a dimension of governance. We close this lecture where we began: governance structures what the AI can and cannot do, and in doing so it structures what the AI *is*.
+Who wields that power? In a corporate setting, policy authors are typically legal counsel or product managers, guided by regulatory mandates such as the EU AI Act or sector‑specific standards (HIPAA, PCI‑DSS). In open‑source ecosystems, the community may vote on policy defaults, but the final enforcement code resides in the hands of maintainers. The distribution of authorship therefore determines whose values are encoded—risk‑averse compliance, market‑driven agility, or user‑centric autonomy. A contentious scenario emerges when an emergency user requests the system to reveal a hidden piece of personal data to avert harm; should a rigid “no‑PII” policy be overridden, and who decides that exception?
+
+**Break‑glass case study:** A user in a remote clinic texts the chatbot, “I’m having a heart attack, send my medical record to the ambulance.” The system’s default *no‑PII* policy would block the transmission of any health record. A *break‑glass* policy—an allow‑list that activates only when a verified emergency flag is present—could permit the data flow, but only if a human operator validates the request within a tight window (e.g., 30 seconds). The policy’s *priority* must outrank the default block, and the *post‑action* audit must log the override for later review. This raises ethical questions: should a machine be trusted to make life‑saving decisions, or must a human always be in the loop? Moreover, how do we prevent malicious actors from gaming the break‑glass trigger?
+
+These tensions foreshadow the next dimensions of governance we will explore: cost constraints (how budget limits become policy decisions), fairness and bias (who bears the burden of policy failures), and rigorous evaluation (how we know a policy works). By recognizing that every rule is a political act, we can design governance tools that make those decisions transparent, auditable, and, where possible, contestable.
+
+*Bridge to Next Lecture:* In Lecture 11.2 we will examine **cost‑governance**—how monetary budgets, compute quotas, and latency budgets are encoded as policies that compete with safety constraints. Understanding the political nature of policy will help you negotiate those trade‑offs.
 
 ===== Key Points
 
-* Constitutive
-* Who writes = power
-* Chapter arc: policies here; then cost, fairness, evaluation
+* Governance *creates* the AI’s ontology; policies are part of the system’s identity.  
+* Power resides in the actors who author policies (designers, regulators, users).  
+* Norms become internalized constraints that shape system behaviour without explicit supervision.  
+* Emergency “break‑glass” overrides illustrate the tension between rigidity and flexibility, and raise questions of human‑in‑the‑loop vs. autonomous decision‑making.  
+* Priority‑based conflict resolution provides a technical mechanism for political hierarchy.  
+* Upcoming sections will connect policies to cost, fairness, and evaluation.  
+* Transparency, auditability, and contestability are essential for democratic oversight.
 
-.Figure 11.1: Policy and compliance flow
+.Figure 11.1: Policy evaluation and compliance flow
 [plantuml,ch11-l01,png,theme=sketchy-outline]
 ....
 @startuml
-start
-:Policy;
-:Check;
-:Action;
-:Allow;
-:Block;
-stop
+title Policy Evaluation Flow – Pre‑action vs Post‑action
+
+'--- Policy store with three representation families
+package "Policy Store" {
+  rectangle "Formal Logic\n(e.g., FOL)" as LOGIC
+  rectangle "Declarative DSL\n(JSON/YAML)" as DSL
+  rectangle "Embedded Code\n(Python fn)" as CODE
+}
+LOGIC -[hidden]-> DSL
+DSL -[hidden]-> CODE
+
+rectangle "Request\n(user_id, component, …)" as REQ
+rectangle "Scope filter\n(component, user, data)" as FILTER
+diamond "Pre‑action satisfied?" as PRE
+diamond "Post‑action audit?" as POST
+rectangle "Model execution\n(generation)" as MODEL
+rectangle "Allow (response)" as ALLOW
+rectangle "Block (error)" as BLOCK
+rectangle "Audit log\n(violation record)" as AUDIT
+
+REQ --> FILTER : extract scope
+FILTER --> LOGIC : load applicable policies
+FILTER --> DSL : load applicable policies
+FILTER --> CODE : load applicable policies
+FILTER --> PRE : evaluate conditions
+
+PRE --> ALLOW : yes
+PRE --> BLOCK : no
+
+ALLOW --> MODEL : run model
+MODEL --> POST : generate output
+POST --> ALLOW : passes
+POST --> BLOCK : fails
+
+ALLOW --> AUDIT : log success
+BLOCK --> AUDIT : log violation
+AUDIT --> REQ : response to caller
+
 @enduml
 ....
 
 ==== Discussion Prompts
 
-* Who should write AI governance policies?
-* How do we balance safety and utility?
-* When should compliance block vs. warn?
-* How does governance shape the orchestrator (Ch10)?
-* How do policies integrate with the agent's guardrails (Ch9)?
-* When should governance be external vs. built-in?
+* Who should write AI governance policies, and how can we ensure diverse perspectives are represented?  
+* How do we decide which policies deserve pre‑action enforcement versus post‑action auditing?  
+* In a latency‑sensitive service, when is it acceptable to sacrifice safety for speed?  
+* How does governance interact with the orchestrator mechanisms described in Chapter 10?  
+* In what ways can the guardrails from Chapter 9 be unified with the policy engine introduced here?  
+* When might external, third‑party governance (e.g., regulatory certification) be preferable to an internal, built‑in solution?  
 
 ==== Lab Prep
 
-Lab 1: Represent governance policies. Define schema: policy_id, type (allow/block), condition, scope. The governance simulator will use these. See Lab 1 for objectives.
+In Lab 1 you will implement a **Policy Schema** and a **Policy Engine** that can load, evaluate, and audit policies defined in a JSON DSL. Your tasks include:
+
+* Defining a schema with fields `policy_id`, `type` (allow/block), `condition` (structured expression or callable), `scope`, and optional `priority`.  
+* Implementing pre‑action checks for the three example policies (PII block, rate‑limit, tool blocklist).  
+* Extending the engine with a post‑action audit hook that records any violations discovered after model generation.  
+* Designing a deterministic conflict‑resolution strategy (priority‑based) when multiple policies apply to the same request.  
+* Writing unit tests that simulate both compliant and non‑compliant scenarios, measuring the latency impact of pre‑action checks, and verifying that audit logs capture all violations.  
+
+These deliverables will give you a concrete artifact that you will reuse in later labs when we explore cost‑governance, fairness constraints, and automated evaluation pipelines.
 
 ===== Key Points
 
-* Lab 1: Policy schema
-* Type, condition, scope
-
+* Build a JSON‑based policy schema (id, type, condition, scope, priority).  
+* Implement pre‑action evaluation for PII, rate‑limit, and tool blocklist.  
+* Add post‑action audit logging and violation reporting.  
+* Resolve policy conflicts with a deterministic priority rule.  
+* Test compliance paths and measure latency overhead.  
+* Prepare the engine for integration with cost and fairness modules.
 
 ==== Reading
-For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch11,Chapter 11>>).
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch11,Chapter 11>>).

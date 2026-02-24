@@ -1,8 +1,196 @@
-python
-def update_document(doc_id, new_text):
-    old_chunks = index.find_chunks(doc_id)
-    index.delete_chunks(old_chunks)
-    new_chunks = chunk(new_text)
-    new_embeds = embed(new_chunks)
-    index.add_chunks(doc_id, new_chunks, new_embeds)
-    index.refresh()
+=== 7.5: Updating Documents in Vector‑Based Memory Systems
+
+[.epigraph]
+____
+“Imagine a customer‑support chatbot that suddenly gives the wrong answer because the policy it was trained on changed overnight. How do we keep its knowledge store consistent without taking the service down?” – Lecture Prompt
+____
+
+==== Hook – The Real‑World Tension
+
+A fintech firm rolled out a new “instant‑refund” rule that required every support agent to reference a freshly‑published paragraph in the public policy document. Their chatbot, which had been indexing the policy a week earlier, continued to suggest a three‑day wait, causing a flood of angry tickets and a measurable dip in Net Promoter Score. The engineering team’s first instinct was to **delete the entire vector store and rebuild it from scratch**—a process that took 45 minutes and forced the bot offline for the duration. In a production environment, that downtime translates directly into lost revenue and eroded trust. The tension is therefore concrete: *How can we replace a single document (or even a single paragraph) in a vector‑based memory system without halting service, without inflating compute costs, and without corrupting the similarity search pipeline?*  
+
+*Key Points*  
+* Real‑world services need sub‑second update latency.  
+* Naïve full re‑indexing incurs unacceptable downtime.  
+* Updating a single document must preserve index integrity.  
+* The solution must balance speed, correctness, and resource usage.  
+
+==== Conceptual Core – Foundations of Incremental Updates
+
+1. **Mutable Graph View of the Index** – Modern vector stores (FAISS, Milvus, Pinecone) expose their internal structures as a graph where each node is an embedding and edges encode proximity. Unlike a static table, this graph can be edited in place: nodes can be added, removed, or rewired without rebuilding the whole structure. Treating the index as a mutable graph is the mental shift that enables incremental updates.  
+
+2. **Chunk‑Level Granularity** – Documents are never stored as monolithic strings; they are first *chunked* into sentences, paragraphs, or fixed‑token windows (e.g., 200‑token slices). Each chunk receives its own identifier (`chunk_id`) and is linked to a higher‑level `doc_id`. Because the index operates on chunks, updating a single paragraph means only a handful of vectors need to be touched, reducing both CPU and I/O.  
+
+3. **Deterministic Chunking & Embedding** – To guarantee *idempotency*—the property that running the same update twice yields the same state—both the chunking algorithm and the embedding encoder must be deterministic. A deterministic tokenizer (spaCy’s rule‑based sentence splitter) and a fixed‑seed transformer ensure that the same input text always produces identical chunk boundaries and identical vectors.  
+
+4. **Consistency Barrier (Refresh Point)** – Most vector stores keep a write‑ahead log or an in‑memory buffer that is not searchable until a *refresh* operation is called. This refresh acts as a **synchronisation barrier**: all updates issued before the call become visible atomically, while updates after the call wait for the next barrier. The barrier can be invoked per‑document (eager) or batched (lazy) depending on service‑level objectives.  
+
+5. **Transactional Update Pattern** – The safe sequence `find → delete → add → refresh` can be wrapped in a transaction object. If any step fails (e.g., network partition, embedding service timeout), the transaction rolls back, restoring the previous stable graph. This transactional view prevents *partial* updates that would otherwise leave stale vectors in the index, contaminating similarity scores.  
+
+6. **Idempotent API Design** – By exposing an `update_document(doc_id, new_text)` endpoint that internally performs the transaction, callers can safely retry on failure without fearing duplicate vectors. Idempotent APIs also simplify orchestration in distributed pipelines (e.g., Airflow DAGs) where tasks may be re‑executed.  
+
+7. **Monitoring & Latency Budgeting** – Incremental updates introduce two latency dimensions: *write latency* (time to embed and write new chunks) and *commit latency* (time for `refresh()` to rebuild search structures). Instrumentation must capture both, allowing operators to set thresholds (e.g., < 200 ms for write, < 500 ms for commit) and trigger alerts when the system drifts toward eventual consistency.  
+
+*Key Points*  
+* Vector stores are mutable graphs, not immutable tables.  
+* Chunking provides the granularity needed for selective updates.  
+* Deterministic chunking + embedding ⇒ idempotent updates.  
+* A refresh call is the atomic commit point of the update transaction.  
+* Transactional wrappers protect against partial failures.  
+* Idempotent APIs simplify retries and orchestration.  
+* Monitoring both write and commit latency guards consistency guarantees.  
+
+==== Technical Example – Walking Through `update_document`
+
+Below is a fleshed‑out implementation that follows the conceptual pattern above. The code is split into three logical blocks to support a live‑coding demo: (1) *pre‑flight* (metadata lookup and deletion), (2) *re‑embedding* (chunking and vector creation), and (3) *commit* (addition and refresh). Each block is accompanied by a short “pause‑and‑think” question for the class.
+
+[source,python,linenums]
+----
+# -------------------------------------------------
+# 1️⃣  PRE‑FLIGHT: locate and delete stale chunks
+# -------------------------------------------------
+def _clear_existing_chunks(index, doc_id: str) -> List[str]:
+    """
+    Returns the list of chunk_ids that were removed.
+    """
+    old_chunk_ids = index.find_chunks(doc_id)          # metadata query
+    if old_chunk_ids:
+        index.delete_chunks(old_chunk_ids)            # atomic delete
+    return old_chunk_ids
+
+
+# -------------------------------------------------
+# 2️⃣  RE‑EMBED: chunk, embed, and prepare payloads
+# -------------------------------------------------
+def _prepare_new_chunks(text: str, chunk_size: int = 200) -> Tuple[List[str], List[np.ndarray]]:
+    """
+    Deterministically split `text` into `chunk_size`‑token windows
+    and embed each window.
+    """
+    # Deterministic splitter – same seed, same boundaries
+    chunks = deterministic_chunker(text, max_tokens=chunk_size)
+    embeddings = embedder.encode(chunks)               # deterministic encoder
+    return chunks, embeddings
+
+
+# -------------------------------------------------
+# 3️⃣  COMMIT: add new vectors and refresh the index
+# -------------------------------------------------
+def update_document(index, doc_id: str, new_text: str) -> None:
+    """
+    End‑to‑end incremental update for a single document.
+    """
+    try:
+        # ---- pre‑flight ----
+        _clear_existing_chunks(index, doc_id)
+
+        # ---- re‑embed ----
+        new_chunks, new_embeds = _prepare_new_chunks(new_text)
+
+        # ---- add ----
+        index.add_chunks(doc_id, new_chunks, new_embeds)
+
+        # ---- commit ----
+        index.refresh()               # synchronisation barrier
+    except Exception as exc:
+        # Roll‑back strategy: re‑insert the old chunks if we saved them
+        logger.error(f"Update failed for {doc_id}: {exc}")
+        raise
+----
+*Live‑Coding Pause‑and‑Think*  
+
+* After the `find_chunks` call, ask: *What metadata must we store to map a vector back to its source document?* (Answer: a `doc_id` field and optionally a `chunk_offset`).  
+* Before `refresh()`, ask: *If we batch 100 updates before calling refresh, how does that affect write latency vs. commit latency?* (Answer: write latency drops, commit latency grows; trade‑off depends on SLA).  
+
+*Common Pitfalls (Expanded)*  
+
+* **Missing Refresh** – New vectors sit in a write‑ahead log and are invisible to queries, leading to “ghost” updates that never surface.  
+* **Non‑Deterministic Chunker** – Randomly merging sentences changes `chunk_id`s on each run, breaking idempotency and causing duplicate vectors after retries.  
+* **Partial Failure** – If `embedder.encode` throws an exception after some chunks have been added, the index ends up in an inconsistent state; wrapping the whole flow in a `try/except` and optionally re‑inserting the old chunks mitigates this.  
+* **Batch Size Mis‑tuning** – Adding thousands of vectors before a refresh can exceed memory limits of the in‑memory index, causing OOM crashes.  
+
+*Key Points*  
+* The update follows a three‑block pattern: clear → re‑embed → commit.  
+* Deterministic chunking and embedding guarantee idempotent behavior.  
+* `index.refresh()` is the atomic commit that makes new vectors searchable.  
+* Transactional error handling prevents partial updates.  
+* Batch‑vs‑eager refresh is a tunable latency‑cost knob.  
+* Monitoring should capture both per‑step duration and overall commit time.  
+
+==== Philosophical Reflection – Memory, Consistency, and Latency
+
+The technical choreography above is a concrete manifestation of a broader epistemological question: **Is a machine’s memory a fixed archive or a living, reconstructive organism?** Classical cognitive psychology, from Bartlett’s reconstruction theory to Anderson’s ACT‑R, treats memory as a *reconstruction* process—every recall reshapes the stored trace. Vector‑based stores, by design, embody this constructivist view: each embedding is a *projection* of raw text into a latent space, and that projection can be overwritten whenever the source changes.  
+
+From an engineering standpoint this constructivism forces a **consistency‑latency trade‑off**. Strong (or *linearizable*) consistency guarantees that any query after an update sees the new vectors immediately. Achieving this requires an eager `refresh()`, which blocks the request thread while the index rebuilds—potentially adding hundreds of milliseconds to the critical path. In contrast, *eventual consistency* lets the system accept updates without waiting for the commit, serving queries with the previous version of the data until the background refresh completes. The latter is acceptable for low‑stakes domains (e.g., news recommendation) but can be catastrophic in safety‑critical settings such as medical triage bots, where a stale dosage recommendation could cause harm.  
+
+The notion of **idempotent updates** also carries ethical weight. In a world where AI agents mediate financial, legal, or health decisions, the system must be robust to network glitches, retries, and human error. An idempotent `update_document` ensures that a repeated attempt does not multiply the same policy clause, thereby preserving the integrity of the knowledge base and the trust of end‑users. Moreover, transparent monitoring of *commit latency* becomes a governance requirement: regulators may demand proof that critical policy changes are reflected in the system within a defined window (e.g., 2 seconds).  
+
+Finally, consider the *future* of mutable vector memories. Emerging research on *continual learning* proposes that embeddings themselves adapt over time, blurring the line between “update” and “re‑training.” In such scenarios, the refresh barrier may become a *soft* synchronisation point, where the index gradually incorporates new vectors while still serving queries on a hybrid of old and new representations. Designing APIs that expose both *hard* and *soft* consistency modes will be a key differentiator for next‑generation retrieval‑augmented systems.  
+
+*Key Points*  
+* Vector memory is a constructive, mutable system, not a static archive.  
+* Strong consistency requires eager refresh; eventual consistency trades latency for availability.  
+* Safety‑critical domains often mandate immediate consistency to avoid harm.  
+* Idempotent updates are an ethical safeguard against duplication and corruption.  
+* Monitoring commit latency satisfies both operational SLAs and regulatory oversight.  
+* Future continual‑learning models will blur update vs. re‑training, demanding flexible consistency modes.  
+
+==== Diagram – Data‑Flow of `update_document` (Enhanced)
+
+[plantuml, update-document-flow, svg]
+----
+@startuml
+actor User
+participant "Document Store\n(Chunker & Encoder)" as DS
+participant "Vector Index\n(FAISS / Pinecone)" as IDX
+
+User -> DS : submit new_text for doc_id
+activate DS
+DS -> IDX : find_chunks(doc_id)
+IDX --> DS : old_chunks
+DS -> IDX : delete_chunks(old_chunks)
+DS -> DS : new_chunks = deterministic_chunker(new_text)
+DS -> DS : new_embeds = embedder.encode(new_chunks)
+DS -> IDX : add_chunks(doc_id, new_chunks, new_embeds)
+note right of IDX : Transaction Boundary\n(steps 1‑4)
+DS -> IDX : refresh()
+deactivate DS
+IDX --> User : updated retrieval results
+@enduml
+----
+*Notes*  
+
+* **Transaction Boundary** – The dashed box around steps 1‑4 indicates an atomic unit; if any step fails, the system rolls back.  
+* **Refresh as Commit** – The `refresh()` arrow is labelled “Commit / Synchronisation Barrier”.  
+* **Batched Refresh Path (optional)** – In a real deployment, the `refresh()` call could be deferred; a second path (not shown) would accumulate multiple `add_chunks` before a single commit.  
+
+==== Discussion Prompts
+
+1. In what operational contexts would you deliberately choose *eventual* consistency over *strong* consistency for vector updates, and what safeguards would you put in place?  
+2. How could the `update_document` workflow be extended to support *partial* updates where only a subset of chunks change (e.g., an added sentence in the middle of a paragraph)?  
+3. Imagine a distributed vector store spanning three geographic regions. Which consistency protocol (two‑phase commit, quorum writes, version vectors) best balances latency and fault tolerance for incremental updates?  
+4. Discuss the ethical ramifications of a delayed `refresh()` in a medical chatbot that provides dosage recommendations. What regulatory standards might apply?  
+5. Propose a monitoring dashboard that visualises both *write latency* and *commit latency* for updates. Which thresholds would you set, and how would you alert on violations?  
+6. If the embedding model itself is upgraded (e.g., moving from `text‑embedding‑ada‑002` to a newer transformer), how does that affect the design of incremental updates and the notion of idempotency?  
+
+==== Lab Preparation – Implementing a Live Update Pipeline
+
+In the upcoming lab you will **replicate** the `update_document` function on a small FAQ dataset (≈ 200 questions). The steps are:
+
+* Load the dataset into a SQLite‑backed document store and assign a unique `doc_id` to each FAQ entry.  
+* Implement a deterministic `deterministic_chunker` that splits each answer into 100‑token windows, guaranteeing identical chunk boundaries across runs.  
+* Use the OpenAI `text‑embedding‑ada‑002` model (or a local sentence‑transformer) for the `embedder.encode` step.  
+* Build a Milvus vector index, ingest the initial chunks, and verify retrieval quality with a handful of test queries.  
+* Write a script that selects a random FAQ entry, modifies its answer, invokes `update_document`, and measures (a) chunk‑deletion time, (b) embedding time, and (c) refresh latency. Compare the results when `refresh()` is called per‑document versus after a batch of five updates.  
+* Finally, design a simple monitor that logs the timestamp of the last successful `refresh()` and raises a warning if the interval exceeds 5 seconds, demonstrating how to enforce a consistency SLA.  
+
+*Key Points*  
+* The lab reinforces the end‑to‑end pipeline: chunk → embed → index.  
+* Students will experience the latency impact of synchronous vs. asynchronous refresh.  
+* Monitoring encourages awareness of consistency guarantees in production.  
+* The exercise highlights idempotent design by re‑running updates without side‑effects.  
+* Batch‑refresh experiments illustrate the consistency‑latency trade‑off in practice.  
+
+==== Summary and Forward Look
+
+By the end of this session you should be able to **explain** why each step of `update_document`—from deterministic chunking to the final `refresh()`—is essential for a safe, low‑latency update; **implement** a robust incremental‑update routine in your own vector store; and **critically assess** the trade‑offs between immediate consistency, batch processing, and system throughput. In the next lecture we will explore *streaming ingestion*: handling a continuous fire‑hose of documents where updates must operate under back‑pressure and bounded latency. Review your lab measurements of refresh latency, and think about how those numbers would scale when the system receives thousands of updates per second.

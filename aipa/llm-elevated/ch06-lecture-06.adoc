@@ -8,26 +8,29 @@ ____
 
 ==== Conceptual Core
 
-The first question that any production‑grade LLM system must answer is **_where does latency come from?_**  
-A single request to a hosted model typically traverses a network hop, an authentication handshake, and the model’s own inference pipeline. Even with a high‑performance GPU, the round‑trip can easily exceed 500 ms, and the per‑token cost quickly adds up when the same prompt is issued repeatedly. In a classroom demo, a research prototype, or a customer‑facing chatbot, those milliseconds become seconds of user frustration and dollars of unnecessary spend.
+When a live demo stalls, the audience hears a long, awkward silence; investors begin to doubt the viability of the product; and the engineering team scrambles to reboot a quota‑exhausted API. That single moment crystallises the two‑fold problem that every production‑grade LLM system must solve: **latency** (how long the user waits) and **cost** (how much the service bill grows). In practice the latency comes from three sources that stack on every request:
 
-*Key point:* **Caching** is the oldest, most reliable technique for breaking the latency‑cost loop. By storing the *output* of an LLM for a given *input* we can serve future identical requests from memory, eliminating the network round‑trip entirely.
+1. a network hop to the cloud provider,  
+2. an authentication handshake, and  
+3. the model’s own inference pipeline, which—even on a high‑end GPU—adds several hundred milliseconds per token.
 
-But caching LLMs is not a trivial “store‑and‑retrieve” problem. Three design goals shape any robust implementation:
+If the same prompt is issued repeatedly—think of a FAQ‑style chatbot, a code‑completion assistant, or a classroom demo—the per‑token cost multiplies, and the user experience degrades from “instant answer” to “waiting for a response.” The tension between speed and spend is the engine that drives today’s caching research.
 
-1. **Deterministic key generation** – The cache must map *exactly* the same prompt (including model name and any generation parameters) to a single key.  
-2. **Freshness control** – Model outputs evolve as the underlying model is updated or as the knowledge base changes; a time‑to‑live (TTL) policy prevents serving stale answers indefinitely.  
-3. **Bounded resource usage** – Memory is finite; an eviction policy (most commonly Least‑Recently‑Used, LRU) guarantees that the cache never exceeds a pre‑defined size.
+**Caching** is the oldest, most reliable technique for breaking that latency‑cost loop. By storing the *output* of an LLM for a given *input* we can serve future identical requests from memory, eliminating the network round‑trip entirely. However, caching LLM calls is not a naïve “store‑and‑retrieve” problem; it must satisfy three design goals that keep the cache both useful and safe:
 
-These goals raise a second set of questions that we will answer step‑by‑step:
+* **Deterministic key generation** – The cache must map *exactly* the same prompt (including model name and any generation parameters) to a single, collision‑resistant identifier.  
+* **Freshness control** – Model outputs evolve as the underlying model is updated or as the knowledge base changes; a time‑to‑live (TTL) policy prevents serving stale answers indefinitely.  
+* **Bounded resource usage** – Memory is finite; an eviction policy (most commonly Least‑Recently‑Used, LRU) guarantees that the cache never exceeds a pre‑defined size.
 
-* How do we turn a complex prompt‑parameter tuple into a compact, collision‑resistant identifier?  
-* What data structure gives us O(1) lookup while also tracking usage order for LRU eviction?  
-* How do we enforce TTL without a separate background thread?
+These goals raise a second set of concrete questions that we will answer step‑by‑step:
 
-The answer lies in a small, self‑contained Python class that leverages the standard library: `hashlib` for deterministic keys, `OrderedDict` for LRU ordering, and timestamps for TTL checks. The class is deliberately simple so that the core ideas remain visible, yet it is production‑ready: it respects a maximum size, evicts the least‑recently used entry, and automatically discards entries that have outlived their TTL.
+* How do we turn a complex prompt‑parameter tuple into a compact identifier that never collides?  
+* Which data structure gives us O(1) lookup while also tracking usage order for LRU eviction?  
+* How can we enforce TTL without a dedicated cleanup thread that would add its own latency?
 
-Below is a high‑level flow diagram that captures the decision path for every incoming request.
+The answer is a small, self‑contained Python class that leverages the standard library: `hashlib` for deterministic keys, `OrderedDict` for LRU ordering, and timestamps for lazy TTL checks. The class is deliberately simple so that the core ideas remain visible, yet it is production‑ready: it respects a maximum size, evicts the least‑recently used entry, and automatically discards entries that have outlived their TTL.
+
+Below is a revised flow diagram that captures the decision path for every incoming request. The diagram now uses explicit decision diamonds, colour‑coded arrows (green for cache hits, red for misses or stale entries), and a separate eviction branch after a new entry is stored.
 
 [plantuml, cache-flow, png]
 ----
@@ -35,37 +38,52 @@ Below is a high‑level flow diagram that captures the decision path for every i
 !define DecisionDiamond <<choice>>
 skinparam ArrowColor #333
 skinparam BackgroundColor #F9F9F9
+skinparam DecisionDiamondBackgroundColor #EFEFEF
+skinparam DecisionDiamondBorderColor #555
+skinparam NoteBackgroundColor #FFF8DC
+skinparam NoteBorderColor #D4A017
+
+legend left
+  <b>Legend</b>
+  <color:green>Green arrow</color> = fast cache hit
+  <color:red>Red arrow</color> = miss or stale entry
+  <<choice>> = decision point
+endlegend
 
 start
 :Receive prompt, model, params;
 :Generate cache key;
-if (Key in store?) then (yes)
-  if (Entry fresh?) then (yes)
-    -->[Hit] :Return cached response;
+if (Key present?) then (yes)
+  if (Entry age < TTL?) then (yes)
+    -->[green] :Return cached response;
     stop
   else (no)
-    -->[Stale] :Remove entry;
+    -->[red] :Delete stale entry;
   endif
+endif
+if (Cache full?) then (yes)
+  -->[red] :Evict LRU entry;
 endif
 :Call LLM API;
 :Store result with timestamp;
-:Return response;
+:Return fresh response;
 stop
 @enduml
 ----
-*Figure 1: Cache lookup flow – a hit returns instantly, a miss triggers an LLM call, and stale entries are purged.*
+*Figure 1: Cache lookup flow – a hit returns instantly (green), a miss or stale entry triggers an LLM call (red), and eviction guarantees bounded memory.*
 
-**Design rationale recap**
+**Key points distilled from the core**
 
-* **Hash‑based keys** guarantee that even long prompts become fixed‑size identifiers, enabling fast dictionary lookups.  
-* **OrderedDict** preserves insertion order; moving a key to the end on each hit updates its “recently used” status, which the LRU eviction logic then exploits.  
-* **TTL** is enforced lazily: we check the timestamp only when a key is accessed, avoiding a dedicated cleanup thread.
-
-The next section translates these ideas into concrete code, annotating each method with the design goal it satisfies.
+1. *Deterministic hashing* turns arbitrarily long prompts into fixed‑size keys, enabling constant‑time dictionary lookups.  
+2. *Lazy TTL* checks keep the cache simple—no background thread is required; freshness is verified only on access.  
+3. *OrderedDict* supplies both O(1) lookup and LRU ordering; moving a key to the end on each hit updates its “recently used” status.  
+4. *Explicit eviction* before storing a new entry guarantees that the cache never exceeds its configured capacity.  
+5. *Separation of concerns*—`get` handles retrieval and freshness, `set` handles capacity and insertion—makes the class easy to extend (e.g., thread‑safety, remote back‑ends).  
+6. *Cost‑latency trade‑off* can be quantified: a 700 ms API call becomes <10 ms when served from cache, saving both time and dollars.
 
 ==== Technical Example
 
-Below is a complete, runnable implementation of the `LLMCache`. It includes inline comments that tie each line back to the conceptual goals introduced above.
+The following implementation of `LLMCache` follows the design goals introduced above. It is deliberately lightweight, using only the Python standard library, but it is structured so that swapping the in‑memory store for a Redis hash or adding async support requires only a few lines of change.
 
 [source,python]
 ----
@@ -123,21 +141,21 @@ class LLMCache:
         # Enforce maxsize via LRU eviction
         if len(self.store) >= self.maxsize:
             # popitem(last=False) removes the oldest (least‑recently used) entry
-            evicted_key, evicted_entry = self.store.popitem(last=False)
+            self.store.popitem(last=False)
 
         self.store[key] = {'response': response, 'ts': time.time()}
 ----
 *Figure 2: Full `LLMCache` implementation.*
 
-**Key points illustrated by the example**
+**Illustrated key points**
 
-* *Hashing ensures deterministic keys* – regardless of prompt length, the cache lookup remains O(1).  
-* *TTL prevents stale answers* – the timestamp check discards entries older than the configured lifetime.  
-* *OrderedDict implements LRU* – `move_to_end` updates usage, and `popitem(last=False)` evicts the least‑recently used entry when the cache fills.  
-* *Separation of concerns* – `get` handles retrieval and freshness, while `set` deals with capacity and insertion.  
-* *Extensibility* – the class can be wrapped with thread‑safety primitives or swapped for a Redis backend without changing the public API.
+* **Hash‑based keys** guarantee O(1) lookup regardless of prompt length.  
+* **Lazy TTL** discards stale entries only when they are accessed, avoiding extra threads.  
+* **OrderedDict** implements LRU with `move_to_end` and `popitem(last=False)`.  
+* **Separation of concerns** keeps `get` focused on retrieval and freshness, `set` on capacity.  
+* **Extensibility** – swapping `self.store` for a Redis client or wrapping the methods with `asyncio.Lock` requires minimal code changes.
 
-To see the cache in action, run the following short script (included in the lab materials). It simulates an LLM call with a `time.sleep` delay, demonstrates a cache hit on the second request, and forces an eviction by exceeding `maxsize`.
+To see the cache in action, run the short script below. It simulates an LLM call with a `time.sleep` delay, demonstrates a cache hit on the second request, and forces an eviction by exceeding `maxsize`.
 
 [source,python]
 ----
@@ -172,30 +190,39 @@ Running this script will show a ~700 ms pause on the first call, an instantane
 
 ==== Philosophical Reflection
 
-Caching is often framed as a purely engineering optimization, yet it raises deeper questions about the *nature of knowledge* in AI‑augmented systems. When we serve a cached answer, we are effectively **reifying a snapshot of a model’s belief** at a particular moment in time. If the underlying model is updated—perhaps because new data has been incorporated or a safety patch applied—our cache may continue to propagate an outdated worldview.
+Caching is often presented as a purely engineering optimisation, yet it raises profound questions about the *nature of knowledge* in AI‑augmented systems. When we serve a cached answer, we are **reifying a snapshot of a model’s belief** at a particular moment in time. If the underlying model is updated—perhaps because new data has been incorporated or a safety patch applied—our cache may continue to propagate an outdated worldview.
 
-*What does it mean to trust a cached response?*  
-On one hand, the cache guarantees performance and cost predictability, enabling broader access to powerful models. On the other, it introduces a **temporal divergence** between the model’s current state and the information presented to users. This tension mirrors classic debates in epistemology: the trade‑off between *stability* (reliable, repeatable answers) and *freshness* (up‑to‑date, possibly more accurate answers).
+*Case study: a medical chatbot.* Imagine a virtual health assistant that answers “What is the recommended dosage of Drug X?” The LLM was trained on guidelines from 2022. In early 2024 the FDA issues a revised dosage limit. A naïve cache with a 30‑day TTL will still return the 2022 recommendation for weeks after the change, potentially exposing patients to harmful overdoses. The ethical responsibility therefore lies not only in implementing TTLs but also in **designing governance policies** that dictate how often caches must be invalidated after critical model revisions.
 
-Consider a medical chatbot that answers “What is the recommended dosage of Drug X?” If the cached answer predates a recent FDA update, the system could inadvertently disseminate harmful advice. The ethical responsibility therefore lies not only in implementing TTLs but also in **designing governance policies** that dictate how often caches must be invalidated after critical model revisions.
+This tension mirrors classic epistemological debates: the trade‑off between *stability* (repeatable, reliable answers) and *freshness* (up‑to‑date, possibly more accurate answers). In the AI context, the stakes are amplified because a cached answer can be delivered to millions of users in milliseconds. The following table illustrates a realistic cost‑latency trade‑off for a chatbot handling 10 000 daily queries:
 
-Finally, caching reflects a broader philosophical stance: *knowledge as a resource that can be stored, reused, and amortized.* In a world where AI services are commodified, the economics of caching become inseparable from the ethics of access. By making expensive model calls cheaper through reuse, we democratize AI, but we must also safeguard against the ossification of outdated or biased outputs.
+[options="header"]
+|=== 
+|Metric |Without cache |With cache (TTL = 1 hour) 
+|Average latency |0.68 s (network + inference) |0.012 s (in‑process lookup) 
+|API cost (USD) |$12.50 (≈ $0.00125 per call) |$0.30 (≈ $0.00003 per hit) 
+|Stale‑answer risk |0 % (always fresh) |≈ 2 % (entries older than 1 h) 
+|===
+
+The table makes explicit that a modest TTL can slash both latency and cost by two orders of magnitude, but it also quantifies the residual risk of serving stale information. Designers must therefore **encode a value judgment** in the TTL setting: how much staleness is acceptable for the domain at hand?
 
 *Take‑away reflections*
 
-1. **Temporal fidelity** – TTL is a technical knob, but its setting encodes a value judgment about how much staleness is acceptable.  
-2. **Responsibility diffusion** – Caches shift part of the responsibility for correctness from the model provider to the system integrator.  
-3. **Bias amplification** – Repeatedly serving the same cached answer can reinforce systematic biases present in the original model snapshot.  
-4. **Transparency** – Users should be informed when a response is served from cache versus a fresh inference.  
-5. **Governance** – Organizational policies must define cache invalidation triggers (e.g., model version bump, regulatory change).
+1. **Temporal fidelity** – TTL is a technical knob, but its setting encodes a policy about how quickly knowledge must be refreshed.  
+2. **Responsibility diffusion** – Caches shift part of the correctness burden from the model provider to the system integrator, who must monitor model updates and regulatory changes.  
+3. **Bias amplification** – Repeatedly serving the same cached answer can cement systematic biases present in the original model snapshot.  
+4. **Transparency** – Users should be informed when a response originates from cache versus a fresh inference; this supports trust and allows users to request an “up‑to‑date” answer if needed.  
+5. **Governance** – Organizational policies must define cache‑invalidation triggers (e.g., model version bump, legal amendment) and audit trails for cached responses.  
+
+By foregrounding these philosophical dimensions, we move beyond “speed hacks” to a more responsible, human‑centered approach to AI system design.
 
 ==== Discussion Prompts
 
-1. *Latency vs. Freshness*: In what domains (e.g., finance, healthcare, entertainment) is a short TTL more critical, and why?
-2. *Cache Key Design*: How would you extend `_make_key` to incorporate user‑specific context (e.g., location, preferences) without exploding the cache size?
-3. *Distributed Caching*: What challenges arise when moving from an in‑memory `OrderedDict` to a shared Redis or Memcached layer?
-4. *Ethical Implications*: Should a system ever disclose that a response is cached? How might that affect user trust?
-5. *Failure Modes*: Imagine the cache becomes a single point of failure (e.g., memory exhaustion). What fallback strategies could you employ?
+1. *Latency vs. Freshness*: In which domains (e.g., finance, healthcare, entertainment) is a short TTL more critical, and why?  
+2. *Cache Key Design*: How would you extend `_make_key` to incorporate user‑specific context (e.g., location, preferences) without exploding the cache size?  
+3. *Distributed Caching*: What challenges arise when moving from an in‑memory `OrderedDict` to a shared Redis or Memcached layer?  
+4. *Ethical Implications*: Should a system ever disclose that a response is cached? How might that affect user trust and regulatory compliance?  
+5. *Failure Modes*: Imagine the cache becomes a single point of failure (e.g., memory exhaustion). What fallback strategies could you employ?  
 6. *Future Directions*: How could probabilistic data structures (e.g., Bloom filters) complement LRU caching for “cache‑miss prediction”?
 
 ==== Lab Preparation (15‑20 min)
@@ -210,7 +237,9 @@ In the upcoming lab you will **extend the `LLMCache`** to support asynchronous L
 
 1. **Implement async `get`/`set`** methods that await the underlying LLM call only on a cache miss.  
 2. **Configure Redis eviction** policies (e.g., `volatile-lru`) to mirror the in‑memory LRU behavior.  
-3. **Benchmark** the impact of network latency to Redis versus pure in‑process caching.  
-4. **Reflect** on how moving the cache out of process changes the system’s fault tolerance and scalability.
+3. **Benchmark** the impact of network latency to Redis versus pure in‑process caching, quantifying the trade‑off between scalability and raw speed.  
+4. **Reflect** on how moving the cache out of process changes the system’s fault tolerance, scalability, and operational complexity.  
 
-By the end of the session you will have a production‑grade, distributed cache ready to plug into any LLM‑driven application, and you will have explored the broader implications of caching on system design, ethics, and future AI architectures.
+By the end of the session you will have a production‑grade, distributed cache ready to plug into any LLM‑driven application, and you will have explored the broader implications of caching on system design, ethics, and future AI architectures.  
+
+*What new user experiences become possible when we can guarantee sub‑second responses at scale?* In the next lecture we will examine **cache coherence** across multiple services and how to keep distributed caches consistent when models evolve.

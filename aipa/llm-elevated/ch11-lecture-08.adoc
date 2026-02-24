@@ -7,7 +7,7 @@
 
 ==== Hook: A Real‑World Dilemma
 
-Imagine a mid‑size fintech startup that releases an AI‑driven loan‑officer bot overnight. The bot is trained to approve credit applications in milliseconds, but the engineering team, eager to keep cloud costs low, hard‑codes a *rate‑limit policy* that caps the number of paid API calls to the credit‑score provider at 1 000 per day. Two weeks later, the bot receives a surge of applications from a newly opened market segment. Because the rate limit is reached, the bot silently declines the remaining requests, many of which belong to high‑income borrowers. The company is hit with a regulatory fine for discriminatory outcomes and a PR crisis that costs far more than the saved compute dollars.  
+Imagine a mid‑size fintech startup that releases an AI‑driven loan‑officer bot overnight. The bot is trained to approve credit applications in milliseconds, but the engineering team, eager to keep cloud costs low, hard‑codes a *rate‑limit policy* that caps the number of paid API calls to the credit‑score provider at 1 000 per day. Two weeks later, the bot receives a surge of applications from a newly opened market segment. Because the rate limit is reached, the bot silently declines the remaining requests, many of which belong to high‑income borrowers. The company is hit with a regulatory fine for discriminatory outcomes and a PR crisis that costs far more than the saved compute dollars.
 
 *How could the team have discovered this failure before the bot went live?* The answer lies in **governed deployment**: a workflow where policy, fairness, cost, and epistemic impact are simulated, validated, and baked into the agent *before* any production traffic touches the system. The AI Governance Simulator we will explore in this lecture is precisely the tool that makes this anticipatory loop possible.
 
@@ -22,116 +22,163 @@ The first half of Chapter 11 introduced the building blocks of institutional A
 
 These primitives live side‑by‑side with the existing `memory`, `reasoning`, and `orchestrator` modules inside the `student‑ai/` package. Crucially, they are **not** an after‑the‑fact add‑on; they are woven into the execution graph of the agent. When the capstone project in Chapter 12 is finally deployed, the governance tool will already be a first‑class citizen, automatically invoked on every request.
 
-The AI Governance Simulator therefore *closes the institutional layer*: it lets you **run governance before you deploy**, turning policy from a static document into an executable test harness. By the end of this lecture you will have a mental model of the full loop—policy → simulation → tuning → integration → runtime compliance → audit—ready to be instantiated in Lab 3.
+The AI Governance Simulator therefore *closes the institutional layer*: it lets you **run governance before you deploy**, turning policy from a static document into an executable test harness. By the end of this lecture you will have a mental model of the full loop—policy → simulation → tuning → integration → runtime compliance → audit—ready to be instantiated in Lab 3. Moreover, the simulator produces a *heat‑map* that visualises the trade‑off surface between cost, fairness, and latency, giving you a concrete picture of where the system is safe and where it is fragile.
 
 ===== Key Points
 
-* Real‑world dilemma illustrates the cost of missing anticipatory governance.  
+* Real‑world fintech dilemma illustrates the hidden cost of missing anticipatory governance.  
 * Chapter 11 recap: policies, cost control, fairness, A/B testing, latency, epistemic infrastructure.  
 * Governance tool API: `define_policy`, `check_compliance`, `simulate`, `report`.  
-* Tool lives in `student‑ai/` alongside memory, reasoning, orchestrator.  
-* Governance‑in‑the‑Loop: policy definition → simulation → tuning → integration → runtime checks.  
+* Primitives live in `student‑ai/` alongside memory, reasoning, orchestrator.  
+* Governance‑in‑the‑Loop: policy definition → simulation → tuning → integration → runtime checks → audit.  
+* Simulator produces a multi‑dimensional risk surface (cost‑vs‑fairness‑vs‑latency).  
 * Capstone (Chapter 12) will deploy a *governed system*, not a system with governance bolted on later.  
-* Simulator enables “run governance before you deploy” and makes governance future‑oriented.  
+* “Run governance before you deploy” makes policy future‑oriented and testable.  
 
 ==== Technical Example: A Walkthrough with Code
 
-Below is a minimal, self‑contained Python stub that demonstrates the full governance cycle. The code is deliberately concise so that you can run it in a REPL during the lab.
+Below is a minimal, self‑contained Python stub that demonstrates the full governance cycle. The code is deliberately concise so that you can run it in a REPL during the lab, but each function contains the hooks you will need to extend later.
 
 ```python
 # governance_tool.py
-from typing import Dict, Any
+from typing import Dict, Any, List, Tuple
 
-policies = {}
+policies: Dict[str, Dict[str, Any]] = {}
 
 def define_policy(name: str, spec: Dict[str, Any]) -> None:
-    """Register a new policy."""
+    """Register a new policy specification."""
     policies[name] = spec
 
-def check_compliance(action: str, context: Dict[str, Any]) -> (bool, Dict):
-    """Return (is_allowed, diagnostics)."""
+def check_compliance(action: str, context: Dict[str, Any]) -> Tuple[bool, Dict]:
+    """Return (is_allowed, diagnostics) for a single action."""
     diag = {}
-    for name, spec in policies.items():
-        # Simple example: rate‑limit policy
+    for pname, spec in policies.items():
         if spec["type"] == "rate_limit":
             used = context.get("calls_today", 0)
             limit = spec["limit"]
-            diag[name] = {"used": used, "limit": limit}
+            diag[pname] = {"used": used, "limit": limit}
             if used >= limit:
+                return False, diag
+        elif spec["type"] == "fairness":
+            # Simple disparity check: proportion of protected group approvals
+            protected = context.get("protected_approved", 0)
+            total = context.get("total_approved", 1)
+            disparity = abs((protected / total) - spec["target"])
+            diag[pname] = {"disparity": disparity, "target": spec["target"]}
+            if disparity > spec["threshold"]:
+                return False, diag
+        elif spec["type"] == "latency":
+            latency = context.get("latency_ms", 0)
+            diag[pname] = {"latency": latency, "budget": spec["budget_ms"]}
+            if latency > spec["budget_ms"]:
                 return False, diag
     return True, diag
 
-def simulate(scenarios: list) -> list:
+def simulate(scenarios: List[Dict]) -> List[Dict]:
     """Run each scenario through check_compliance and collect results."""
     results = []
     for sc in scenarios:
         allowed, diag = check_compliance(sc["action"], sc["context"])
-        results.append({"scenario": sc["id"], "allowed": allowed, "diagnostics": diag})
+        results.append({
+            "scenario": sc["id"],
+            "allowed": allowed,
+            "diagnostics": diag
+        })
     return results
 
-def report(sim_results: list) -> str:
+def report(sim_results: List[Dict]) -> str:
     """Generate a human‑readable audit report."""
     lines = ["=== Governance Simulation Report ==="]
     for r in sim_results:
         status = "PASS" if r["allowed"] else "FAIL"
         lines.append(f"Scenario {r['scenario']}: {status}")
         for p, d in r["diagnostics"].items():
-            lines.append(f"  {p}: used={d['used']}, limit={d['limit']}")
+            details = ", ".join(f"{k}={v}" for k, v in d.items())
+            lines.append(f"  {p}: {details}")
     return "\n".join(lines)
 ```
 
-*Step 1 – Define a rate‑limit policy*  
+*Step 1 – Define a rate‑limit, a fairness, and a latency policy*  
 
 ```python
 from governance_tool import define_policy
 define_policy("api_rate_limit", {"type": "rate_limit", "limit": 1000})
+define_policy("fairness_disparity", {"type": "fairness", "target": 0.5, "threshold": 0.1})
+define_policy("latency_budget", {"type": "latency", "budget_ms": 200})
 ```
 
-*Step 2 – Simulate three realistic traffic bursts*  
+*Step 2 – Simulate a suite of realistic traffic bursts*  
 
 ```python
 from governance_tool import simulate, report
 
 scenarios = [
-    {"id": "A", "action": "paid_api_call", "context": {"calls_today": 800}},
-    {"id": "B", "action": "paid_api_call", "context": {"calls_today": 1000}},
-    {"id": "C", "action": "paid_api_call", "context": {"calls_today": 1200}},
+    {"id": "A", "action": "paid_api_call",
+     "context": {"calls_today": 800, "protected_approved": 400,
+                 "total_approved": 800, "latency_ms": 150}},
+    {"id": "B", "action": "paid_api_call",
+     "context": {"calls_today": 1000, "protected_approved": 480,
+                 "total_approved": 1000, "latency_ms": 210}},
+    {"id": "C", "action": "paid_api_call",
+     "context": {"calls_today": 1200, "protected_approved": 600,
+                 "total_approved": 1200, "latency_ms": 190}},
+    {"id": "D", "action": "paid_api_call",
+     "context": {"calls_today": 950, "protected_approved": 300,
+                 "total_approved": 950, "latency_ms": 180}},
+    {"id": "E", "action": "paid_api_call",
+     "context": {"calls_today": 970, "protected_approved": 485,
+                 "total_approved": 970, "latency_ms": 195}},
 ]
 
 sim_results = simulate(scenarios)
 print(report(sim_results))
 ```
 
-The output shows that Scenario B hits the exact limit (PASS) while Scenario C exceeds it (FAIL). Armed with this knowledge, you can *tune* the policy—perhaps by raising the limit, adding a burst‑capacity buffer, or introducing a fallback path that queues excess requests.
+The printed report shows a mixture of PASS and FAIL outcomes: Scenario B fails the latency budget, Scenario C exceeds the rate limit, and Scenario D violates the fairness disparity threshold. By inspecting the diagnostics you can see *exactly* which policy triggered the failure, allowing you to adjust thresholds, add burst buffers, or redesign the request‑shaping logic before any real user is harmed.
 
-*Step 3 – Integrate into the agent loop*  
+*Step 3 – Integrate into the agent loop and wire CI*  
 
 ```python
 from governance_tool import check_compliance
 
 def agent_make_call():
-    context = {"calls_today": get_today_api_calls()}
+    context = {
+        "calls_today": get_today_api_calls(),
+        "protected_approved": get_protected_approvals(),
+        "total_approved": get_total_approvals(),
+        "latency_ms": measure_current_latency()
+    }
     allowed, diag = check_compliance("paid_api_call", context)
     if not allowed:
+        # In production we raise a structured exception that CI can capture
         raise RuntimeError(f"Compliance violation: {diag}")
     # Proceed with the actual API call
-    result = external_credit_score_api()
-    return result
+    return external_credit_score_api()
 ```
 
-In this snippet the agent **refuses** to call the external service when the rate‑limit policy is violated, thereby preventing the silent denial of loan applications that plagued the fintech startup. The `report` function can be wired into the CI pipeline so that every pull request automatically generates a compliance audit, satisfying both internal governance and external regulators.
+In a CI pipeline you would add a step such as:
+
+```yaml
+- name: Run governance simulation
+  run: |
+    python -c "from governance_tool import simulate, report; print(report(simulate(load_scenarios())))"
+  continue-on-error: false
+```
+
+The pipeline aborts on any FAIL, guaranteeing that no pull request can be merged unless the simulated risk surface is entirely within policy bounds. This mirrors real‑world regulator expectations that *evidence of compliance* be part of every release artefact.
 
 ===== Key Points
 
 * Minimal Python stub illustrates all four governance primitives.  
-* `define_policy` registers institutional constraints (e.g., rate limits).  
-* `simulate` runs a batch of *what‑if* scenarios, exposing hidden violations.  
-* `report` produces a structured audit ready for CI/CD dashboards.  
-* Integration example shows the agent calling `check_compliance` before a paid API call.  
-* Simulation results guide policy tuning before production deployment.  
-* Lab 3 will require you to extend this stub with fairness and latency policies.  
+* `define_policy` registers institutional constraints (rate‑limit, fairness, latency).  
+* `check_compliance` evaluates a single action against every active policy and returns diagnostics.  
+* `simulate` runs a batch of *what‑if* scenarios, exposing hidden violations before production.  
+* `report` produces a structured audit ready for CI/CD dashboards and regulator review.  
+* Simulation results guide policy tuning (thresholds, buffers, fallback paths).  
+* Integration example shows the agent refusing a paid API call when a policy is violated.  
+* CI pipeline can enforce “no‑fail” policy as a gatekeeper for merges.  
 
-==== Philosophical Reflection: Anticipatory Power and Responsibility
+==== Philosophical Reflection: Anticipatory Power and Distributed Responsibility
 
 Foucault’s claim that “to govern is to anticipate” becomes concrete when governance is encoded as executable policy rather than a static handbook. By *simulating* future states, we shift governance from a reactive, post‑mortem activity to a proactive design discipline. The governance tool forces developers to ask, *“What would happen if the system faced X, Y, or Z?”*—a question that is often omitted when compliance is treated as a checklist to be signed after deployment.
 
@@ -139,7 +186,7 @@ Embedding governance in the agent also reshapes the locus of responsibility. Whe
 
 Moreover, anticipatory governance surfaces trade‑offs that are otherwise hidden. A stricter cost policy may reduce financial risk but increase the chance of denying legitimate users; a tighter fairness constraint may raise computational overhead, affecting latency budgets. By visualising these tensions in the simulation heat‑map, designers can make *informed compromises* rather than ad‑hoc adjustments after a failure. The philosophical payoff is a shift from a *reactive* ethics of “what went wrong?” to a *proactive* ethics of “what could go wrong, and how do we design around it?”
 
-Finally, the act of generating an audit report is itself a performative gesture of accountability. It externalises the internal reasoning of the agent, allowing regulators, auditors, and even end‑users to inspect the decision‑making pipeline. In a world where AI systems increasingly operate autonomously, such transparency becomes a cornerstone of democratic legitimacy.
+Finally, the act of generating an audit report is itself a performative gesture of accountability. It externalises the internal reasoning of the agent, allowing regulators, auditors, and even end‑users to inspect the decision‑making pipeline. In a world where AI systems increasingly operate autonomously, such transparency becomes a cornerstone of democratic legitimacy. The report becomes a *public ledger* that can be cited in hearings, used in internal post‑mortems, or fed back into the next iteration of policy design, completing a virtuous circle of anticipation, action, and reflection.
 
 ##### Key Points
 
@@ -150,58 +197,62 @@ Finally, the act of generating an audit report is itself a performative gesture 
 * Trade‑offs (cost vs. fairness vs. latency) become visible in the simulation heat‑map.  
 * Proactive ethics replace “what went wrong?” with “what could go wrong, and how do we design around it?”.  
 * Audit reports externalise internal reasoning, supporting transparency and democratic legitimacy.  
+* The report serves as a public ledger for regulators, auditors, and internal stakeholders.  
 
 .Figure 11.8: Governance‑in‑the‑Loop (Lab 3)
 [plantuml,ch11-l08,png,theme=sketchy-outline]
 ....
 @startuml
-title Governance‑in‑the‑Loop (Lab 3)
+title <b>Governance‑in‑the‑Loop (Lab 3)</b>
 
 start
 :Define policies (cost, fairness, rate‑limit);
-:Load governance tool (define_policy, check_compliance, simulate, report);
-while (Run simulation?) is (yes)
-  :simulate scenario (e.g., high‑traffic, edge‑case);
+:Load governance tool;
+repeat
+  :Run simulation scenario;
   if (Violations?) then (yes)
-    :tune policies;
+    :Tune policies;
+    --> :Define policies;
   else (no)
-    :record baseline metrics;
+    :Record baseline metrics;
   endif
-endwhile
+repeat while (more scenarios?)
+
 :Integrate tool into Agent;
-:Agent calls check_compliance before sensitive action;
+:Agent calls check_compliance;
 if (Compliance OK?) then (yes)
   :Proceed with action;
 else (no)
   :Block / Escalate;
 endif
 :Generate audit report;
+note right: CI pipeline consumes report\nand may trigger policy revision
 stop
 @enduml
 ....
 
 ==== Discussion Prompts
 
-* In the fintech case study, which policy (cost, fairness, rate‑limit) was the *first* to fail, and how might the simulator have revealed it?
-* How does embedding `check_compliance` inside the agent change the notion of “error handling” compared to a traditional try/catch approach?
-* Who bears responsibility when the agent blocks a legitimate request because a policy is too strict? Discuss the roles of the developer, the policy author, and the institution.
-* Imagine you add a *fairness* policy that limits demographic disparity to 5 %. How would you design a simulation scenario to stress‑test this constraint?
-* What are the potential downsides of making governance *too* anticipatory (e.g., over‑engineering, analysis paralysis)? How can teams balance thoroughness with agility?
-* How might the audit report generated by `report` be used in a regulatory filing versus an internal post‑mortem? Compare the audiences and required levels of detail.
+* In the fintech case study, which policy (cost, fairness, rate‑limit) was the *first* to fail, and how might the simulator have revealed it before the bot went live?  
+* How does embedding `check_compliance` inside the agent change the notion of “error handling” compared to a traditional try/catch approach?  
+* Who bears responsibility when the agent blocks a legitimate request because a policy is too strict? Discuss the roles of the developer, the policy author, and the institution.  
+* Imagine you add a *fairness* policy that limits demographic disparity to 5 %. How would you design a simulation scenario to stress‑test this constraint?  
+* What are the potential downsides of making governance *too* anticipatory (e.g., over‑engineering, analysis paralysis)? How can teams balance thoroughness with agility?  
+* How might the audit report generated by `report` be used in a regulatory filing versus an internal post‑mortem? Compare the audiences and required levels of detail.  
 
 ==== Lab Prep
 
-In Lab 3 you will turn the abstract governance primitives into a concrete, governed agent that can be deployed in the capstone. The lab consists of three milestones:
+In Lab 3 you will turn the abstract governance primitives into a concrete, governed agent that can be deployed in the capstone. The lab consists of three milestones, each building on the previous one:
 
-1. **Policy Engineering** – Extend `define_policy` to support at least three policy types (rate‑limit, fairness disparity, latency budget). Write a short policy‑spec document that justifies each threshold with real‑world numbers.  
-2. **Simulation Campaign** – Construct a suite of at least five *what‑if* scenarios that vary request volume, user demographics, and latency conditions. Run `simulate` and analyse the output to identify any violations.  
-3. **Runtime Integration & Auditing** – Modify the provided agent stub so that every sensitive action invokes `check_compliance`. Hook the `report` generator into the CI pipeline so that each push produces a markdown audit file. Verify that the agent correctly blocks actions that violate any policy and that the audit report reflects the decision.
+1. **Policy Engineering** – Extend `define_policy` to support at least three policy types (rate‑limit, fairness disparity, latency budget). Write a short policy‑spec document that justifies each threshold with real‑world numbers (e.g., average daily API calls, acceptable demographic disparity, latency SLA).  
+2. **Simulation Campaign** – Construct a suite of at least five *what‑if* scenarios that vary request volume, user demographics, and latency conditions. Run `simulate` and analyse the output to identify any violations; use the heat‑map to visualise the cost‑fairness‑latency surface.  
+3. **Runtime Integration & Auditing** – Modify the provided agent stub so that every sensitive action invokes `check_compliance`. Wire the `report` generator into the CI pipeline so that each push produces a markdown audit file. Verify that the agent correctly blocks actions that violate any policy and that the audit report reflects the decision, ready for stakeholder review.
 
 By the end of the lab you will have a **governed system** ready for the Chapter 12 capstone, complete with an automated compliance audit that can be presented to stakeholders or regulators.
 
 ===== Key Points
 
-* Extend `define_policy` for rate‑limit, fairness, latency policies.  
+* Extend `define_policy` for rate‑limit, fairness, and latency policies.  
 * Build ≥5 simulation scenarios covering volume, demographics, latency.  
 * Analyse simulation results to tune policy thresholds before integration.  
 * Embed `check_compliance` in the agent’s execution path for all sensitive actions.  

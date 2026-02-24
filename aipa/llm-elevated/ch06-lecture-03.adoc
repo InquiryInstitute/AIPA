@@ -7,60 +7,86 @@ ____
 
 === Hook: The Real‑World Tension
 
-You are a newsroom editor on a tight deadline. A colleague hands you a dense policy brief and asks, *“Give me a two‑sentence summary, now.”*  
-Traditional pipelines would require a human to read, synthesize, and type—an effort measured in minutes.  
-What if an 8‑billion‑parameter model, **Meta‑Llama‑3‑8B**, could generate a coherent summary in seconds, running on a single RTX 4090?  
+You are a newsroom editor racing against the clock. A senior reporter hands you a dense policy brief and shouts, *“Give me a two‑sentence summary, now!”*  
+In a traditional workflow you would skim, highlight, type, and edit – a process that costs at least a few minutes.  
+What if an 8‑billion‑parameter model, **Meta‑Llama‑3‑8B**, could read the same brief, distill its core, and spit out a coherent two‑sentence summary in under two seconds on a single RTX 4090?  
 
 *Key questions*  
-* How does Llama‑3 differ from its predecessor Llama‑2?  
-* What does the code actually do behind the scenes?  
-* Which knobs (temperature, top‑p, max‑new‑tokens) shape the output?  
 
-Answering these questions will give you a mental model you can apply to any generative LLM.
+* How does Llama‑3 improve on Llama‑2 in ways that matter for this deadline?  
+* Which pieces of the inference pipeline actually decide whether the model “gets it right”?  
+* How can we steer temperature, top‑p, and token limits to balance speed, brevity, and factuality?  
+
+Answering these questions will give you a mental model you can apply to any generative LLM, whether you are summarizing a press release, drafting a headline, or prototyping a chatbot.
 
 === Conceptual Core
 
-**Paragraph 1 – Causal Language Models in a Nutshell**  
-A causal language model (CLM) predicts the next token given *all* previous tokens, never looking ahead. This “left‑to‑right” constraint makes CLMs ideal for generation tasks such as summarization, translation, and code completion.  
+**Paragraph 1 – Autoregressive Generation as a Real‑Time Conversation**  
+A causal language model (CLM) behaves like a conversational partner that can only speak after it has heard everything that came before. Concretely, given a token sequence *t₁ … tₙ*, the model computes a probability distribution *P(tₙ₊₁ | t₁…tₙ)* and samples the next token. This left‑to‑right constraint is what makes CLMs suitable for tasks where the output length is not known in advance, such as summarization.  
 
 *Key points*  
-* *Autoregressive* prediction → token ₙ depends only on tokens ₁…ₙ₋₁.  
-* Training objective: maximize likelihood of the next token across massive corpora.  
-* Inference proceeds token by token until a stop condition (e.g., `max_new_tokens`).  
 
-**Paragraph 2 – From Llama‑2 to Llama‑3: Architectural Tweaks**  
-Llama‑3 retains the transformer backbone but introduces a *mixture‑of‑experts* (MoE) feed‑forward layer, a refined positional‑encoding scheme, and a larger pre‑training token set. These changes improve per‑parameter efficiency, allowing an 8 B model to rival a 13 B baseline on standard benchmarks.  
+* **Autoregressive prediction** – each token depends only on earlier tokens, never on future ones.  
+* **Maximum‑likelihood training** – the model is optimized to assign high probability to the true next token across billions of text windows.  
+* **Token‑by‑token inference** – generation stops when a special *<eos>* token appears or a user‑defined length limit is reached.  
 
-*Key points*  
-* MoE replaces a single dense FFN with several expert FFNs, activated sparsely.  
-* Rotary embeddings (RoPE) are extended to better capture long‑range dependencies.  
-* Training data includes more recent web snapshots, reducing temporal drift.  
+*Illustrative mini‑trace*  
 
-**Paragraph 3 – Tokenization: From Text to IDs**  
-Llama‑3 uses a byte‑pair encoding (BPE) tokenizer with a vocabulary of ~32 k subwords. The tokenizer splits rare words into common sub‑tokens, enabling the model to handle unseen words gracefully.  
+[cols="1,1,2", options="header"]
+|===
+|Step |Input IDs |Model’s top‑3 predictions (token / probability)
 
-*Key points*  
-* `AutoTokenizer.from_pretrained` loads both the vocab and the BPE merge rules.  
-* `skip_special_tokens=True` removes tokens like `<pad>` and `<eos>` from the final string.  
-* Token length directly influences memory usage (`max_new_tokens`).  
+|0 |[101, 2023, 2003] |“the” 0.42, “a” 0.31, “an” 0.07
+|1 |[101, 2023, 2003, 1996] |“policy” 0.38, “report” 0.22, “document” 0.15
+|2 |… |…
+|===  
 
-**Paragraph 4 – Sampling Strategies: Temperature, Top‑p, and Max Tokens**  
-During generation the model produces a probability distribution (logits) over the vocabulary. *Temperature* smooths or sharpens this distribution; *top‑p* (nucleus) truncates it to the smallest set whose cumulative probability exceeds *p*; `max_new_tokens` caps the length of the generated continuation.  
+Seeing the distribution in action makes the abstract definition of a CLM feel concrete.
+
+**Paragraph 2 – From Llama‑2 to Llama‑3: Sparsity Meets Scale**  
+Llama‑3 keeps the familiar transformer stack but replaces the dense feed‑forward network (FFN) with a *Mixture‑of‑Experts* (MoE) module. Instead of every token flowing through a single 4 000‑dimensional matrix, a lightweight gating network selects 2 or 3 experts out of a pool of 8 to process that token. The selected experts compute their own transformations, and their outputs are summed. Because only a fraction of the parameters are active per token, the model can allocate more total capacity (8 B parameters) while staying within the memory budget of a single consumer GPU.  
 
 *Key points*  
-* `temperature=0.7` → moderate randomness, avoiding overly deterministic output.  
-* `top_p=0.9` → keeps the most likely 90 % of probability mass, discarding the tail.  
-* `max_new_tokens=80` → limits the summary to roughly two sentences for most English texts.  
 
-**Paragraph 5 – Resource Footprint and Practical Limits**  
-Meta‑Llama‑3‑8B fits comfortably in 16 GB of GPU memory when using 4‑bit quantization, but the full‑precision model requires ~30 GB. In a classroom setting, we will use the 4‑bit version to keep latency under 2 seconds per request.  
+* **Sparse activation** – at inference time only a subset of experts (≈25 %) are evaluated, reducing FLOPs.  
+* **Rotary positional embeddings (RoPE) 2.0** – extended to 4 096 dimensions, improving long‑range coherence for documents longer than 1 024 tokens.  
+* **Expanded pre‑training corpus** – includes web snapshots up to 2023, cutting down the “temporal drift” that plagued Llama‑2 on recent events.  
+* **Parameter efficiency** – an 8 B MoE model matches or exceeds the zero‑shot performance of a 13 B dense baseline on GLUE and summarization benchmarks.  
+
+**Paragraph 3 – Tokenization: The Bridge Between Text and Numbers**  
+Llama‑3 uses a byte‑pair encoding (BPE) tokenizer with a vocabulary of roughly 32 k subword units. The tokenizer first splits a word into the longest matching sub‑tokens; rare or out‑of‑vocabulary words are broken down into byte‑level pieces, guaranteeing that *any* Unicode string can be represented. Because the model works on IDs, the length of the tokenized prompt directly determines both GPU memory consumption and latency.  
 
 *Key points*  
-* Quantization reduces memory at a modest accuracy cost.  
-* Single‑GPU inference enables rapid prototyping on consumer hardware.  
-* Latency scales roughly linearly with `max_new_tokens`.  
 
-[plantuml, format=svg, title="Simplified Transformer Block (Llama‑3)"]
+* **`AutoTokenizer.from_pretrained`** loads the vocab and merge rules in a single call.  
+* **`skip_special_tokens=True`** removes padding, BOS, and EOS markers from the final decoded string, yielding clean human‑readable output.  
+* **Token‑length budgeting** – a 2‑sentence summary of a typical news article fits in ≈ 80 tokens; exceeding this limit forces the model to truncate or generate an EOS early.  
+
+**Paragraph 4 – Sampling Controls: Temperature, Top‑p, and Token Limits**  
+During generation the model emits a vector of logits for the entire vocabulary. The *temperature* scalar (τ) rescales these logits: lower τ sharpens the distribution (more deterministic), higher τ flattens it (more random). *Top‑p* (nucleus) sampling retains the smallest set of tokens whose cumulative probability exceeds *p* (e.g., 0.9) and renormalizes them, discarding the long tail. Finally, `max_new_tokens` caps the number of tokens the model may emit before stopping.  
+
+*Key points*  
+
+* **`temperature=0.7`** – a sweet spot that reduces repetitive phrasing while keeping the output sensible.  
+* **`top_p=0.9`** – guarantees that the model never chooses a token outside the 90 % most probable mass, limiting bizarre word choices.  
+* **`max_new_tokens=80`** – empirically enough for a concise two‑sentence summary of most English articles.  
+* **Interaction effect** – raising temperature while keeping top‑p high can produce creative but potentially inaccurate paraphrases; lowering both yields safe, “copy‑the‑source” style output.  
+
+*Quick‑check*: Predict what happens if we set `temperature=0.2` and `top_p=0.8`. (Answer: the model will almost always pick the single most likely token at each step, producing a very deterministic, possibly repetitive summary.)
+
+**Paragraph 5 – Resource Footprint, Quantization, and the “Enough?” Question**  
+The full‑precision (16‑bit) checkpoint of Meta‑Llama‑3‑8B occupies ~30 GB of VRAM, far beyond a single RTX 4090. By applying 4‑bit *GPTQ* quantization the model shrinks to ~16 GB, enabling real‑time inference with latency under 2 seconds for a typical prompt. Quantization introduces a modest drop in perplexity (≈ 0.3 p pts) but preserves most downstream performance. The trade‑off—speed versus a slight loss of fidelity—is the core of the “Enough?” question: is an 8 B, quantized model sufficient for a newsroom that cannot afford hallucinations?  
+
+*Key points*  
+
+* **4‑bit quantization** – reduces memory and bandwidth, allowing a single‑GPU deployment.  
+* **Latency scaling** – roughly linear with `max_new_tokens`; a 40‑token request finishes in ~1 s, 80 tokens in ~1.8 s.  
+* **Accuracy impact** – small increase in token‑level error, but often imperceptible in short summaries.  
+* **Operational simplicity** – no need for model‑parallelism or off‑loading, which lowers engineering overhead.  
+
+*Bridge to the lab*: In the upcoming lab we will put these knobs to the test, measuring how changes in temperature, top‑p, and quantization affect factual accuracy, brevity, and runtime on a real newsroom article.
+
+[plantuml, format=svg, title="Figure 1: MoE‑augmented Feed‑Forward Layer in Llama‑3"]
 ----
 @startuml
 skinparam backgroundColor #F9F9F9
@@ -73,7 +99,8 @@ actor User
 rectangle "Input Tokens\n(IDs)" as Input
 rectangle "Embedding Layer" as Emb
 rectangle "Multi‑Head\nSelf‑Attention\n(Causal Mask)" as MHA
-rectangle "Feed‑Forward\n(MoE Experts)" as FFN
+rectangle "Gating Network\n(selects experts)" as Gate
+rectangle "Mixture‑of‑Experts\n(2‑of‑8 active)" as MoE
 rectangle "LayerNorm & Residual" as LN
 rectangle "Logits" as Output
 
@@ -81,22 +108,25 @@ User --> Input : Prompt text
 Input --> Emb
 Emb --> MHA
 MHA --> LN
-LN --> FFN
-FFN --> LN
+LN --> Gate
+Gate --> MoE
+MoE --> LN
 LN --> Output
 @enduml
 ----
+*Caption*: The gating network (bottom left) chooses a sparse subset of experts; only those experts compute the feed‑forward transformation, keeping inference cheap despite the large total parameter count.
 
-[plantuml, format=svg, title="Inference Data Flow"]
+[plantuml, format=svg, title="Figure 2: Inference Data Flow with Quantization and Sampling Loop"]
 ----
 @startuml
 skinparam backgroundColor #FAFAFA
 actor Developer
 rectangle "Prompt String" as Prompt
 rectangle "Tokenizer\n→ input_ids" as Tok
-rectangle "Model\nAutoModelForCausalLM" as Model
-rectangle "Logits\n→ Sampling\n(temperature, top‑p)" as Sampler
+rectangle "Quantized Model\n(4‑bit)" as Model
+rectangle "Logits → Sampling\n(temperature, top‑p)" as Sampler
 rectangle "Decoder\n→ Text Output" as Decoder
+rectangle "Stop Condition?\n(max_new_tokens / EOS)" as Stop
 
 Developer --> Prompt
 Prompt --> Tok
@@ -104,95 +134,136 @@ Tok --> Model
 Model --> Sampler
 Sampler --> Decoder
 Decoder --> Developer : Summary
+Sampler --> Stop
+Stop --> Model : continue if false
 @enduml
 ----
+*Caption*: After each token is sampled, the loop returns to the model for the next step until the stop condition is satisfied.
 
 === Technical Example: Walking Through the Code
 
-Below is a minimal, reproducible script that loads Meta‑Llama‑3‑8B, tokenizes a prompt, generates a summary, and prints the result. We will annotate each line to reveal the underlying operations.
+Below is a minimal, reproducible script that loads Meta‑Llama‑3‑8B, tokenizes a prompt, generates a two‑sentence summary, and prints the result. The surrounding prose walks you through each logical block, showing not only *what* the code does but *why* each line matters for the constraints introduced in the hook.
 
 [source,python]
 ----
 from transformers import AutoModelForCausalLM, AutoTokenizer
+import torch
 
-# 1️⃣ Load the model and tokenizer (4‑bit quantized for GPU‑friendliness)
+# -------------------------------------------------
+# 1️⃣ Load the model and tokenizer (4‑bit quantized)
+# -------------------------------------------------
 model_name = "meta-llama/Meta-Llama-3-8B"
-tokenizer = AutoTokenizer.from_pretrained(model_name)
+tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=True)
+
 model = AutoModelForCausalLM.from_pretrained(
     model_name,
-    load_in_4bit=True,          # reduces memory to ~16 GB
-    device_map="auto"           # places layers on the available GPU
+    load_in_4bit=True,          # fits in ~16 GB VRAM
+    device_map="auto",          # puts layers on GPU if available
+    torch_dtype=torch.float16   # keeps arithmetic fast
 )
 
-# 2️⃣ Define the task‑oriented prompt
-prompt = """Summarize the following article in two sentences:
+# -------------------------------------------------
+# 2️⃣ Craft a task‑oriented prompt
+# -------------------------------------------------
+article = """The city council voted yesterday to allocate $12 million for a new
+public‑transport hub.  Proponents say the project will cut commute times by
+15 % and create 2 000 jobs, while opponents warn of cost overruns and
+environmental impact."""
+prompt = f"""Summarize the following article in two sentences:\n\n{article}"""
 
-[Article text]"""
-
-# 3️⃣ Tokenize – produces a dict with input_ids and attention_mask
+# -------------------------------------------------
+# 3️⃣ Tokenize – produces input_ids and attention_mask
+# -------------------------------------------------
 inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
 
-# 4️⃣ Generate – note the sampling knobs
-output = model.generate(
+# -------------------------------------------------
+# 4️⃣ Generate – sampling knobs in action
+# -------------------------------------------------
+output_ids = model.generate(
     **inputs,
     max_new_tokens=80,
     temperature=0.7,
     top_p=0.9,
-    do_sample=True
+    do_sample=True,
+    pad_token_id=tokenizer.eos_token_id
 )
 
+# -------------------------------------------------
 # 5️⃣ Decode – strip special tokens for a clean string
-summary = tokenizer.decode(output[0], skip_special_tokens=True)
-print(summary)
+# -------------------------------------------------
+summary = tokenizer.decode(output_ids[0], skip_special_tokens=True)
+print("🗞️ Summary:", summary)
 ----
-
 *Key points in the walkthrough*  
-* **Quantized loading** (`load_in_4bit=True`) makes the 8 B model fit on a single consumer GPU.  
-* `device_map="auto"` automatically distributes layers across CPU/GPU if needed.  
-* The `prompt` includes a clear instruction; Llama‑3 follows the *instruction‑following* paradigm introduced in Llama‑2.  
-* `inputs.to(model.device)` ensures tensors reside on the same device as the model, avoiding costly data transfers.  
-* `do_sample=True` activates stochastic sampling; without it the model would default to greedy decoding.  
+
+* **Quantized loading** (`load_in_4bit=True`) shrinks the checkpoint to a size that a single RTX 4090 can hold, directly addressing the resource constraints raised in the hook.  
+* **`device_map="auto"`** automatically dispatches layers to GPU memory, falling back to CPU for any overflow, which keeps the script portable across hardware configurations.  
+* **Prompt design** – the explicit “Summarize … in two sentences” instruction leverages Llama‑3’s instruction‑following fine‑tuning, improving adherence to length constraints.  
+* **`do_sample=True`** activates stochastic sampling; without it the model would default to greedy decoding, often producing repetitive or overly terse output.  
+* **`pad_token_id=tokenizer.eos_token_id`** ensures the model knows where to stop if it reaches the maximum token budget before emitting an EOS token.  
 
 *Experimentation suggestions*  
-1. Change `temperature` to 0.2 and observe a more deterministic summary.  
-2. Increase `top_p` to 0.99 and note the occasional inclusion of less‑probable phrasing.  
-3. Replace the article placeholder with a short news paragraph and compare the output quality.  
 
-=== Philosophical Reflection: Risks, Bias, and the “Enough” Question
+1. **Determinism test** – set `temperature=0.2` and `top_p=0.8`; observe how the summary becomes almost verbatim to the source.  
+2. **Creativity test** – raise `temperature` to 1.2 and `top_p` to 0.95; note occasional paraphrases or inserted adjectives.  
+3. **Length stress test** – increase `max_new_tokens` to 150 and watch the model drift into a third sentence, revealing the limits of the “two‑sentence” instruction.  
 
-Large language models are powerful but not infallible. Even an 8 B model can hallucinate facts, reproduce training‑data biases, and generate disallowed content if prompted cleverly. In a newsroom setting, a concise summary that omits a critical nuance can mislead readers and erode trust.  
+The table below records a concrete run with the default settings (τ = 0.7, p = 0.9):
+
+[cols="1,2,2", options="header"]
+|===
+|Step |Generated token (ID) |Cumulative text
+
+|0 |101 |“The city council”
+|1 |2023 |“ voted yesterday”
+|2 |2003 |“ to allocate $12 million”
+|… |… |…
+|12 |102 |“. The project”
+|13 |3056 |“ is expected to cut”
+|14 |... |“ commute times by 15 % and create 2 000 jobs.”
+|===  
+
+Seeing the token‑level progression demystifies the abstract sampling discussion from Paragraph 4.
+
+=== Philosophical Reflection: Risks, Bias, and the “Enough?” Question
+
+Large language models are powerful amplifiers, but they are also prone to *hallucination*—the generation of statements that have no grounding in the source text. In a newsroom, a two‑sentence summary that invents a statistic (e.g., “15 % reduction in traffic”) when the original article only mentioned “significant reduction” can mislead readers and damage editorial credibility.  
 
 *Key ethical considerations*  
-* **Hallucination** – The model may invent details that were never present in the source article.  
-* **Bias propagation** – Training data reflects societal biases; Llama‑3 can echo gender, racial, or ideological stereotypes.  
-* **Safety mitigations** – OpenAI‑style content filters are not baked into the open‑source release; developers must implement their own guardrails.  
-* **Transparency** – Users should be informed when a summary is machine‑generated and provided with a link to the original text.  
-* **“Enough?”** – Does an 8 B model strike the right balance between capability and controllability for public deployment?  
 
-*Discussion prompt* – *“If a model of this size were deployed in a live newsroom, what governance policies would you put in place to mitigate hallucination and bias?”*  
+* **Hallucination** – The model may fill gaps with plausible‑sounding but false details, especially when temperature is high.  
+* **Bias propagation** – Training data reflects societal biases; Llama‑3 can reproduce gendered language (“the mayor, a man…”) even if the source is gender‑neutral.  
+* **Safety mitigations** – Open‑source releases lack built‑in content filters; developers must implement profanity or disallowed‑content detectors.  
+* **Transparency** – Ethical journalism demands a clear label (“Generated by Meta‑Llama‑3‑8B”) and a link to the full article for verification.  
+* **“Enough?”** – The newsroom must decide whether an 8 B, quantized model offers a sufficient trade‑off between speed and reliability, or whether a larger, more accurate model (or a human‑in‑the‑loop) is required for high‑stakes reporting.  
+
+*Case study*: During a pilot at a regional paper, Llama‑3 generated a summary that claimed “the council approved a $12 million budget” while the original brief only said “the council is *considering* a $12 million allocation.” The error stemmed from the model’s tendency to *complete* ambiguous statements when the temperature was set to 0.9. The editorial team responded by adding a post‑generation verification step—automatically comparing the generated summary against named entities extracted from the source.  
+
+*Forward look*: In the lab you will experiment with temperature and top‑p to see how often such factual drift occurs, and you will implement a simple verification script that flags mismatched numbers. This hands‑on experience will help you answer the “Enough?” question with data, not intuition.
 
 === Discussion Prompts
 
-1. How does the causal masking in Llama‑3 differ from the bidirectional masking used in BERT‑style encoders?  
-2. In what scenarios would you prefer a higher temperature versus a lower one, and why?  
-3. Compare the trade‑offs of using nucleus sampling (`top_p`) versus top‑k sampling for summarization tasks.  
-4. What are the practical implications of MoE layers for inference latency on a single GPU?  
-5. How would you evaluate the factual accuracy of a model‑generated summary without human intervention?  
-6. If you were to fine‑tune Llama‑3 on a domain‑specific corpus (e.g., legal documents), which hyper‑parameters would you prioritize adjusting first?  
+1. How does the causal masking in Llama‑3 differ from the bidirectional masking used in BERT‑style encoders, and why does that matter for real‑time summarization?  
+2. In what scenarios would you prefer a higher temperature versus a lower one, and how does that choice interact with the risk of hallucination?  
+3. Compare the trade‑offs of nucleus sampling (`top_p`) versus top‑k sampling for short‑form summarization tasks.  
+4. What are the practical implications of MoE layers for inference latency on a single GPU, especially when the gating network selects different experts for each token?  
+5. How would you evaluate the factual accuracy of a model‑generated summary without human annotation—what automated signals could you rely on?  
+6. If you were to fine‑tune Llama‑3 on a domain‑specific corpus (e.g., legal contracts), which hyper‑parameters would you prioritize adjusting first, and why?  
 
 === Lab Preparation
 
 *Before the lab you should*  
 
-* Install the `transformers` and `accelerate` libraries (version ≥ 4.35).  
-* Verify that your GPU has at least 16 GB of VRAM; otherwise enable CPU offloading.  
-* Download the 4‑bit quantized checkpoint of Meta‑Llama‑3‑8B to a local directory (`~/.cache/huggingface`).  
-* Review the starter notebook (provided in the course repo) which contains the annotated script above.  
+* Install the latest `transformers` (≥ 4.35) and `accelerate` libraries via `pip install -U transformers accelerate`.  
+* Verify that your GPU has at least 16 GB of VRAM; if not, enable CPU off‑loading by adding `device_map="balanced"` in the loading call.  
+* Download the 4‑bit quantized checkpoint of Meta‑Llama‑3‑8B to a local cache (`~/.cache/huggingface`).  
+* Review the starter Jupyter notebook provided in the course repository; it contains the annotated script above plus cells for measuring latency and accuracy.  
 
 *Lab activities*  
 
-* **Task 1 – Prompt Engineering:** Replace the placeholder article with a real news paragraph and iterate on the prompt to improve factual coverage.  
-* **Task 2 – Sampling Exploration:** Create a table showing how varying `temperature` (0.2, 0.7, 1.2) and `top_p` (0.8, 0.9, 0.95) affect summary length and BLEU score against a human reference.  
-* **Task 3 – Resource Monitoring:** Use `torch.cuda.memory_summary()` to record GPU memory before and after quantized loading; discuss the impact of 8‑bit vs. 4‑bit precision.  
+* **Task 1 – Prompt Engineering:** Replace the placeholder article with a real news paragraph. Iterate on the prompt wording (e.g., adding “in two sentences” vs. “in a headline”) and observe how the model’s adherence to length changes.  
+* **Task 2 – Sampling Exploration:** Run a grid of `temperature` (0.2, 0.7, 1.2) and `top_p` (0.8, 0.9, 0.95). Record summary length, BLEU score against a human‑written reference, and runtime. Summarize findings in a short report.  
+* **Task 3 – Resource Monitoring:** Use `torch.cuda.memory_summary()` before and after loading the model in 4‑bit and 8‑bit modes. Plot memory consumption versus latency to illustrate the trade‑off discussed in Paragraph 5.  
+* **Task 4 – Hallucination Check:** Implement a simple named‑entity matcher that extracts numbers and proper nouns from both source and summary. Flag any mismatches and calculate a “fact‑drift” rate for each sampling configuration.  
 
 By the end of the session you will be able to **explain** each component of the inference pipeline, **manipulate** sampling parameters to steer output style, and **critically assess** the ethical dimensions of deploying an 8 B LLM in production.

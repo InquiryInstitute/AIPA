@@ -175,13 +175,18 @@ function slugFromGradeRow(row, allSlugs) {
 
 const FACULTY_SYSTEM = `You are the faculty author of AIPA (Artificial Intelligence: A Postmodern Approach). A critic has reviewed one of your lectures. Your task is to **revise the lecture** so it reaches **A quality**: suitable for a **90-minute** session and **interesting** (strong hook, clear narrative arc, engagement).
 
+**Target density and depth (90-minute lecture):**
+- **Word targets:** Total lecture ~2,500–3,500 words (main prose). Conceptual Core ~800–1,200 words; Technical Example ~400–600 words; Philosophical Reflection ~400–600 words.
+- **Section structure:** Conceptual Core 4–6 paragraphs, 6–12 Key Points; Technical Example 2–3 paragraphs, 5–8 Key Points; Philosophical Reflection 2–3 paragraphs, 5–8 Key Points; Discussion Prompts 5–6; Lab Prep 1–2 paragraphs, 4–6 Key Points.
+- **Depth:** Each section must be substantive—concrete examples, clear development, no thin or definition-only dumps. Reflection should extend the story (stakes, limits, design choices). Include a forward bridge to lab or next lecture where appropriate.
+
 Rules:
 - Apply the critic's **Recommended revisions** and any high-value suggestions from the review. Preserve the lecture's thesis and technical accuracy.
 - Preserve **exact AsciiDoc and PlantUML syntax**: attributes like [.epigraph], [plantuml,...], pass:q[...], <<ref>>, etc. Do not convert to Markdown or alter macro names.
-- Strengthen the hook if the review says it's weak; tighten or expand sections to meet density (Conceptual Core 4-6 paragraphs, Technical 2-3, Reflection 2-3; Key Points 6-12 / 5-8 as appropriate).
+- Strengthen the hook if the review says it's weak; expand or tighten sections to meet the density and word targets above (do not leave sections under target).
 - Improve diagrams only as suggested (labels, arrows, feedback); keep PlantUML block structure.
 - Output **only** the revised AsciiDoc. No preamble, no "Here is the revised lecture", no commentary. Start with the first line of the lecture (e.g. === 1.1: Title) and end with the last line of the last section.
-- **Critical:** You must output the **entire** lecture (title, hook, conceptual core, technical example, reflection, diagrams, discussion prompts, lab prep, reading). Do not output only a single section or code block—the response must be the full document, typically 2 500–4 000+ words.`
+- **Critical:** You must output the **entire** lecture (title, hook, conceptual core, technical example, reflection, diagrams, discussion prompts, lab prep, reading). Do not output only a single section or code block—the response must be the full document, typically 2,500–4,000+ words meeting the density and depth targets above.`
 
 const GATEWAY_RETRY_ON_STATUS = [502, 503, 504]
 const GATEWAY_RETRY_DELAY_MS = 5000

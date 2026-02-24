@@ -2,84 +2,241 @@
 :leveloffset: 2
 
 [.epigraph]
-"Every API call has a cost."
-— EU AI Act <<EU2024>>; NIST AI RMF <<NIST2023>> (economic governance)
+"The moment we stopped watching the meter, the bill exploded."
+— *Anonymous startup founder, 2024*
 
-*Governance is also economic—control spend and usage.*
+==== Hook: A Runaway Budget in Real Time
 
-==== Example Prompts
+Imagine a fledgling biotech startup that has just built an autonomous literature‑review agent. The agent is given a single prompt: *“Summarize the latest CRISPR papers and suggest three novel experiments.”* The code looks innocent—loop over a list of keywords, call the LLM for each, store the result, and repeat until the “novelty score” stops improving. Within ten minutes the agent has made **3 200** API calls, consumed **2.8 million** tokens, and silently charged the company **$12,800**—far beyond the $5,000 seed‑fund budget. No human ever saw the cost meter; the agent kept iterating because its internal “improvement loop” never hit a hard stop.
 
-* "Stay within budget." — _Cost tracking: tokens, API calls; budgets, alerts_
-* "Limit requests per user." — _Rate limiting; prevent runaway_
-* "Who can afford to run this?" — _Access = economics; cost governance_
+*Who should have been warned?* *How could the same system have been kept within budget while still delivering value?* These questions frame today’s lecture. We will explore the economic levers—cost tracking, budgeting, alerts, and rate limiting—that turn a runaway spend into a predictable, sustainable service. For a concrete case study, see the OpenAI Cost‑Management Guide (2023).
 
 ==== Conceptual Core
 
-Every API call has a cost—and an agent can make hundreds of them in one task. Without governance, who pays, who gets cut off, and who can afford to run the system at all become invisible. So governance is not only about safety and fairness; it is also economic. Cost control and rate limiting are how we make the system sustainable and who gets to use it visible.
+*Problem Space: Invisible Spend in Autonomous Agents*  
+Every LLM call consumes a measurable resource: tokens, compute cycles, and ultimately dollars. In a single‑user workflow the cost is easy to eyeball, but in multi‑agent pipelines the expenditure becomes a hidden variable that can explode without a clear “stop” condition. Autonomous agents amplify this risk because they can generate their own sub‑tasks, retry failures, or enter feedback loops that a human operator never observes. The first step in governance is to **make spend visible** at the granularity needed for decision‑making—per user, per task, per model, and per time window.
 
-Cost tracking: every LLM call consumes tokens (input and output), and each token has a price. Track spend per user, per task, per model. API calls and compute (GPU time, inference latency) also incur cost. Aggregate metrics: daily spend, monthly budgets. Without tracking, costs can spiral unnoticed—especially with autonomous agents that make many calls. Rate limiting: cap requests per minute (or per second) per user or per API key. Prevents runaway loops (e.g., agent retrying indefinitely), abuse, and quota exhaustion. Budgets and alerts: set a dollar limit; notify when approaching 80% or 100%. Hard stop or soft warning—configurable. Cost-aware agent design: cache responses when queries repeat; batch requests; use cheaper models (e.g., for simple tasks) when quality permits. Access and economics: who can afford to run agents? Cost governance shapes who can use the system. High costs exclude users with limited budgets; cost control is a form of access control and sustainability.
+*Control Lever 1 – Fine‑Grained Cost Tracking*  
+Cost tracking is the systematic logging of every resource‑consuming event. For LLMs this means recording:  
+
+1. Model name (e.g., `gpt‑4‑turbo`).  
+2. Tokens in and tokens out.  
+3. Model‑specific price per token (often tiered: prompt vs. completion).  
+4. Timestamp, user identifier, and task identifier.  
+5. Ancillary compute cost (GPU‑seconds, inference latency) when self‑hosted models are used.  
+
+Persisting these fields in a structured log (JSON‑lines, relational table, or time‑series store) enables **aggregate metrics** such as daily spend per user, monthly spend per department, or per‑task cost breakdowns. Visibility is the prerequisite for any downstream policy.
+
+*Control Lever 2 – Budgets, Alerts, and Soft/Hard Stops*  
+A budget is a pre‑agreed ceiling expressed in dollars (or token equivalents) for a given entity (user, API key, project). Budgets can be **static** (e.g., $100 / day) or **dynamic** (adjusted based on historical usage or priority). Once a budget is defined, the system must enforce **threshold alerts** (e.g., 80 % of budget) and **action points** (soft warning at 100 %, hard stop at 110 %). Alerts are delivered via email, Slack, or a dashboard widget, giving stakeholders the chance to intervene before a catastrophic spend. Hard stops are implemented by rejecting further requests with a `402 Payment Required` response, while soft warnings may return a `200 OK` with a warning payload.
+
+*Control Lever 3 – Rate Limiting as a Guardrail*  
+Rate limiting caps the **frequency** of requests, typically expressed as requests per minute (RPM) or per second (RPS). It serves three complementary purposes:  
+
+1. **Prevent runaway loops** where an agent repeatedly retries a failed call.  
+2. **Mitigate abuse** from malicious actors attempting denial‑of‑service attacks.  
+3. **Smooth demand** to avoid sudden spikes that could overwhelm downstream compute resources.  
+
+Rate limits can be applied at different scopes: per‑user, per‑API‑key, per‑task, or even per‑model (cheaper models may have higher limits). Modern implementations use token‑bucket or leaky‑bucket algorithms stored in fast caches (Redis, Memcached) to enforce limits with millisecond latency. *Think‑pair‑share (2 min):* Sketch a rate‑limit rule you would set for a research group versus a commercial client. Discuss the trade‑offs.
+
+*Design Trade‑offs: Cost vs. Capability vs. Equity*  
+Every lever introduces a trade‑off. Tight budgets and low RPMs reduce spend but may starve high‑value tasks of the compute they need. Conversely, generous limits increase capability but risk budget overruns and inequitable access—wealthier teams can consume disproportionate resources. Designers must balance **performance**, **cost efficiency**, and **fairness**. Techniques such as **cost‑aware prompt engineering** (using cheaper models for classification, caching repeated queries, batching multiple prompts) shift the Pareto frontier, delivering more capability per dollar while preserving equitable access. *What if the startup’s CEO receives a Slack warning at 80 % of budget?* The team can pause, re‑evaluate the experiment design, and avoid a $7,000 surprise.
 
 ===== Key Points
 
-* Cost tracking: tokens, calls, compute; per user, per task
-* Rate limiting: req/min; prevents runaway, abuse
-* Budgets, alerts: limit, notify at threshold
-* Cost-aware design: cache, batch, cheaper models
-* Access = economics; cost governance = access control
+* Invisible spend in autonomous pipelines can explode without explicit monitoring.  
+* Fine‑grained cost tracking logs model, token counts, price tiers, timestamps, and compute usage.  
+* Budgets are expressed in dollars or token equivalents and enforce soft warnings and hard stops.  
+* Rate limiting caps request frequency, preventing loops, abuse, and resource spikes.  
+* Trade‑offs must be evaluated among cost, capability, and equitable access.  
+* Cost‑aware design patterns (caching, batching, model selection) shift the cost‑capability curve.  
+* Dynamic policies (e.g., adjusting limits based on load) enable responsive governance.  
+* Alerts should be multi‑channel (email, Slack, dashboard) to give timely human oversight.  
 
 ==== Technical Example
 
-Track costs for LLM calls. Log each call: model name, tokens_in, tokens_out, and computed cost (model-specific pricing). Aggregate per user and per day. Set budget: e.g., $50/day per user. Alert at 80% ($40); hard stop or soft warning at 100%. Implement rate limiter: 10 req/min per user; return 429 (Too Many Requests) when exceeded. The governance simulator should model cost scenarios: what if token prices rise? What if usage doubles? Lab 1: Add cost tracking and rate limiting to the governance simulator. The simulator becomes a testbed for economic governance decisions.
+*Skeleton Cost‑Tracker Decorator*  
+The following Python decorator illustrates the **core idea** of cost tracking without overwhelming the class with implementation details. It records the model name, token counts (via `tiktoken`), looks up the per‑token price from a configurable map, computes the dollar cost, and writes a single JSON‑line entry to `cost_ledger.jsonl`. The decorator can be wrapped around any function that returns a dictionary with a `"content"` field.
+
+```python
+import json, time, functools, tiktoken
+
+PRICE_TABLE = {
+    "gpt-4-turbo": {"prompt": 0.03, "completion": 0.06},
+    "gpt-3.5-turbo": {"prompt": 0.0015, "completion": 0.002},
+    "llama-2-7b": {"prompt": 0.0004, "completion": 0.0006},
+}
+
+def cost_tracker(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        model = kwargs.get("model", "gpt-3.5-turbo")
+        prompt = kwargs.get("prompt", "")
+        start = time.time()
+        response = func(*args, **kwargs)          # actual LLM call
+        elapsed = time.time() - start
+
+        enc = tiktoken.encoding_for_model(model)
+        prompt_tokens = len(enc.encode(prompt))
+        completion_tokens = len(enc.encode(response["content"]))
+
+        price = PRICE_TABLE[model]
+        cost = (prompt_tokens / 1_000) * price["prompt"] + \
+               (completion_tokens / 1_000) * price["completion"]
+
+        entry = {
+            "ts": time.time(),
+            "user": kwargs.get("user_id", "anon"),
+            "task": kwargs.get("task_id", "unknown"),
+            "model": model,
+            "prompt_t": prompt_tokens,
+            "completion_t": completion_tokens,
+            "cost_usd": round(cost, 6),
+            "latency_s": round(elapsed, 3)
+        }
+        with open("cost_ledger.jsonl", "a") as f:
+            f.write(json.dumps(entry) + "\n")
+        return response
+    return wrapper
+```
+
+*Rate Limiter Pseudocode*  
+Rather than a full Redis implementation, we present a concise pseudocode flow that captures the **token‑bucket logic**. The idea is to check a per‑user bucket, refill tokens based on the elapsed time, and either grant a permit or reject with HTTP 429.
+
+```text
+function allow_request(user_id, rpm):
+    bucket = redis.get("bucket:" + user_id)   # {tokens, last_ts}
+    now = current_timestamp()
+    refill = (now - bucket.last_ts) * (rpm / 60)
+    bucket.tokens = min(rpm, bucket.tokens + refill)
+
+    if bucket.tokens < 1:
+        return False                         # rate limit exceeded
+    bucket.tokens -= 1
+    bucket.last_ts = now
+    redis.set("bucket:" + user_id, bucket, ttl=120)
+    return True
+```
+
+*Budget Enforcement in Practice*  
+When a request arrives, the API gateway performs three checks in order: **budget**, **rate limit**, and **cost logging**. The budget check reads the cumulative spend for the user from a Redis cache (updated after each call). If spend exceeds 80 % of the daily budget, a soft warning is sent to the Alert Service; if it exceeds 110 %, the request is rejected with `402`. The flow is illustrated in the revised PlantUML diagram below.
 
 ===== Key Points
 
-* Track LLM costs
-* Budget, alert
-* Lab 1: Cost tracking in simulator
+* The decorator captures the essential fields for cost accounting without excessive code.  
+* JSON‑line ledger enables fast aggregation (daily spend, per‑model cost).  
+* Token‑bucket pseudocode shows the logic behind per‑user RPM limits.  
+* Budget enforcement reads cumulative spend, issues soft warnings at 80 % and hard stops at 110 %.  
+* Dynamic price tables allow instant adaptation to provider price changes.  
+* Combining cost tracking, rate limiting, and budget checks creates a three‑layer guardrail.  
+* Alerts can be routed to Slack, email, or a monitoring dashboard for human oversight.  
 
 ==== Philosophical Reflection
 
-Access and economics: cost governance determines who can use the system. Who can afford to run agents at scale? Researchers, startups, and individuals with limited budgets may be excluded. Economic governance is a form of access control—it shapes who participates in the AI ecosystem. It is also a form of sustainability: unlimited spend is not viable for providers or users. The governance simulator lets us explore these tradeoffs: stricter limits reduce cost but may limit capability; looser limits enable more use but increase risk of runaway spend.
+*Economic Governance as Access Control*  
+When a university research group receives a grant that covers only **$2,000** of LLM usage per month, the **cost‑governance mechanisms** become a de‑facto gatekeeper. If the budget is exhausted, the group’s experiments halt, while a commercial partner with an unlimited contract continues unabated. In this sense, **cost is not merely a technical metric; it is a political instrument** that determines who participates in the AI knowledge economy. The EU AI Act (Art. 9 – “Economic Impact”) and the NIST AI RMF (Subcategory RM‑3 “Resource Management”) explicitly recognize that equitable access requires transparent, auditable cost controls.
 
-The EU AI Act and NIST AI RMF both treat cost and resource use as governance concerns—not only for providers but for equity of access. When you add cost tracking and rate limiting to the governance simulator (Lab 1), you are implementing the levers that real systems use to stay within budget and to decide who gets service when demand exceeds capacity.
+*Equity vs. Efficiency Tension*  
+A strict budget protects the provider’s financial sustainability but can disproportionately penalize under‑funded innovators. Conversely, a lax budget maximizes utilization but risks “resource hoarding” by well‑capitalized actors, leading to a **digital divide** in AI research. Philosophically, we must ask: *Should cost‑based throttling be supplemented with fairness‑aware policies that allocate a minimum quota to all users, regardless of ability to pay?* Some cloud providers already offer “free‑tier” quotas that guarantee a baseline of compute; however, these are often insufficient for serious research. Embedding **fairness‑aware throttling**—where a portion of the budget is reserved for low‑income users—could reconcile efficiency with social justice.
+
+*Governance Simulator as a Laboratory for Moral Choices*  
+The governance simulator introduced in Lab 1 is more than a coding exercise; it is a **sandbox for ethical experimentation**. By toggling budget caps, rate‑limit thresholds, and alert policies, students can observe how different configurations affect *who* gets service and *how* system performance degrades under stress. For example, raising the per‑user RPM from 10 to 100 may double throughput but also cause a 30 % increase in total spend, forcing a trade‑off analysis. Such hands‑on exploration mirrors real‑world policy deliberations where regulators, providers, and users negotiate the acceptable balance between **innovation** and **resource stewardship**.
 
 ===== Key Points
 
-* Cost = access control
-* Sustainability
-* Cost/rate limits as governance levers; EU/NIST frame
+* Cost governance directly shapes who can access AI services, acting as a form of access control.  
+* EU AI Act Art. 9 and NIST AI RMF RM‑3 embed economic considerations within broader governance frameworks.  
+* Strict budgets protect sustainability but risk exacerbating the digital divide.  
+* Fairness‑aware throttling can reserve a baseline quota for under‑funded users.  
+* The governance simulator lets students experiment with moral trade‑offs in a safe environment.  
+* Policy questions: Should public funding mandate minimum AI compute quotas?  
+* Economic governance is inseparable from ethical governance in AI ecosystems.  
 
-.Figure 11.2: Cost and rate limit flow
+.Figure 11.2: Cost‑aware request processing with alerts
 [plantuml,ch11-l02,png,theme=sketchy-outline]
 ....
 @startuml
-start
-:Request;
-:Cost Check;
-:Rate Limit;
-stop
+skinparam backgroundColor #FDF6E3
+skinparam shadowing false
+skinparam decisionBackgroundColor #E8F5E9
+actor User
+participant "API Gateway" as GW
+database "Cost Ledger\n(Redis/DB)" as CL
+database "Rate‑Limiter\n(Redis Bucket)" as RL
+entity "Alert Service" as AS
+entity "Budget Cache\n(Redis)" as BC
+
+User -> GW : HTTP request (userId, taskId, payload)
+
+== Budget Check ==
+GW -> BC : getSpend(userId)
+alt Within 80 % of budget?
+    BC --> GW : spend OK
+else
+    BC --> GW : spend >80 %
+    GW -> AS : sendBudgetWarning(userId, spend)
+    note right of GW
+      Soft warning (80 % budget)
+    end note
+    BC --> GW : spend OK
+end
+
+alt Exceeds 110 %?
+    GW -> AS : sendBudgetExceeded(userId)
+    GW -> User : 402 Payment Required
+    stop
+end
+
+== Rate‑Limit Check ==
+GW -> RL : acquireToken(userId)
+alt Token granted
+    RL --> GW : permit
+else
+    RL --> GW : deny
+    GW -> AS : sendRateAlert(userId)
+    GW -> User : 429 Too Many Requests
+    stop
+end
+
+GW -> CL : logCost(event)
+GW -> User : 200 OK (response)
+note right of GW
+  Includes cost metadata
+end note
 @enduml
 ....
 
 ==== Discussion Prompts
 
-* Who should bear the cost of AI systems?
-* How do we make AI accessible despite costs?
-* When is rate limiting justified?
-* How does cost governance connect to access control?
-* How does the governance simulator track cost?
-* When does cost control conflict with capability?
+* Who should bear the financial responsibility for autonomous AI agents in a mixed‑public‑private ecosystem?  
+* How can cost‑governance mechanisms be designed to promote equitable access without crippling innovation?  
+* In what scenarios is a hard stop (`402`) preferable to a soft warning, and why?  
+* How does rate limiting intersect with fairness‑aware throttling—can the two be unified?  
+* What are the practical challenges of implementing dynamic price lookup in a production system?  
+* How might a governance simulator be extended to model collective budgeting across multiple research groups?  
 
 ==== Lab Prep
 
-Lab 1: Add cost tracking to the governance simulator. Track tokens, API calls. Implement rate limiter. Budget alerts. See Lab 1 for requirements.
+*Lab 1 – Economic Governance Extension*  
+In this lab you will augment the existing governance simulator with three new components:  
+
+1. **Cost Tracker** – instrument the LLM call wrapper to emit JSON‑line ledger entries (model, token counts, price, timestamp).  
+2. **Rate Limiter** – implement a Redis‑backed token‑bucket that enforces a configurable RPM per user. Return HTTP 429 when the bucket is empty.  
+3. **Budget & Alert Engine** – create a daily budget cache, emit soft‑warning logs at 80 % usage, and enforce a hard stop at 110 % with a `402` response.  
+
+Your **mission**: keep the biotech startup’s autonomous reviewer under a $5,000 daily cap while still producing three novel experiment proposals. Run baseline, price‑surge, and traffic‑burst scenarios, then report:  
+
+* A table summarizing spend per user before and after budget enforcement.  
+* Screenshots of alert messages generated at the 80 % threshold.  
+* A brief reflection on how the implemented levers would affect a real‑world research team’s workflow.
 
 ===== Key Points
 
-* Lab 1: Cost tracking
-* Rate limiter
-* Budget alerts
-
+* Instrument LLM calls with a cost‑tracking decorator.  
+* Deploy a Redis token‑bucket for per‑user RPM limits.  
+* Implement budget cache, soft warnings, and hard‑stop enforcement.  
+* Test under normal load, price‑increase, and traffic‑burst scenarios.  
+* Analyze impact on spend visibility, user experience, and fairness.  
 
 ==== Reading
-For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch11,Chapter 11>>).
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch11,Chapter 11>>).

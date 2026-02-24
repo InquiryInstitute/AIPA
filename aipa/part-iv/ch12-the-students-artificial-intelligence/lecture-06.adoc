@@ -3,7 +3,7 @@
 
 [.epigraph]
 "Writing is thinking."
-— Wittgenstein, _Philosophical Investigations_ <<Wittgenstein1953>> (adapted)
+— Wittgenstein, _Philosophical Investigations_ <<Wittstein1953>> (adapted)
 
 *The thesis documents the journey and the result.*
 
@@ -15,77 +15,188 @@
 
 ==== Conceptual Core
 
-Thesis structure: problem (what? for whom? why?), approach (how did you solve it?), implementation (what did you build?), evaluation (what evidence?), discussion (limitations, future work). Standard technical report form. Technical writing: clarity, reproducibility. A reader should understand and replicate. Use citations for prior work. Include figures (architecture, results). Appendix for details (code snippets, prompts, full results). The thesis as artifact of graduate competency: it demonstrates mastery. You can define a problem, design a solution, implement it, evaluate it, and communicate it. Documentation as accountability: we document to be held accountable. The thesis is scrutinized; it must withstand critique. The thesis as bridge to future work: it points forward. What would you do next? What open questions remain?
+*Hook – a scenario that forces the question “why does the thesis matter?”*  
+You have just finished a working prototype that reduces hospital readmission rates by 15 %. Your advisor smiles, runs a quick demo, and then asks, “Can you convince anyone else that this works?” The next morning the department chair emails you: *“Your prototype is impressive, but the committee will reject the thesis unless the evaluation is reproducible and the design decisions are fully justified.”* In that instant the prototype stops being a private triumph and becomes a public claim that must survive the scrutiny of peers, reviewers, and future users. The tension between a brilliant piece of engineering and a defensible scholarly record is the engine of every graduate thesis.
 
-Writing is thinking: the act of writing clarifies thought. Drafting forces you to resolve ambiguity. The thesis is not an afterthought—it is part of the work. Start early; iterate with feedback.
+*Failure vignette – what happens when the claim is not defensible*  
+Imagine you submit the first draft of your thesis without a data repository, without version‑controlled scripts, and with a single paragraph that glosses over hyper‑parameters. A reviewer writes: *“The results are intriguing, but I cannot reproduce any of the experiments. Please provide the raw data and the exact software environment.”* The committee places your thesis on hold, you spend weeks hunting down log files, and the momentum you built during the prototype phase evaporates. This vignette illustrates that the thesis is not a decorative appendix to your code; it is the *only* artifact that will survive the prototype’s eventual deprecation.
+
+*Why a thesis is more than a grade*  
+A thesis is a **portable artifact of competence**. It signals to future employers, collaborators, and reviewers that you can (1) identify a real problem, (2) devise a solution, (3) implement it, (4) evaluate it rigorously, and (5) communicate the whole process with enough detail that others can repeat it. In the academic ecosystem the thesis also serves as a **citable contribution**, a **record of accountability** that protects the community from unreproducible hype, and a **bridge to future work** that outlines open questions and next steps. Because the thesis lives beyond the semester, its quality directly influences career trajectories, grant eligibility, and the credibility of the field.
+
+*The thesis as an iterative design cycle*  
+The familiar linear list—Problem → Approach → Implementation → Evaluation → Discussion—can be misleading if presented as a one‑pass pipeline. In practice each section is drafted, reviewed, and revised many times, often in a different order than the list suggests. A clear problem statement may reveal hidden assumptions that force a redesign of the approach; early evaluation results may uncover implementation bugs that require a new architecture diagram; reviewer comments on the discussion may push you back to the problem to sharpen the motivation. Thinking of the thesis as a **design cycle** makes the writing process an integral part of the research, not a post‑mortem.
+
+*Reproducibility, citations, and visual communication*  
+A reproducible thesis supplies (a) raw data or a link to a data repository, (b) the exact software environment (versions, dependencies, container images), and (c) scripts that transform data into the reported figures. Citations must be precise, using a consistent style and linking every claim to prior work. Figures—architecture diagrams, performance plots, user‑study heatmaps—are not decorative; they are **semantic anchors** that allow readers to grasp complex ideas quickly. An appendix can host code snippets, full prompts, or additional experimental runs without cluttering the main narrative.
+
+*Common pitfalls and strategies for success*  
+Graduate students often fall into two extremes: **over‑detailing** (including every log file, which drowns the reader) or **under‑detailing** (leaving out critical hyper‑parameters, which destroys reproducibility). The sweet spot is achieved by (1) drafting a **concise problem paragraph** (150–200 words) that answers *what, for whom, and why*; (2) using a **checklist** for each section (see the Technical Example); (3) seeking **early feedback** from advisors, peers, and even non‑technical friends; and (4) iterating on **visuals**—a good figure often reveals missing narrative steps. Remember: *writing is thinking*; each revision forces you to resolve ambiguities that would otherwise remain hidden in the code.
+
+*Closing bridge to the next session*  
+By the end of today’s 90‑minute block you will have a **one‑page outline** that maps your own capstone onto the design‑cycle framework, a **reproducibility checklist** tailored to your domain, and a **draft problem paragraph** ready for peer review. In Lab 3 you will transform this outline into a 2‑page draft, exchange it with a partner, and practice responding to reviewer comments—exactly the loop that turns a prototype into a scholarly contribution. Next week we will take that 2‑page draft and reshape it into a conference‑style paper, focusing on narrative arc, audience targeting, and the art of the abstract.
 
 ===== Key Points
 
-* Structure: problem, approach, implementation, evaluation, discussion
-* Clarity, reproducibility
-* Citations, figures, appendix
-* Thesis = competency artifact
-* Documentation = accountability
-* Bridge to future work
-* Writing = thinking
-* Thesis = part of work, not afterthought
+* Hook: high‑stakes prototype → demand for public justification  
+* Failure vignette shows the cost of missing reproducibility artifacts  
+* Thesis as a portable artifact of competence, accountability, and bridge to future work  
+* Writing is an iterative design cycle, not a linear checklist  
+* Reproducibility checklist: data, environment, transformation scripts  
+* Precise citations and purposeful figures act as semantic anchors  
+* Pitfalls: over‑ vs. under‑detailing; strategies: concise problem, section checklists, early feedback, visual iteration  
+* Bridge to Lab 3 and preview of next lecture’s focus on conference‑paper storytelling  
 
 ==== Technical Example
 
-Outline thesis sections. Problem: 1–2 pages. What is the problem? Who has it? Why does it matter? Approach: 2–3 pages. How did you solve it? What is the design? Implementation: 2–3 pages. What did you build? Architecture, key components, customizations. Evaluation: 2–3 pages. Metrics, tasks, results, user feedback. Discussion: 1–2 pages. Limitations, future work. Draft. Share with advisor or peers. Iterate. Submit. Lab: Draft thesis. Iterate with feedback. Submit. The thesis documents the capstone for assessment. See Lab 3 for requirements.
+*Dissecting a real abstract*  
+> *“We present **MediReduce**, a reinforcement‑learning‑based decision‑support system that predicts optimal discharge timing for heart‑failure patients. Using a retrospective cohort of 12 000 admissions from three hospitals, MediReduce achieved a 15 % reduction in 30‑day readmission rates compared to standard practice (p < 0.01). The system integrates electronic health record data, a calibrated Markov decision process, and a clinician‑in‑the‑loop interface. A user study with 20 physicians demonstrated a 2‑minute average decision‑making speedup without compromising safety.”*  
+
+The abstract follows the design‑cycle language: (1) **Problem** (readmission rates), (2) **Approach** (reinforcement learning, Markov decision process), (3) **Implementation** (EHR integration, interface), (4) **Evaluation** (statistical reduction, user study), (5) **Discussion** (speedup, safety). Notice the precise **quantitative claims**, the **cohort size**, and the **p‑value**—all elements that make the claim reproducible and compelling.  
+
+*Reverse‑engineering the abstract* – a 5‑step worksheet  
+
+1. **Highlight the problem** – locate the sentence that states the real‑world pain point.  
+2. **Extract the metric** – write down the exact quantitative improvement (e.g., “15 % reduction”).  
+3. **Identify the data source** – note the cohort size, institutions, and any inclusion criteria.  
+4. **Map the method to the metric** – connect the algorithmic approach (RL + MDP) to the reported improvement.  
+5. **Spot the reproducibility artifacts** – list the missing pieces (code repo, container image, raw data link) that a reviewer would request.  
+
+Students work in pairs, annotate a printed copy of the abstract, and then exchange papers to verify each other’s highlights. The instructor circulates, pointing out common omissions such as version numbers for the RL library or the exact random‑seed used in the user study.
+
+*Typical page‑budget table*  
+
+[cols="1,1,1", options="header"]
+|===
+|Section |Typical pages (30‑page thesis) |Purpose
+
+|Problem |3–5 |Define scope, stakeholders, significance
+|Approach |4–6 |Design rationale, methodology, related work
+|Implementation |6–8 |Architecture, components, code excerpts
+|Evaluation |5–7 |Metrics, experiments, validation, user feedback
+|Discussion |3–4 |Limitations, future work, broader impact
+|===
+
+Use this table as a **planning scaffold**. For a 30‑page limit you can allocate roughly 20 % of the total length to the problem and discussion, and the remaining 80 % to the technical core.  
+
+*Mini‑exercise: abstract‑to‑outline*  
+Spend five minutes turning the highlighted abstract into a **two‑column outline**: left column = section heading, right column = bullet‑point evidence (metric, dataset, method, user‑study result). This outline becomes the backbone of your own thesis abstract and will later be expanded into the full introduction.
 
 ===== Key Points
 
-* Outline sections
-* Draft problem, approach, implementation, evaluation, discussion
-* Iterate with feedback
-* Submit
+* Real abstract demonstrates design‑cycle language and quantitative rigor  
+* 5‑step reverse‑engineering worksheet turns any abstract into a checklist  
+* Page‑budget table guides allocation of space per section for a 30‑page thesis  
+* Pair‑review of highlighted abstracts surfaces missing reproducibility artifacts  
+* Mini‑exercise produces a concrete outline that seeds the full thesis draft  
 
 ==== Philosophical Reflection
 
-Documentation as accountability: we write to be scrutinized. The thesis is a public claim. You say: I built this, it works, here is the evidence. Readers can verify, question, extend. That accountability is central to academic work. The thesis as bridge: it connects your work to the future. Future readers—including your future self—will use it. What do they need to know? What would they want to build on? Writing is thinking: the act of writing forces clarification. Vague ideas become precise when we commit them to text. The thesis is not an afterthought—it is part of the work. It shapes what we build and what we learn.
+*Writing as cognition*  
+The phrase “writing is thinking” is supported by cognitive research on the **generation effect**: learners who generate material (by writing) recall it better than those who merely read it. When you translate a vague mental model into sentences, you must choose terminology, order arguments, and resolve contradictions. This externalization makes hidden assumptions visible, forcing you to either justify or discard them. In the context of a thesis, the act of drafting each section is a **thinking‑through** of the research decisions you already made, often revealing design flaws before they become costly implementation bugs.
+
+*Case study: the reproducibility crisis in AI health*  
+In 2022 a high‑profile paper claimed that a deep‑learning model could predict sepsis onset with 92 % AUROC. Six months later the authors retracted the work because the public dataset they used was later found to contain mislabeled timestamps, and the code repository had been deleted. A follow‑up analysis showed that **only 38 % of AI‑health papers provide full code and environment specifications** (Nature Medicine, 2023). The fallout was not merely academic embarrassment; hospitals that had begun pilot deployments paused their projects, and funding agencies tightened their data‑sharing requirements. This episode illustrates that a thesis is a **public claim** with ethical weight: by providing full reproducibility artifacts you protect patients, clinicians, and the broader research community from downstream harm.
+
+*Ethical responsibility and lasting narrative*  
+A thesis is a permanent record that may be cited years after you graduate. The ethical responsibility therefore extends beyond the immediate defense: you are curating a narrative that future researchers will inherit. Acknowledging limitations in the Discussion is not a sign of weakness; it is an act of intellectual honesty that guides others toward the most promising avenues. Moreover, the **story** you tell—what problem you solved, why it mattered, and how you did it—shapes how the field perceives your contribution.  
+
+*Reflective prompt*  
+Imagine that ten years from now a historian of AI discovers only a single paragraph of your thesis, preserved in a digital archive. *What sentence would you want that paragraph to contain?* Would it convey the core problem, the novelty of your approach, or the societal impact you hoped to achieve? This thought experiment highlights the **lasting narrative power** of the thesis: beyond the technical details, it is a story you tell about why you mattered at a particular moment in the evolution of the field.
 
 ===== Key Points
 
-* Documentation = accountability
-* Thesis = public claim
-* Bridge to future
-* Writing = thinking
-* Thesis = part of work
+* Writing activates the generation effect, improving recall and exposing hidden assumptions  
+* Case study of a retracted AI‑health paper illustrates the reproducibility crisis (38 % code availability)  
+* Thesis as a public claim carries ethical responsibility for transparency and honesty  
+* Acknowledging limitations guides future work and builds trust  
+* Reflective prompt stresses the lasting narrative impact of the thesis  
+* Bridge to next lecture: turning the thesis narrative into a conference‑paper story  
 
-.Figure 12.6: Thesis structure template
-[plantuml,ch12-l06,png,theme=sketchy-outline]
+.Figure 12.6: Iterative thesis‑writing workflow (revised)
+[plantuml,ch12-l06-iterative,png,theme=sketchy-outline]
 ....
 @startuml
+|Advisor|
 start
-:Problem;
-:Approach;
-:Implementation;
-:Evaluation;
-:Discussion;
+:Begin Writing Cycle;
+:Draft Problem;
+:Draft Approach;
+:Draft Implementation;
+:Draft Evaluation;
+:Draft Discussion;
+if (Advisor feedback?) then (yes)
+  :Revise selected sections;
+  -->[back] start
+endif
+|Committee|
+note right: Final Committee Review\n(questions, revisions)
+if (Committee requires changes?) then (yes)
+  :Address major flaws;
+  -->[back] start
+endif
 stop
+@enduml
+....
+
+.Figure 12.7: Reader‑persona map (revised)
+[plantuml,ch12-l07-reader-map,png,theme=sketchy-outline]
+....
+@startuml
+title Who Reads Your Thesis and What They Look For
+actor Faculty as F
+actor IndustryPeer as I
+actor FutureSelf as S
+rectangle "Thesis Sections" {
+  (Problem) --> (Approach)
+  (Approach) --> (Implementation)
+  (Implementation) --> (Evaluation)
+  (Evaluation) --> (Discussion)
+}
+F --> (Problem) : wants motivation\n(blue)
+F --> (Evaluation) : demands rigor\n(red)
+I --> (Implementation) : seeks reusable components\n(green)
+I --> (Discussion) : looks for tech transfer\n(green)
+S --> (Discussion) : plans next project\n(blue)
+note right of (Discussion) : Dashed arrows = feedback\n(black)
+F -[#black,dashed]-> (Discussion) : comments / future work
+I -[#black,dashed]-> (Discussion) : comments / future work
+S -[#black,dashed]-> (Discussion) : comments / future work
+legend right
+  |#blue| Motivation |
+  |#red| Rigor |
+  |#green| Reuse |
+  |#black,dashed| Feedback |
+endlegend
 @enduml
 ....
 
 ==== Discussion Prompts
 
-* How much technical detail belongs in the thesis?
-* How do we write for multiple audiences (faculty, peers, future readers)?
-* What does "reproducibility" require? What would someone need to replicate your work?
-* How do we balance clarity and completeness?
-* What is the role of the thesis in graduate education?
-* How does writing the thesis change your understanding of the work?
+* How much technical detail belongs in the thesis versus supplemental material?
+* In what ways does writing the thesis change your understanding of the research problem?
+* What does “reproducibility” require in AI‑health versus pure software research?
+* How can you balance the competing needs of faculty reviewers, industry peers, and your future self?
+* What role should a thesis play in the broader ecosystem of open science and public accountability?
+* How does the narrative you craft in the thesis influence the impact of your work beyond academia?
 
 ==== Lab Prep
 
-Draft the thesis. Use structure: problem, approach, implementation, evaluation, discussion. Iterate with feedback. Submit. The thesis documents the capstone for assessment. Aim for clarity and completeness. See Lab 3 for requirements.
+In Lab 3 you will turn today’s outline into a **two‑page draft** that includes a problem paragraph, a concise approach description, and a sketch of your evaluation plan. Follow these steps:
+
+1. **Outline** – Use the page‑budget table to allocate space for each section of your capstone.  
+2. **Draft** – Write a 150‑word problem paragraph (you already drafted this in class) and a 250‑word approach paragraph.  
+3. **Peer Review** – Pair up, exchange drafts, and apply the rubric: (a) clarity of problem, (b) justification of approach, (c) evidence of reproducibility.  
+4. **Iterate** – Incorporate feedback, add a minimal figure (e.g., system architecture) and a reproducibility checklist.  
+5. **Submit** – Upload the two‑page draft to the course portal; the instructor will provide a reviewer comment sheet for the next class.
 
 ===== Key Points
 
-* Draft thesis
-* Structure: problem, approach, implementation, evaluation, discussion
-* Iterate, submit
-
+* Use page‑budget table to plan section lengths  
+* Draft problem and approach paragraphs in class  
+* Peer‑review using a focused rubric (clarity, justification, reproducibility)  
+* Add a minimal figure and a reproducibility checklist before submission  
+* Instructor feedback will generate reviewer comments for the next iteration  
 
 ==== Reading
 For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch12,Chapter 12>>).

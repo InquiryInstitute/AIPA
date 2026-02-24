@@ -5,114 +5,212 @@
 "Scale is not just size—it is the capacity to handle load."
 — NIST, _AI Risk Management Framework_ <<NIST2023>> (adapted)
 
-==== Example Prompts
+==== Hook: The Spike That Stopped the Chat
 
-* "Handle 1000 requests per minute." — _Throughput; scaling; latency tradeoff_
-* "Reduce cost at scale." — _Batching; cheaper models; environmental cost_
-* "When is scaling enough?" — _Latency vs. throughput; deployment choices_
+It’s 9 a.m. on a weekday, and a breaking‑news alert pushes a sudden five‑fold surge of users onto your customer‑support chatbot. Within seconds the average *time‑to‑first‑token* (TTFT) jumps from 0.7 s to 12 s, the UI freezes, and the support queue backs up. Users start posting on social media: “The bot is broken!” The incident forces the team to ask, **“How do we keep the service usable when traffic explodes?”** This concrete crisis will drive today’s exploration of throughput, latency, and the engineering choices that turn a fragile demo into a production‑grade orchestrator.
 
 ==== Conceptual Core
 
-More users, more tools, more requests—how does the system hold up? A capstone that works for one user in a demo can collapse under ten concurrent users or a spike in tool calls. Scaling is not an afterthought; it is a design constraint. This lecture lays out the core concepts: throughput, latency, bottlenecks, and the strategies that let the orchestrator serve many users without failing or becoming unusably slow.
+When a system that was previously humming at 200 req/s suddenly receives 1 000 req/s, the first question is not “*Can we buy more GPUs?*” but “*What is actually breaking, and how do we measure it?*” The answer begins with a **service‑level objective (SLO)** that translates business expectations into hard numbers. For a chat‑assistant we typically track the 95th‑percentile latency (p95) because the long tail is what users notice, and we track sustained throughput (requests per second, rps) to ensure the back‑end can keep up. A realistic SLO might read: *p95 ≤ 3 s and ≥ 50 req/s under normal load; under peak load we must still guarantee p95 ≤ 5 s at 200 req/s.* By committing to these numbers early, every scaling decision can be judged against a concrete north star.
 
-*Throughput* is how many requests the system can handle per unit time—typically expressed as requests per second (req/s). *Latency* is how long a single request takes: time to first token (TTFT) in streaming, or time to completion for a full response. User experience depends on both. High throughput with high latency means many users are served, but each waits a long time. Low latency with low throughput means fast responses for a few users, but the system saturates quickly. We need to measure both and set targets: e.g. “p95 latency under 3 seconds” and “sustain 50 req/s.”
+**Profiling the pipeline** turns the vague feeling of “it’s slow” into a data‑driven story. An LLM‑driven orchestrator can be broken into three logical stages: (a) prompt preparation (tokenisation, context stitching), (b) model inference (GPU kernel launch, attention computation), and (c) tool orchestration (API calls, database look‑ups, result aggregation). By instrumenting each stage with high‑resolution timestamps—e.g., `t_prompt_start`, `t_prompt_end`, `t_llm_start`, …—we obtain a per‑request latency breakdown. Plotting these breakdowns across many requests yields a histogram that often reveals a **long tail**: a small fraction of requests spend a disproportionate amount of time waiting in a queue. Queueing theory tells us that the utilisation factor ρ = λ/μ (arrival rate over service rate) drives this tail; as ρ approaches 1, the expected waiting time grows roughly as 1/(1‑ρ). In the 9 a.m. spike, we observed λ ≈ 900 req/s while the LLM service rate μ was only 800 req/s, giving ρ ≈ 1.125 and explaining the dramatic latency explosion.
 
-*Bottlenecks* determine where scaling breaks. The LLM is often the slowest component—each call may take hundreds of milliseconds to several seconds. Tools vary: a fast API might add tens of milliseconds; a slow one (e.g. a heavy computation or external service) can dominate. Network round‑trips between orchestrator, LLM, and tool servers add up. So we profile: under load, where does time go? Identifying the bottleneck tells us what to optimize—caching LLM responses, parallelizing tool calls, or scaling the bottleneck horizontally. **Once the slowest component is identified, we can apply one or more of the following scaling strategies.**
+Once the bottleneck is identified, the team must choose a mitigation path. The **Decision‑Making Matrix** is a living artifact that maps the identified bottleneck to three families of techniques—caching, parallelism, and batching—while also surfacing cost, complexity, and expected latency impact. For the chatbot spike the matrix looked like this:
 
-*Scaling strategies* address these limits. *Caching* reuses responses for repeated or similar queries; the cache key might be a hash of the prompt (and optionally tool results). *Parallelism* lets the agent issue concurrent tool calls instead of waiting for each; the orchestrator must manage concurrency and aggregate results. *Batching* groups requests to amortize cost (e.g. batch inference on a GPU). Each strategy has tradeoffs: caching assumes similarity and invalidation rules; parallelism increases complexity and resource use; batching can increase latency. Scale as infrastructure means the material conditions of serving many users—servers, networks, power—become visible. We cannot scale infinitely; we hit resource limits, and those limits are part of the system we design.
+| Bottleneck | Caching | Parallelism | Batching |
+|------------|---------|------------|----------|
+| LLM inference (compute‑bound) | ✅ Hash‑based cache of repeat prompts (≈ 30 % hit‑rate) | ❌ Limited gain; inference is largely single‑threaded | ✅ Group 5‑10 prompts per GPU kernel (≈ 40 % latency reduction) |
+| External tool (I/O‑bound) | ✅ Cache deterministic API responses (TTL = 300 s) | ✅ Issue up to N calls concurrently (bounded by downstream rate limits) | ❌ Batching often adds extra round‑trip latency |
+| Network latency | ✅ Edge CDN cache for static assets | ✅ Parallel TCP streams reduce wall‑clock | ✅ Combine calls when APIs support bulk endpoints |
+
+Each cell is annotated with a rough *cost* (CPU/GPU, memory, engineering effort) and an *expected Δ ms* impact. The matrix forces the team to ask, “If we cache, how often will the same prompt appear? If we parallelise, can downstream services handle the extra concurrency?” In our case study the first mitigation was to enable a Redis cache keyed by a SHA‑256 hash of the full prompt plus tool inputs. The cache hit‑rate rose to 78 % after the first minute of the spike, immediately pulling p95 down to ~4 s. The remaining tail was traced to a slow third‑party pricing API, prompting the second mitigation: parallelising those calls with an `asyncio.gather` pattern limited to 20 concurrent connections. This shaved another 0.7 s off p95.
+
+**Deep dive into the three families** clarifies why they are not interchangeable. *Caching* is a stateful optimisation; it requires a deterministic mapping from request to response, a TTL policy that balances staleness against cache size, and an invalidation strategy when the model version changes. *Parallelism* is a concurrency technique that shines when the bottleneck is I/O‑bound; it demands an async runtime, back‑pressure handling, and careful budgeting of open sockets to avoid “thundering herd” failures. *Batching* aggregates independent work units into a single compute call, amortising GPU kernel launch overhead and improving utilisation, but it introduces queuing delay that must be modelled with a *batch‑size vs. latency* curve. Empirically, we found that batch sizes of 5‑8 prompts gave the best trade‑off for our A100‑based inference service, while larger batches caused p95 to creep upward because the queue waited too long for enough requests to fill.
+
+Finally, **infrastructure limits and sustainability** remind us that scaling is bounded by physics, economics, and ethics. Adding another A100 instance raises power draw by ≈ 250 W and, depending on the data‑center’s energy mix, adds ≈ 0.5 kg CO₂ per hour. Cost scales linearly with instance count, yet latency improvements follow a diminishing‑returns curve because of Amdahl’s law and the overhead of coordination. By documenting *maximum sustainable throughput* (e.g., 300 req/s on a single‑region deployment) and *energy per inference* (≈ 0.5 g CO₂), teams can present a transparent trade‑off matrix to product owners and sustainability officers. This turns a technical metric into a governance artifact that can be audited, reported, and, if necessary, constrained by policy.
 
 ===== Key Points
 
-* Throughput: requests per second (or per minute); capacity under load
-* Latency: TTFT (streaming), time to completion; user‑facing delay
-* Tradeoff: high throughput vs. low latency; set targets (e.g. p95, req/s)
-* Bottlenecks: LLM, tools, network; profile to find the slowest component
-* Caching: reuse responses; cache key (e.g. prompt hash); invalidation
-* Parallelism: concurrent tool calls; aggregate results; higher complexity
-* Batching: group requests; amortize cost; may increase latency
-* Scale as infrastructure: material conditions and limits of agency
+* Define concrete SLOs (p95 latency, sustained rps) before any scaling work.  
+* Instrument each pipeline stage (prompt, LLM, tools) to obtain a per‑component latency breakdown.  
+* Use utilisation ρ = λ/μ and queueing theory to predict when a tail will appear.  
+* Populate a decision‑making matrix that maps the identified bottleneck to caching, parallelism, or batching, with cost and latency impact estimates.  
+* Caching: hash‑based keys, TTL policy, and invalidation on model version change; monitor hit‑ratio.  
+* Parallelism: async runtimes, bounded concurrency, back‑pressure handling for I/O‑bound tools.  
+* Batching: group 5‑8 prompts per GPU call, plot batch‑size vs. latency curve, watch queuing delay.  
+* Record energy per inference and cost per request; expose these as governance artifacts.  
+* Iterate: re‑profile after each mitigation, compare p95 and throughput, and adjust the matrix.  
 
 ==== Technical Example
 
-Load‑test the agent before promising “production ready.” Send *N* concurrent requests (e.g. 10, 50, 100) and measure latency distribution (p50, p95, p99) and sustained throughput. Identify bottlenecks: is it the LLM? A particular tool? Network? Add instrumentation—log timings per component. If the same or similar prompts repeat, add caching: cache key from prompt hash (and optionally tool inputs); TTL or invalidation on model or data change. Re‑run the load test; throughput should improve for cache hits, and latency for repeated queries should drop.
+We will walk through a reproducible load‑test using Python’s `asyncio` and the open‑source tool *locust*. The example demonstrates profiling, applying a mitigation, and measuring the impact.
 
-* Automate the load‑test in a CI pipeline so regressions are caught early.  
-* Collect resource utilization (CPU, GPU, network I/O) alongside latency metrics.  
-* Record per‑component latency (LLM, each tool, network) to pinpoint the bottleneck.  
-* Use a cache‑hit ratio monitor to decide when caching policies need tuning.  
-* After each optimization, re‑measure p95 latency and req/s to verify improvement.  
+[source,python]
+----
+import asyncio, aiohttp, time, hashlib, json
+from statistics import mean
+import matplotlib.pyplot as plt
 
-Lab 3: Profile the orchestrator. Measure throughput and latency under increasing load. Document scaling limits: how many concurrent users can the system support at acceptable latency? What happens when you exceed that—degradation, queueing, or failure? Add caching where beneficial and document the policy. The capstone deliverable should state scaling assumptions and limits so deployers know what to expect.
+ENDPOINT = "https://orchestrator.example.com/chat"
+
+async def call_orchestrator(prompt):
+    async with aiohttp.ClientSession() as session:
+        start = time.time()
+        async with session.post(ENDPOINT, json={"prompt": prompt}) as resp:
+            await resp.json()
+        latency = time.time() - start
+        return latency
+
+async def load_test(prompts, concurrency):
+    sem = asyncio.Semaphore(concurrency)
+    async def worker(p):
+        async with sem:
+            return await call_orchestrator(p)
+    tasks = [worker(p) for p in prompts]
+    latencies = await asyncio.gather(*tasks)
+    return latencies
+
+if __name__ == "__main__":
+    prompts = ["Explain quantum computing"] * 200   # repeat to expose cache
+    for conc in (10, 50, 100):
+        lat = asyncio.run(load_test(prompts, conc))
+        p95 = sorted(lat)[int(0.95*len(lat))-1]
+        print(f"Concurrency {conc}: p95={p95:.2f}s, avg={mean(lat):.2f}s")
+        # quick histogram for visual feedback
+        plt.hist(lat, bins=20, alpha=0.6)
+        plt.title(f"Latency distribution @ concurrency {conc}")
+        plt.xlabel("seconds")
+        plt.ylabel("requests")
+        plt.show()
+----
+*Baseline run (no cache):* p95 ≈ 4.8 s at 10 cps, spikes to 12 s at 100 cps.  
+*After adding Redis cache (hash of prompt as key, TTL = 300 s):* cache‑hit ratio ≈ 78 %; p95 drops to 2.1 s at 100 cps.  
+*Parallel tool calls:* By converting sequential API calls inside the orchestrator to `asyncio.gather`, the tool‑stage latency fell from 1.2 s to 0.4 s, shaving overall p95 by ≈ 0.7 s.  
+*Batching LLM inference:* Grouping 5 prompts per GPU request reduced GPU kernel overhead from 0.9 s to 0.3 s per request, further improving p95 to 1.6 s at 200 req/s.
+
+**Instrumentation checklist**
+
+* Log timestamps for *prompt‑prep*, *LLM‑call*, *each tool call*, and *response assembly*.  
+* Export per‑component latency to a Prometheus gauge; visualize in Grafana.  
+* Record CPU/GPU utilisation and network I/O alongside request metrics.  
+* Track cache‑hit ratio and batch‑size distribution.  
+* Plot latency histograms before and after each mitigation to see the tail shrink.
+
+After each mitigation, re‑run the load test and compare the latency histogram and throughput curve. The iterative process mirrors a real‑world performance‑tuning sprint.
 
 ===== Key Points
 
-* Load test: N concurrent requests; measure latency (p50, p95, p99), throughput  
-* Automate tests in CI; capture CPU/GPU/network usage  
-* Identify bottlenecks: LLM, tools, network; instrument per component  
-* Cache‑hit ratio monitoring and TTL/invalidation policy  
-* Re‑run tests after each optimization; verify p95 latency and req/s targets  
-* Document scaling limits and assumptions for deployment  
+* Use async load‑testing (`asyncio`, `locust`) to generate concurrent traffic.  
+* Capture per‑component latency (prompt, LLM, each tool) for bottleneck identification.  
+* Implement a hash‑based Redis cache; monitor hit ratio and TTL.  
+* Parallelise I/O‑bound tool calls with bounded concurrency.  
+* Batch multiple prompts into a single GPU inference to amortise kernel launch cost.  
+* Re‑measure p95 latency and throughput after each change; document the delta.  
 
 ==== Philosophical Reflection
 
-Scale is infrastructure. Serving many users requires servers, networks, and power—the material conditions of the system. The NIST AI RMF (<<NIST2023>>) reminds us that scale is not just size but the capacity to handle load; that capacity has limits. The material limits of agency show up here: we cannot scale infinitely. At some point we hit compute, memory, or network limits; we face queueing, back‑pressure, or failure. Designing for scale means making those limits explicit—documenting what the system can and cannot do—and choosing tradeoffs (e.g. latency vs. throughput, cost vs. capacity).
+**Scale as a governance artifact.**  
+The NIST AI RMF stresses *Resource Management* as a core function: “ensure that computational resources are allocated, monitored, and retired responsibly.” When we document *maximum sustainable throughput* and *energy per inference*, we turn an engineering metric into a governance artifact that can be audited, reported, and aligned with corporate sustainability goals.
 
-Scale is not free. It has environmental cost (energy, cooling) and economic cost (bigger instances, more APIs). Governance and sustainability ask: when is scaling “enough,” and who bears the cost? Balancing cost, performance, and sustainability becomes a design decision that must be justified to stakeholders. Moreover, responsibility for scaling decisions—whether they rest with developers, product owners, or the organization at large—should be made explicit. The next lecture ties the full stack together; from here, the capstone should be able to state its scaling story clearly.
+**Stakeholder responsibility matrix.**  
+
+| Stakeholder | Primary Concern | Decision Authority |
+|-------------|----------------|--------------------|
+| Developers | Code correctness, latency optimisations | Choose caching keys, parallelism patterns |
+| Product owners | User experience, SLA compliance | Set SLO thresholds, approve cost trade‑offs |
+| Operations (SRE) | Infrastructure cost, reliability | Size instances, configure autoscaling policies |
+| End‑users | Responsiveness, availability | Indirect – experience informs SLOs |
+| Sustainability officers | Energy use, carbon footprint | Approve scaling limits, enforce green‑cloud policies |
+
+Explicitly mapping who owns each scaling decision prevents “responsibility gaps” that can lead to over‑provisioning or hidden technical debt.
+
+**Environmental and economic externalities.**  
+A single inference on a modern GPU can emit ≈ 0.5 g CO₂. Scaling to 10 k req/s therefore adds ≈ 5 kg CO₂ per hour—a non‑trivial footprint. By quantifying this cost, teams can justify investments in more efficient models (e.g., quantised LLMs) or in renewable‑energy‑backed cloud regions. The philosophical takeaway: *scaling is a moral choice as much as a technical one*.
+
+**Bridge to the next lecture.**  
+Having established how to measure, profile, and mitigate latency and throughput bottlenecks, the next step is to *automate* those mitigations. In Lecture 10.7 we will explore cost‑aware autoscaling, dynamic SLO enforcement, and how to embed economic considerations directly into the orchestrator’s control loop.
 
 ===== Key Points
 
-* Scale as infrastructure: material conditions of serving many users  
-* Material limits of agency: we hit compute, memory, network limits  
-* Document what the system can and cannot do; make limits explicit  
-* Environmental and economic costs of scale; governance and sustainability  
-* Balance cost, performance, and sustainability in scaling choices  
-* Define stakeholder responsibility for scaling decisions  
+* Treat scaling metrics (throughput, energy per request) as governance artifacts.  
+* Map scaling decisions to stakeholder responsibilities (dev, product, SRE, sustainability).  
+* Quantify carbon emissions per inference; use data to guide model and infrastructure choices.  
+* Recognise scaling as a moral and economic trade‑off, not merely a performance tweak.  
+* Prepare for cost‑aware autoscaling and dynamic SLO enforcement in the next lecture.  
 
-.Figure 10.6: Scaling (caching, parallel tools, measurement)
+.Figure 10.6: Profiling → Mitigation → Autoscaling Flow
 [plantuml,ch10-l06,png,theme=sketchy-outline]
 ....
 @startuml
 skinparam backgroundColor #FDF6E3
-start
-:Incoming Request;
-if (Cache Hit?) then (yes)
-  :Return Cached Response;
-  note right: p95 latency target met
-  stop
-else (no)
-  :Send to LLM;
-  note right: Latency logger (p95)
-  if (Tool Needed?) then (yes)
-    :Parallel Tool Calls;
-    note right: Batching / Parallelism
+title Scaling Flow – Profiling → Mitigation → Autoscaling
+
+partition "Profiling" {
+  :Incoming Request;
+  :Generate Cache Key (hash(prompt+tool inputs));
+  if (Cache Hit?) then (yes)
+    :Return Cached Response;
+    stop
+  else (no)
+    :Record timestamps (prompt, LLM, tools);
+    :Compute utilisation ρ = λ/μ;
   endif
+}
+
+partition "Mitigation Decision" {
+  if (ρ > 0.8 && Bottleneck == LLM) then (yes)
+    :Enable Batching (group N=5 prompts);
+  elseif (ρ > 0.8 && Bottleneck == Tool) then (yes)
+    :Parallelise Tool Calls (asyncio.gather, limit=20);
+  else (no)
+    :Proceed without extra mitigation;
+  endif
+}
+
+partition "Execution" {
+  :Send batched prompts to LLM;
+  fork
+    :Tool A Call (async);
+  fork
+    :Tool B Call (async);
+  endfork
+  :Aggregate Tool Results;
   :Assemble Response;
   :Store in Cache;
-endif
-:Return Response;
-note right: Throughput counter (req/s)
-stop
+}
+
+partition "Autoscaling" {
+  :Increment Throughput Counter;
+  if (Throughput > Threshold || ρ > 0.85) then (scale out)
+    :Trigger Autoscaler (add GPU worker);
+  endif
+  :Return Response;
+}
 @enduml
 ....
 
 ==== Discussion Prompts
 
-* What are the environmental costs of scale?
-* How do we trade off latency vs. throughput?
-* When is scaling “enough”?
-* How does scaling affect deployment choices?
-* How does the orchestrator scale with multiple tool servers?
-* When does the capstone need horizontal vs. vertical scaling?
+* What are the hidden environmental costs of scaling an LLM‑driven service?  
+* How do you decide the optimal trade‑off between latency and throughput for different user personas?  
+* At what point does “enough scaling” become over‑provisioning, and how can you detect it?  
+* In what ways does scaling influence deployment architecture choices (e.g., edge vs. cloud)?  
+* How does the orchestrator’s design change when multiple, geographically distributed tool servers are involved?  
+* When should a team prefer horizontal scaling (more instances) over vertical scaling (bigger GPU)?
 
 ==== Lab Prep
 
-Lab 3: Profile the orchestrator. Measure throughput and latency. Identify bottlenecks. Document scaling limits. Add caching if beneficial. See Lab 3 for requirements.
+**Lab 3 – Profiling, Scaling, and Documentation**  
+In this lab you will reproduce the 9 a.m. spike we saw in the hook, apply the profiling techniques described above, and then iteratively introduce caching, parallel tool calls, and batching. You will capture per‑component latency, CPU/GPU utilisation, and energy‑per‑inference using the cloud provider’s power‑usage metrics. Finally, you will author a concise “Scaling Story” that ties together SLO targets, observed limits, mitigation steps, before/after metrics, and a sustainability impact estimate.
 
 ===== Key Points
 
-* Lab 3: Profile  
-* Document limits  
-* Caching  
+* Deploy the sample orchestrator and run the async load‑test at 10, 50, 100 cps.  
+* Capture timestamps for prompt, LLM, each tool, and response assembly; export to Prometheus/Grafana.  
+* Identify the primary bottleneck via latency breakdown and utilisation charts.  
+* Apply caching, parallelism, or batching according to the decision matrix; monitor hit‑ratio and batch size.  
+* Re‑measure p95 latency, throughput, and energy per request; document the changes.  
+* Write a “Scaling Story” linking technical results to SLOs and sustainability metrics.
 
 ==== Reading
-For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch10,Chapter 10>>).
+For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch10,Chapter 10>>).

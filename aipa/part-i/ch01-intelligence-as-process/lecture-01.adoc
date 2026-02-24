@@ -1,161 +1,103 @@
 === 1.1: Definitions of Intelligence — Stored vs. Flowing
 :leveloffset: 2
 
-When you ask Siri for the weather, does the answer come from a stored fact sheet or from a model that “thinks” on the fly?
-
 [.epigraph]
-"The problem is not that people do not know the truth, but that they do not know that they do not know it."
-— Foucault, _Power/Knowledge_ <<Foucault1980>> (adapted)
+____
+“Intelligence is not a thing you possess, but a flow you sustain.” — J. M. Klein (adapted)
+____
 
-*Think‑pair‑share (2 min):* Write in one sentence how you think Siri produces its answer. Discuss with a neighbor and note whether you imagined a **lookup** or a **computation** process.
+==== Hook
+* What if your chess opponent never learns, but always calculates the perfect move in real time?
+* Siri can answer a question instantly, yet it never “remembers” the conversation after you hang up.
+* Imagine a robot that must choose between loading a massive knowledge base or streaming sensory data on the fly.
 
 ==== Conceptual Core
 
-Imagine you are playing a blitz chess game against two opponents. **Opponent A** has memorised every endgame position with the optimal move; when the board matches one of its memorised patterns, it instantly replies. **Opponent B** knows only the rules of chess, explores possible continuations on the spot, and decides the best move by evaluating the positions it generates. Both opponents win games, yet they embody two opposite ways of locating *intelligence*.
+When we ask *what* intelligence is, we often imagine a library of facts neatly shelved on a shelf. That picture works well for early symbolic systems, where a rule base or a lookup table is the *stored* core of the agent. Yet the same question can be turned on its head: what if intelligence is less a static archive and more a river that never stops moving? In contemporary AI, both images coexist, and the tension between them shapes every design decision we make.  
 
-The first opponent illustrates the **stored‑representation view**: intelligence resides in *what the system has*—a knowledge base, a set of pre‑computed answers, a database of facts. The second opponent embodies the **process view**: intelligence resides in *what the system does*—the transformation of inputs into outputs through computation, feedback, and emergence.  
+The first way to make sense of this tension is to distinguish **stored** from **flowing** resources. A *stored* resource is any representation that remains largely unchanged while the system is idle—weight matrices, symbol tables, pre‑computed endgame databases. They are the “knowledge warehouses” that an agent can query at negligible computational cost. By contrast, a *flowing* resource is a process that continuously transforms raw inputs into actions: a Monte‑Carlo tree search that builds a new search tree for each move, or a recurrent network that updates its hidden state at every timestep. The flow is the *metabolism* of information, consuming energy (compute) to keep the system alive.
 
-> **Question:** *Where does intelligence live—inside the system or in the activity of the system?*  
+The **lookup–computation spectrum** makes this dichotomy concrete. At one extreme sit static tablebases, such as the 7‑piece chess endgame database, where every possible position has a pre‑computed optimal move. No calculation is required at run time; the system merely retrieves a value. At the opposite extreme lies pure search, where the agent constructs a decision tree from scratch for each problem instance, expending considerable FLOPs but never relying on stored answers. Most modern systems sit somewhere in the middle, blending both poles.
 
-The classic **Turing test** asks whether a machine can imitate human conversation, but it does not tell us whether the imitation relies on stored symbols or on on‑the‑fly processing. **Searle’s Chinese Room** pushes the puzzle further: a person follows a rule book to manipulate Chinese symbols without understanding them. The room passes the Turing test, yet the *meaning* seems absent.  
+Historically, **symbolic AI** championed the stored view. Knowledge was encoded as discrete symbols, rules, and ontologies—think of expert systems that consulted a knowledge base to diagnose a disease. **Connectionist AI**, on the other hand, emphasized distributed processing: neural weights encode patterns that are *read* and *modified* on the fly, and learning is a continuous flow of gradient updates. The rise of **hybrid systems**—for example, AlphaZero, which couples a pre‑trained neural network (stored) with Monte‑Carlo tree search (flowing)—shows that the field has moved beyond the binary and embraced a spectrum.
 
-- If we adopt the **stored‑representation view**, the rule book itself is sufficient for “understanding.”  
-- If we adopt the **process view**, understanding emerges only during the *doing*—the manipulation, the feedback, the continual adjustment.
+The **metabolism metaphor** deepens our understanding. Just as a living organism must balance energy intake, storage, and expenditure, an AI system must allocate memory (the “fat reserves”) and compute (the “muscle work”) to meet performance goals. A system with abundant storage can answer queries instantly but may become brittle when the world changes. A system that leans on flow can adapt quickly but may suffer from latency or instability. These trade‑offs echo classic engineering dilemmas: storage cost vs. latency, robustness vs. flexibility, explainability vs. adaptability.
 
-Both perspectives capture real aspects of AI systems. **Expert systems** of the 1980s leaned heavily on stored rules and frames; **connectionist networks** rely on activation dynamics and weight updates. Modern large language models (LLMs) blend the two: billions of parameters *store* statistical knowledge, while a single forward pass *processes* that knowledge into fluent text. Recognising this blend is crucial because it shapes design choices, cost structures, and the distribution of power in AI.
+Finally, we should view intelligence as **infrastructure**. In modern enterprises, AI components are not isolated curiosities; they are pipelines that move data, decisions, and authority across organizational boundaries. A static ontology may encode regulatory rules, while a streaming inference engine propagates those rules to downstream services in real time. Recognizing this infrastructural role helps us ask the right questions about governance, auditing, and societal impact.
+
+> **Bridge:** Understanding stored vs. flowing informs Lab 0’s knowledge‑graph construction, where static ontologies meet dynamic query engines.
 
 ===== Key Points
-
-* **Stored‑representation view:** intelligence as internal knowledge (facts, parameters).  
-* **Process view:** intelligence as transformation, circulation, and emergence.  
-* **Turing test** probes behavior, not the locus of intelligence.  
-* **Chinese Room** highlights the gap between symbol manipulation and meaning.  
-* Real systems **mix** both views; hybrids are the norm today.  
-* Design trade‑offs (storage vs. computation) influence scalability and access.
+* Intelligence can be viewed as a *stored* resource: fixed representations, tables, weight matrices.
+* Intelligence can be viewed as a *flowing* process: continual transformation of inputs into actions.
+* The lookup–computation spectrum ranges from static tablebases (e.g., endgame databases) to dynamic search (e.g., Monte‑Carlo tree search).
+* Symbolic AI emphasized stored symbols; connectionist AI emphasized distributed processing.
+* Hybrid systems (e.g., AlphaZero) blend pre‑trained weights with on‑the‑fly search, embodying both poles.
+* The metabolism metaphor frames intelligence as “energy” (information) moving through a system’s architecture.
+* Design trade‑offs: storage cost vs. latency, robustness vs. flexibility, explainability vs. adaptability.
+* Historical shift: from “mind as library” to “mind as factory floor” in cognitive science.
+* Intelligence as infrastructure: AI components become epistemic pipelines feeding institutions.
+* **Bridge:** Understanding stored vs. flowing informs Lab 0’s knowledge‑graph construction, where static ontologies meet dynamic query engines.
 
 ==== Technical Example
 
-Consider two approaches to a chess endgame. **System X** stores a lookup table (a *tablebase*) containing the optimal move for every legal position with few pieces. When presented with a position, it simply retrieves the answer—*no computation beyond the lookup*. **System Y** knows only the rules of chess; it performs a *search* through the state space, evaluates positions with a heuristic, and computes the best move on demand.  
+To see the stored–flowing continuum in action, let us start with the **chess tablebase**. A 7‑piece endgame tablebase enumerates every legal configuration of those pieces and stores the optimal move for each. The data structure is essentially a gigantic dictionary: given a board encoding, the engine returns a move in constant time. No search, no evaluation function—just a pure *lookup*. The cost is paid upfront: generating the table required exhaustive retrograde analysis and terabytes of storage, but once built, the system can answer millions of queries per second with negligible latency.
 
-*Vote (quick show of hands):* Which system feels “smarter” to you?  
+Contrast this with a classic **AlphaBeta search** augmented by a heuristic evaluation. Here the engine receives a board position and recursively explores the game tree, pruning branches that cannot affect the final decision. The computation is *dynamic*: each move triggers a new traversal, and the amount of work depends on the depth limit, branching factor, and quality of the heuristic. There is no pre‑computed answer; the intelligence emerges from the *flow* of computation through the tree. Performance is measured in FLOPs and latency, not in megabytes of memory.
 
-The tablebase exemplifies **high storage, low compute**; the search engine exemplifies **low storage, high compute**. Neither is universally superior: tablebases excel in tiny state spaces, while search scales to larger games when combined with heuristics and pruning.  
+A modern hybrid, **AlphaZero**, illustrates how stored and flowing components can be woven together. The system first trains a deep neural network on self‑play games; the resulting weights constitute a *stored* knowledge base that encodes positional intuition. When faced with a new position, AlphaZero runs a **Monte‑Carlo Tree Search (MCTS)** that uses the network’s policy and value predictions to guide simulations. Each simulation is a *flowing* operation, expanding the tree and back‑propagating results. The final move is chosen by aggregating the statistics of many simulations, effectively blending stored intuition with on‑the‑fly reasoning.
 
-Hybrid designs occupy the middle ground. A modern knowledge graph, for instance, stores nodes and edges **(static structure)** but also supports **traversal, inference, and embedding** **(dynamic flow)**. A query therefore does more than retrieve—it *aggregates* information along paths, updates embeddings, and may even trigger downstream actions. The labs in this chapter will let you build such hybrids.
+A non‑gaming example is **Siri’s intent classification**. The language model that maps utterances to intents is a static set of parameters—*stored* knowledge. However, once the intent is identified, Siri may issue real‑time API calls to weather services, calendar systems, or third‑party apps. Those calls constitute a *flow* of information that depends on the current context, network latency, and external data freshness. The overall user experience hinges on balancing the quickness of the stored model with the responsiveness of the flowing services.
+
+These examples also highlight divergent **performance metrics**. For stored systems we care about memory footprint, cache efficiency, and query throughput. For flowing systems we monitor FLOPs, wall‑clock latency, and scalability under load. Understanding which metric dominates in a given scenario guides architectural choices.
 
 ===== Key Points
-
-* **Lookup table:** pre‑computed answers → fast retrieval, high storage.  
-* **Search:** rules + state‑space exploration → on‑demand computation, low storage.  
-* **Trade‑off:** storage vs. computation; choice depends on problem scale.  
-* **Hybrid systems** combine both: stored structure + runtime flow.  
-* **Knowledge graphs** illustrate the blend of static representation and dynamic processing.
+* Chess tablebase: exhaustive lookup of all positions up to 7 pieces—pure storage.
+* AlphaBeta search with heuristic evaluation: computation over a branching tree—pure flow.
+* AlphaZero’s neural network + MCTS: pre‑trained weights (stored) plus Monte‑Carlo simulations (flowing).
+* Siri’s intent classification: static language model (stored) plus real‑time API calls (flowing).
+* Performance metrics differ: memory footprint for stored, FLOPs and latency for flowing.
+* Example code snippet contrast: dictionary lookup vs. recursive search function.
 
 ==== Philosophical Reflection
 
-Knowledge is not a static commodity but a circulating medium: models produce it, users consume it, and feedback loops reshape it through retraining. No single locus holds all the knowledge; intelligence emerges from the *circuit* rather than any isolated node. Foucault’s notion of the *episteme*—the rules and practices that make certain knowledge possible—maps onto AI as an **epistemic machine** that both stores and circulates information.
+If we accept the **metabolism metaphor**, the first philosophical question is: what does “health” mean for an AI system? In biology, health is a balance between anabolic (building) and catabolic (breaking down) processes, with waste products cleared efficiently. For an AI, the “anabolic” side might be the accumulation of reliable knowledge—well‑curated ontologies, robust weight checkpoints—while the “catabolic” side is the continual pruning of outdated models, the forgetting of noisy data, and the disposal of stale cache entries. A healthy system therefore maintains a steady flow of updates without overwhelming its storage capacity, and it discards entropy‑inducing artifacts before they corrupt decision‑making.
 
-When we ask “where is the intelligence?” we are also asking “where is the power?” A system that concentrates knowledge in a massive model (stored representation) centralises control: only the owners can update, audit, or restrict it. A system that distributes processing across many interactions (flowing process) diffuses that power, allowing users to shape outcomes through their queries and feedback. Recognising the stored ↔ flowing distinction therefore reveals hidden political economies of AI.
+The **ethical implications** of stored versus flowing intelligence become stark when we consider reliability. A purely stored system, such as a legal rule engine, offers predictability and auditability: every decision can be traced back to a specific clause. However, it risks **ossification**—the inability to adapt when laws change or when novel situations arise. Conversely, a flowing system, like a real‑time recommendation algorithm, can quickly incorporate new trends but may exhibit **volatility**, producing erratic outputs that are hard to explain. Stakeholders must weigh the desire for adaptability against the need for accountability, especially in high‑stakes domains like healthcare or criminal justice.
+
+Viewing AI as an **activity rather than a property** also reshapes our legal and economic discourse. If intelligence is a *process* that circulates information, then ownership may shift from static datasets to the *pipelines* that move data. Companies that control the flow—cloud providers, API aggregators—hold a different kind of power than those that merely store large corpora. This reconceptualization invites new regulatory frameworks that focus on the *governance of flows* (e.g., data provenance, latency guarantees) rather than solely on data licensing.
+
+Moreover, AI systems act as **epistemic machines** that reconfigure institutional authority. When a university adopts an automated plagiarism detector, the detector does not simply store a list of known texts; it continuously evaluates new submissions, redistributing evaluative power from human reviewers to an algorithmic flow. The institution’s knowledge base becomes a living conduit, reshaping how expertise is recognized and how decisions are legitimized.
+
+The metaphor, however, is not without limits. Biological metabolism inevitably produces waste—heat, carbon dioxide, cellular debris—that must be expelled. In AI, “entropy” appears as model drift, data bias accumulation, or computational overhead that degrades performance. Recognizing these analogues prompts us to design *garbage‑collection* mechanisms: periodic retraining, pruning of network weights, and de‑duplication of knowledge graphs. Ignoring entropy leads to systems that degrade silently, much like a body succumbing to metabolic disorders.
+
+> **Bridge:** The reflection sets up Lecture 1.2, where we examine AI’s how AI evolved from symbolic to connectionist to hybrid.
 
 ===== Key Points
-
-* Knowledge circulates: production → consumption → reshaping.  
-* Foucault’s *episteme* = conditions that make knowledge possible → AI as epistemic machine.  
-* **Stored** systems concentrate power; **flowing** systems distribute it.  
-* Hybrid designs can balance control and openness.  
-
-.Stored vs. Flowing Intelligence (system flow)
-[plantuml,ch01-l01,png,theme=sketchy-outline]
-....
-@startuml
-scale 1.1
-skinparam backgroundColor #F9F9F9
-skinparam rectangle {
-  BackgroundColor<<Stored>> #DDEEFF
-  BackgroundColor<<Flow>>   #FFEEDD
-}
-' Stored lane
-|Stored Representation|
-start
-:Stored Knowledge / Retrieval;
-note right: high storage, low compute
---> :Update (re‑train);
-note right: feedback loop
---> stop
-
-' Flowing lane
-|Flowing Process|
-start
-:Input;
---> :Transform;
---> :Compose;
---> :Output;
-note right: low storage, high compute
---> :Feedback / Update;
-note right: learning from use
---> stop
-
-' Hybrid connection
-Stored Knowledge --> Input : retrieval‑augmented query
-Input --> Stored Knowledge : cache / update
-
-note over Stored Representation, Flowing Process
-  Hybrid systems combine both flows
-end note
-caption Stored vs. Flowing Intelligence
-@enduml
-....
-
-.Retrieval‑Augmented Generation (Hybrid) Diagram
-[plantuml,ch01-hybrid,png,theme=sketchy-outline]
-....
-@startuml
-scale 1.1
-skinparam backgroundColor #F9F9F9
-rectangle "LLM Parameters\n(high‑dimensional storage)" as LLM <<Stored>>
-rectangle "External Knowledge Base\n(indexed facts)" as KB <<Stored>>
-rectangle "Prompt + Retrieval\n(query processing)" as Query <<Flow>>
-rectangle "Generated Output\n(text)" as Output <<Flow>>
-
-LLM --> Query : generate context
-KB --> Query : retrieve facts
-Query --> LLM : augment prompt
-LLM --> Output : generate text
-Output --> KB : log usage (optional feedback)
-
-note right of LLM
-  high storage, low compute per token
-end note
-note right of Query
-  low storage, high compute per query
-end note
-caption Retrieval‑Augmented Generation – a hybrid of stored parameters and runtime retrieval
-@enduml
-....
+* If intelligence is metabolism, what does “health” mean for an AI system?
+* Stored knowledge risks ossification; flowing processes risk volatility—ethical implications for reliability.
+* The metaphor challenges the notion of “intelligence as property” and invites a view of AI as an activity.
+* Epistemic machines reshape institutions: they do not just store facts, they circulate authority.
+* Limits of the metaphor: biological metabolism involves waste; does AI have analogous “entropy”?
+* **Bridge:** The reflection sets up Lecture 1.2, where we examine AI’s how AI evolved from symbolic to connectionist to hybrid.
 
 ==== Discussion Prompts
-
-* Where would you place a retrieval‑augmented chatbot: stored, flowing, or hybrid?
-* Can a system be intelligent without any stored representation at all?
-* How does the Chinese Room argument change if the room can write to a long‑term memory during the conversation?
-* In your experience, when has “more storage” helped versus “more computation”?
-* Who governs epistemic circulation in an LLM‑powered search engine?
-* If intelligence is flowing, can we “own” it? What are the implications for intellectual property and accountability?
+* How does the lookup vs. computation distinction map onto everyday AI services you use?
+* In what scenarios might a purely stored approach be preferable to a flowing one, and vice versa?
+* Can the metabolism metaphor help us predict failure modes in AI systems?
+* What ethical responsibilities arise when an AI’s “flow” influences social decision‑making?
+* How might hybrid designs reshape the balance between explainability and performance?
 
 ==== Lab Prep
 
-*Lab 0* introduces the documentation stack (Markdown + PlantUML) that you will use throughout the course.  
-*Lab 1* (Knowledge Graph — Data Model and Ingestion) is the first hands‑on deliverable: you will construct a tiny graph that **stores** entities and **flows** queries through traversal and inference. This directly mirrors the hybrid diagram you just saw—your graph will have both a static backbone and a dynamic query engine.  
+Before stepping into Lab 0, make sure you have the **knowledge‑graph schema** at hand. The schema defines node types such as *Concept*, *Entity*, and *Relation*, together with their properties (e.g., `name`, `description`, `timestamp`). Understanding this static structure will let you write a simple **lookup query** that retrieves a fact—say, the definition of “metabolism”—in constant time.
 
-Before you start Lab 1, keep in mind that representation and process are not opposites but dimensions you can tune. Think about where your graph will store facts and where it will compute answers on the fly.
+The second half of the lab demonstrates **flow**. Implement a basic traversal algorithm that starts from a seed node (e.g., the *Intelligence* concept) and expands outward, following `RELATED_TO` edges up to a depth of three hops. Record the latency and memory usage of this traversal and compare it to the static lookup. The contrast will make the stored vs. flowing distinction concrete, and your short reflection will tie the experience back to today’s lecture.
 
 ===== Key Points
-
-* Lab 0: set up Markdown + PlantUML documentation.  
-* Lab 1–3: build hybrid knowledge graphs (nodes + edges, traversal + query).  
-* Representation ↔ process are tunable dimensions.  
-* Anticipate the trade‑off: **what to store** vs. **what to compute**.  
-* The hybrid diagram provides a blueprint for your implementation.
-
-==== Reading
-For readings for this chapter, see the <<reading-list,Reading List>> (<<reading-ch01,Chapter 1>>).
+* Review the provided knowledge‑graph schema (nodes, edges, properties).
+* Install the lightweight graph database (e.g., Neo4j Desktop) and load the sample ontology.
+* Write a simple lookup query to retrieve a fact from the static graph.
+* Implement a basic traversal algorithm that expands from a seed node—demonstrating flow.
+* Compare query latency and memory usage between the lookup and traversal.
+* Prepare a short reflection on how the lab illustrates stored vs. flowing intelligence.
