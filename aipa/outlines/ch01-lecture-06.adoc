@@ -1,0 +1,57 @@
+=== 1.6: Knowledge-Graph Pipeline and Lab Integration
+:leveloffset: 2
+
+==== Hook
+* A data‑driven startup’s model crashes overnight—who is responsible, the code or the pipeline?
+* “If intelligence is metabolism, what does it mean to feed a neural network?”
+* Tension between “plug‑and‑play” modules and the hidden orchestration that keeps them alive.
+
+==== Conceptual Core
+===== Key Points
+* A pipeline is the *flow* that turns raw data into actionable intelligence.
+* A knowledge graph represents entities as nodes and relationships as typed edges; querying it traverses these edges, making "flow" a literal computational act, not just a metaphor.
+* Configuration files encode the *stored* knowledge that guides the flow.
+* The metabolism metaphor links data ingestion, transformation, and output as a circulatory system.
+* Hybrid AI systems combine symbolic knowledge bases with flowing connectionist models.
+* Historical AI shifts (symbolic → connectionist → hybrid) mirror the move from static to metabolic architectures.
+* The knowledge graph acts as the “blood plasma” carrying relational information through the pipeline.
+* System configuration is an epistemic act: we decide what counts as “nutrient” for the model.
+* Bridge: The startup crash was a pipeline failure, not a model failure—understanding this distinction prepares you to configure the metabolic system in Lab 0 and to reason about deployment orchestration in the next lecture.
+* [FIGURE: pipeline-metabolism diagram — knowledge graph as lateral layer across ingest / preprocess / train / serve / monitor stages.]
+
+==== Technical Example
+===== Key Points
+* Data ingestion stage reads CSV/JSON streams into a staging lake.
+* At the preprocessing stage, the knowledge graph can be queried to enrich raw records with relational context (e.g. entity disambiguation, ontology-based feature tagging) before features are passed to the model.
+* Preprocessing module applies schema validation and feature engineering defined in a YAML schema.
+* Model training step pulls the latest weights and hyper‑parameters from a version‑controlled repository.
+* Containerized serving wraps the trained model behind a RESTful API.
+* Orchestration (Docker‑Compose or Kubernetes) links stages via declarative manifests.
+* Continuous monitoring logs latency, drift, and resource consumption for feedback loops.
+* Scaling policies automatically spin up additional workers when data flow spikes.
+
+==== Philosophical Reflection
+===== Key Points
+* Treating pipelines as metabolism foregrounds the *ethical stakes* of data selection and bias propagation.
+* The invisible infrastructure becomes a participant in knowledge production, not just a tool.
+* Modularity promises control but can hide emergent dependencies, limiting true “plug‑and‑play.”
+* Epistemically, the configuration encodes assumptions about what the world looks like.
+* Hybrid pipelines blur the line between representation (stored) and transformation (flowing), challenging classic AI dichotomies.
+* Future AI may evolve self‑regulating metabolisms, raising questions about agency and accountability.
+* Requiring engineers to write explicit configuration files is a form of epistemic accountability—it forces articulation of assumptions that automated systems would otherwise silently encode.
+
+==== Discussion Prompts
+* How does the metabolism metaphor change our view of model failures?
+* In what ways do configuration files act as “knowledge” rather than mere code?
+* Can we design pipelines that are transparent about their epistemic assumptions?
+* What ethical responsibilities arise when data flows become “nutrients” for AI systems?
+* How might self‑optimizing pipelines affect the role of human engineers?
+* At which stage of the pipeline (ingest, preprocess, train, serve, monitor) is bias most likely to be introduced, and how would you detect it?
+
+==== Lab Prep
+===== Key Points
+* Clone the student-ai/ (or chapter) starter and locate the knowledge-graph module (Labs 0–3).
+* Load the provided schema and sample data into the graph (Lab 0: schema and load).
+* Write a few Cypher queries to retrieve and traverse nodes (Labs 1–3: query, extend).
+* Run a minimal ingestion script that adds new triples and observe the graph's "metabolic" update.
+* Prepare a 150‑word reflection mapping one pipeline stage to one configuration decision and explaining what epistemic assumption that decision encodes.
