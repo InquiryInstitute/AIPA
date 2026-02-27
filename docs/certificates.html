@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Certificates — Personal AI & Sovereign AI | AIPA</title>
+  <meta name="description" content="AIPA certificates: Personal AI (build an AI you own in a Codespace) and Sovereign AI (deploy that build to your own server).">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ink: #1c1c1c;
+      --paper: #f8f6f1;
+      --paper-warm: #f2efe8;
+      --accent: #2d5a4a;
+      --accent-dark: #1e3d32;
+      --accent-soft: #e2ebe8;
+      --muted: #5a5a5a;
+      --muted-light: #8a8a8a;
+      --border: #ddd9d2;
+      --shadow: 0 2px 8px rgba(0,0,0,0.06);
+      --shadow-lg: 0 8px 32px rgba(0,0,0,0.1);
+      --radius: 8px;
+      --radius-sm: 4px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: 'Crimson Pro', Georgia, serif;
+      font-size: 1.2rem;
+      line-height: 1.7;
+      color: var(--ink);
+      background: var(--paper);
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+    }
+    .wrapper { max-width: 48rem; margin: 0 auto; padding: 0 1.75rem; }
+    header {
+      padding: 3rem 0 2rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .breadcrumb {
+      font-size: 0.9rem;
+      margin-bottom: 0.75rem;
+    }
+    .breadcrumb a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    .breadcrumb a:hover { text-decoration: underline; }
+    .breadcrumb span { color: var(--muted); }
+    h1 {
+      font-size: clamp(1.75rem, 4vw, 2.25rem);
+      font-weight: 600;
+      margin: 0 0 0.5rem;
+      letter-spacing: -0.02em;
+      line-height: 1.25;
+      color: var(--ink);
+    }
+    .lead {
+      font-size: 1.05rem;
+      color: var(--muted);
+      margin: 0;
+      line-height: 1.6;
+    }
+    main { padding: 2.5rem 0 4rem; }
+    .certificate {
+      margin-bottom: 3rem;
+      padding: 2rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .certificate:last-of-type { border-bottom: none; margin-bottom: 0; }
+    .certificate h2 {
+      font-size: 1.35rem;
+      font-weight: 600;
+      margin: 0 0 0.5rem;
+      color: var(--accent-dark);
+      letter-spacing: 0.02em;
+    }
+    .certificate .badge {
+      display: inline-block;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      font-weight: 500;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--accent);
+      background: var(--accent-soft);
+      padding: 0.35rem 0.65rem;
+      border-radius: var(--radius-sm);
+      margin-bottom: 1rem;
+    }
+    .certificate .one-liner {
+      font-size: 1.1rem;
+      color: var(--muted);
+      margin: 0 0 1.25rem;
+      font-style: italic;
+      line-height: 1.5;
+    }
+    .certificate p { margin: 0 0 1rem; }
+    .certificate p:last-of-type { margin-bottom: 0; }
+    .certificate ul {
+      margin: 0.75rem 0 1rem 1.5rem;
+      padding: 0;
+    }
+    .certificate li { margin-bottom: 0.5rem; }
+    .certificate li:last-child { margin-bottom: 0; }
+    .outcome {
+      background: var(--accent-soft);
+      padding: 1.25rem 1.5rem;
+      border-radius: var(--radius);
+      border-left: 4px solid var(--accent);
+      margin-top: 1.25rem;
+    }
+    .outcome strong { color: var(--accent-dark); }
+    .flow {
+      margin-top: 2rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--border);
+      text-align: center;
+    }
+    .flow p {
+      font-size: 0.95rem;
+      color: var(--muted);
+      margin: 0 0 1rem;
+    }
+    .flow-arrow {
+      font-size: 1.5rem;
+      color: var(--accent);
+      margin: 0.5rem 0;
+    }
+    .back {
+      display: inline-block;
+      margin-top: 2rem;
+      font-size: 0.95rem;
+      color: var(--accent);
+      text-decoration: none;
+    }
+    .back:hover { text-decoration: underline; }
+    footer {
+      padding: 2rem 0;
+      font-size: 0.9rem;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+      text-align: center;
+    }
+    footer a { color: var(--accent); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+    @media (min-width: 640px) {
+      .wrapper { padding: 0 2rem; }
+      header { padding: 3.5rem 0 2.5rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <header>
+      <p class="breadcrumb"><a href="index.html">AIPA</a> <span>→ Certificates</span></p>
+      <h1>Certificates</h1>
+      <p class="lead">Two credentials anchor the program: <strong>Personal AI</strong> — build an AI you own in a Codespace — and <strong>Sovereign AI</strong> — deploy that build to a server you control.</p>
+    </header>
+    <main>
+      <section class="certificate">
+        <span class="badge">Certificate 1</span>
+        <h2>Personal AI</h2>
+        <p class="one-liner">An AI that the student owns, built and run inside a GitHub Codespace.</p>
+        <p>This certificate is a <strong>standalone outcome</strong>: by the end of Chapter 1, you have a working personal AI and a clear path to scale it. You establish the conceptual frame — intelligence as <em>process</em> rather than possession, metabolism of knowledge — and build the stack where it lives: schema, load, query, extend, and integrate a <strong>knowledge graph</strong> as the metabolic hub of your agent.</p>
+        <p>The escalation architecture runs through the book: <strong>1B → 3B → 8B → Cloud</strong>. You run small local models (1B, 3B), larger local or cloud-backed models (8B), and know when to escalate to cloud. Labs 0–3 deliver the graph pipeline and wire it into the agent.</p>
+        <ul>
+          <li><strong>Environment:</strong> GitHub Codespaces (devcontainer, zero local setup)</li>
+          <li><strong>Deliverable:</strong> Working personal AI at a chosen scale (1B, 3B, 8B, or cloud) and a documented escalation path</li>
+          <li><strong>Core idea:</strong> The knowledge graph is the hub; the student owns the code, the data, and the runtime in their Codespace</li>
+        </ul>
+        <div class="outcome">
+          <strong>Certificate outcome.</strong> A personal AI you own, running in a Codespace you control, with a clear escalation path and an understanding of intelligence as the metabolism of knowledge.
+        </div>
+      </section>
+
+      <section class="certificate">
+        <span class="badge">Certificate 2</span>
+        <h2>Sovereign AI</h2>
+        <p class="one-liner">Deploy the build from Personal AI to a server you own — nominally a Mac Mini M4 (or equivalent).</p>
+        <p>This certificate completes the arc: you take the agent you built in the Codespace and run it on <strong>infrastructure you control from the OS up</strong>. You install Linux (or use the host OS) and build the runtime stack from scratch — users, packages, Python, GPU drivers when needed — then deploy your AI locally and decide when, if ever, to escalate to the cloud.</p>
+        <p>The same <strong>1B → 3B → 8B → Cloud</strong> architecture now runs on your own hardware. Themes: local-first for privacy and sovereignty, full control and reproducibility, and the epistemology of who controls the model and the data. Labs build the from-scratch environment, local deployment and benchmarking, and a documented escalation path.</p>
+        <ul>
+          <li><strong>Environment:</strong> Your own server — e.g. Mac Mini M4 (or bare metal / VM with Linux)</li>
+          <li><strong>Deliverable:</strong> The same agent (orchestrator + tools) running on a stack you own from the kernel up; documented setup and escalation policy</li>
+          <li><strong>Core idea:</strong> Sovereignty is not only technical — it is a stance on who shapes knowledge flows and who can be held accountable</li>
+        </ul>
+        <div class="outcome">
+          <strong>Certificate outcome.</strong> Your AI running on a stack you own: same agent, different infrastructure. You decide when to stay local and when to burst to cloud; governance and compliance are constraints you design.
+        </div>
+      </section>
+
+      <section class="flow">
+        <p>The two certificates form a single path:</p>
+        <p><strong>Personal AI</strong> (Codespace) → build the agent you own</p>
+        <div class="flow-arrow">↓</div>
+        <p><strong>Sovereign AI</strong> (your server) → deploy that build to a machine you control</p>
+        <a href="index.html" class="back">← Back to AIPA</a>
+      </section>
+    </main>
+    <footer>
+      <a href="https://github.com/InquiryInstitute">Inquiry Institute</a> · Artificial Intelligence: A Postmodern Approach
+    </footer>
+  </div>
+</body>
+</html>
