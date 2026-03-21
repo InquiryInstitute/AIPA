@@ -1,0 +1,58 @@
+# Build the main Jupyter Book + slides-book, merge into one static tree, push to branch `gh-pages`.
+#
+# Enable hosting: Settings → Pages → Deploy from branch → `gh-pages` / `/ (root)`.
+#
+# Optional secrets: CODE_SERVER_URL, AI_LECTURER_WS_URL (see workflow header in repo history).
+#
+name: Deploy GitHub Pages
+
+# Requires Jupyter Book sources at repo root (_config.yml, part-*, slides-book/, …). Enable `push` when ready.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Prepare Pages paths and optional Cloud Run URLs
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          CODE_SERVER_URL: ${{ secrets.CODE_SERVER_URL }}
+          AI_LECTURER_WS_URL: ${{ secrets.AI_LECTURER_WS_URL }}
+        run: bash scripts/ci-prepare-pages-build.sh
+
+      - name: Build main book
+        run: jupyter-book build .
+
+      - name: Build slides book
+        run: jupyter-book build slides-book
+
+      - name: Merge slides into site tree
+        run: |
+          mkdir -p _build/html/slides
+          cp -a slides-book/_build/html/. _build/html/slides/
+
+      - name: Deploy to gh-pages branch
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: ./_build/html
+          force_orphan: true
