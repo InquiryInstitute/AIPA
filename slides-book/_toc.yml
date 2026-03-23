@@ -1,0 +1,9 @@
+format: jb-book
+root: intro
+title: AIPA Slides
+
+parts:
+  - caption: "Chapter 1 — Intelligence as process"
+    chapters:
+      - file: part-i/ch01-intelligence-as-process/lecture-01/slide-04-code-server-iframe
+      - file: part-i/ch01-intelligence-as-process/lecture-01/slide-05-ai-lecturer-terminal

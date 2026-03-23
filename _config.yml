@@ -1,0 +1,46 @@
+# Jupyter Book — AIPA (minimal root site; full text may grow here)
+title: "Artificial Intelligence: A Postmodern Approach"
+author: Inquiry Institute
+copyright: ""
+
+sphinx:
+  extra_extensions:
+    - myst_nb
+    - sphinx_design
+  config:
+    suppress_warnings:
+      - myst.domains
+      - myst.header
+    nb_execution_mode: "off"
+    html_static_path:
+      - _static
+    html_theme_options:
+      toc_title: "On this page"
+      navbar_align: left
+      navigation_depth: 3
+      show_navbar_depth: 1
+
+exclude_patterns:
+  - "**.ipynb_checkpoints"
+  - "slides-book/**"
+  - "aipa/**"
+  - "docs/**"
+  - ".venv/**"
+  - "infra/**"
+  - "extensions/**"
+  - "node_modules/**"
+  - "**/__pycache__"
+  - "AIPA*.md"
+  - "DESIGN.md"
+
+repository:
+  url: https://github.com/InquiryInstitute/AIPA
+  branch: main
+  path_to_book: .
+
+execute:
+  execute_notebooks: "off"
+
+html:
+  baseurl: "/AIPA"
+  use_repository_button: true

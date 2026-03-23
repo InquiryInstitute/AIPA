@@ -1,0 +1,64 @@
+# Jupyter Book — slides (code-server + lecturer demos)
+title: "AIPA — Slides"
+author: Inquiry Institute
+copyright: ""
+
+sphinx:
+  recursive_update: true
+  extra_extensions:
+    - myst_nb
+    - sphinx_design
+    - sphinx_copybutton
+    - sphinx_togglebutton
+  config:
+    suppress_warnings:
+      - myst.domains
+      - myst.header
+    nb_execution_mode: "off"
+    html_static_path:
+      - _static
+    html_css_files:
+      - custom.css
+    html_theme_options:
+      secondary_sidebar_items: []
+      toc_title: "Slides"
+      navbar_align: left
+      navigation_depth: 3
+      show_navbar_depth: 2
+      icon_links: []
+
+exclude_patterns:
+  - "README.md"
+  - "**.ipynb_checkpoints"
+  - "**/node_modules"
+
+repository:
+  url: https://github.com/InquiryInstitute/AIPA
+  branch: main
+  path_to_book: slides-book
+
+execute:
+  execute_notebooks: "off"
+
+launch_buttons:
+  binderhub_url: ""
+  thebe: false
+
+html:
+  baseurl: "/AIPA/slides"
+  use_repository_button: true
+  use_edit_page_button: true
+  extra_footer: |
+    <p>© 2026 Inquiry Institute · Slides + code-server demos</p>
+
+parse:
+  myst_enable_extensions:
+    - colon_fence
+    - dollarmath
+    - html_admonition
+    - html_image
+    - linkify
+    - substitution
+  myst_substitutions:
+    code_server_url: "http://127.0.0.1:18180"
+    ai_lecturer_ws_url: "ws://127.0.0.1:8765"

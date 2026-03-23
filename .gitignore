@@ -3,3 +3,6 @@ node_modules/
 .env
 .env.local
 *.log
+_build/
+slides-book/_build/
+.jupyter_cache/
