@@ -1,24 +1,16 @@
-# code-server on Google Cloud Run
+# code-server on GCP — moved to **inqspace**
 
-Build context is the **repository root**. Local deploy:
+The canonical **Dockerfile**, **Cloud Build** config, **deploy scripts**, and **`aipa-lecturer-bridge`** extension for Inquiry Institute live in the **[InquiryInstitute/inqspace](https://github.com/InquiryInstitute/inqspace)** repository:
 
-```bash
-cd infra/code-server-gcp
-cp env.example .env   # edit GCP_PROJECT, PASSWORD, TRUSTED_ORIGINS
-set -a && source .env && set +a
-export SERVICE_NAME=aipa-cs-myorg-myrepo   # or use ./deploy-for-repo.sh owner/repo
-./deploy-for-repo.sh InquiryInstitute/AIPA main
-```
+- **`infra/code-server-gcp/`** — image + Cloud Run deploy  
+- **`extensions/aipa-lecturer-bridge/`** — VS Code / code-server WebSocket bridge  
+- **`scripts/deploy-cloud-run-local.sh`** — local deploy with `gcloud auth login`
 
-GitHub Actions: workflow **Deploy code-server (Cloud Run)** (manual). Set repository secrets `GCP_SA_KEY` (JSON service account), `GCP_PROJECT`, `CODE_SERVER_PASSWORD`, `CODE_SERVER_TRUSTED_ORIGINS`.
-
-**Local deploy** (uses your `gcloud auth login`, no JSON key):
+Deploy a Cloud Run service for **this** repo (or any org repo) from **inqspace** with:
 
 ```bash
-gcloud auth login   # if you see "Reauthentication failed"
-cp infra/code-server-gcp/env.example infra/code-server-gcp/.env
-# Edit .env: GCP_PROJECT, PASSWORD, TRUSTED_ORIGINS=aipa.castalia.institute,inquiryinstitute.github.io
-./scripts/deploy-cloud-run-local.sh
+cd ../inqspace   # clone https://github.com/InquiryInstitute/inqspace if needed
+./scripts/deploy-cloud-run-local.sh InquiryInstitute/AIPA main
 ```
 
-Embed from the static site: add your Pages hostname to `TRUSTED_ORIGINS` (no `https://`).
+GitHub Actions: run **Deploy code-server (Cloud Run)** in the **inqspace** repo (not AIPA).

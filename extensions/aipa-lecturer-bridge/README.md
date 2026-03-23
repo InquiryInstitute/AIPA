@@ -1,3 +1,5 @@
-# AIPA Lecturer Bridge
+# aipa-lecturer-bridge — canonical source in **inqspace**
 
-VS Code / code-server extension: WebSocket → `vscode.commands`. See `docs/AI_LECTURER_ARCHITECTURE.md` in the repo.
+The extension source is maintained in **[InquiryInstitute/inqspace](https://github.com/InquiryInstitute/inqspace)** at `extensions/aipa-lecturer-bridge/`.
+
+This folder in AIPA is a pointer for documentation links; do not edit here.
