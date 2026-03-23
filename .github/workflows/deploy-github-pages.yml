@@ -6,9 +6,28 @@
 #
 name: Deploy GitHub Pages
 
-# Requires Jupyter Book sources at repo root (_config.yml, part-*, slides-book/, …). Enable `push` when ready.
+# Runs when book sources change, or manually. Ignores pushes that only touch infra/docs tooling.
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "_config.yml"
+      - "_toc.yml"
+      - "_static/**"
+      - "front-matter/**"
+      - "part-*/**"
+      - "appendices/**"
+      - "epilogue/**"
+      - "glossary/**"
+      - "quizzes/**"
+      - "references/**"
+      - "intro.md"
+      - "reading-list.md"
+      - "reproducibility.md"
+      - "slides-book/**"
+      - "requirements.txt"
+      - "scripts/ci-prepare-pages-build.sh"
 
 permissions:
   contents: write
