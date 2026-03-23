@@ -20,7 +20,16 @@ if [[ -f "${ENV_FILE}" ]]; then
   set +a
 fi
 : "${GCP_PROJECT:?Set GCP_PROJECT (e.g. in infra/code-server-gcp/.env)}"
+if [[ "${GCP_PROJECT}" == "your-gcp-project-id" ]] || [[ "${GCP_PROJECT}" == REPLACE_* ]] || [[ "${GCP_PROJECT}" == *YOUR_* ]]; then
+  echo "GCP_PROJECT is still a placeholder. Set your real project id in infra/code-server-gcp/.env" >&2
+  echo "Find it:  gcloud projects list   (use the project id column, not the name)." >&2
+  exit 1
+fi
 : "${PASSWORD:?Set PASSWORD}"
+if [[ "${PASSWORD}" == "change-me" ]] || [[ "${PASSWORD}" == REPLACE_* ]]; then
+  echo "PASSWORD is still a placeholder in .env — set a strong password for code-server." >&2
+  exit 1
+fi
 : "${TRUSTED_ORIGINS:?Set TRUSTED_ORIGINS (comma-separated hostnames)}"
 export GCP_PROJECT GCP_REGION="${GCP_REGION:-us-central1}" PASSWORD TRUSTED_ORIGINS
 export GIT_REPO_URL="${GIT_REPO_URL:-https://github.com/InquiryInstitute/AIPA.git}"
