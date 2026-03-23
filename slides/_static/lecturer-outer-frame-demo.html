@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lecturer outer frame — demo</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 1rem; max-width: 960px; }
+    .row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-bottom: 0.75rem; }
+    iframe { width: 100%; min-height: 420px; border: 1px solid #888; border-radius: 6px; }
+    code { background: #f4f4f4; padding: 0.1em 0.35em; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <h1>Lecturer outer frame (demo)</h1>
+  <p>
+    Default <strong>code-server</strong> base is <code>http://127.0.0.1:18180</code> (rewritten on GitHub Pages when
+    <code>CODE_SERVER_URL</code> is set). Default AI gateway: <code>ws://127.0.0.1:8765</code>.
+  </p>
+  <div class="row">
+    <label for="cs-url">code-server URL</label>
+    <input id="cs-url" type="url" size="48" value="http://127.0.0.1:18180/" />
+    <button type="button" id="btn-load">Load iframe</button>
+  </div>
+  <iframe id="cs-frame" title="code-server" allow="clipboard-read; clipboard-write; fullscreen"></iframe>
+  <p class="hint">
+    Full interactive version (canvas overlay, gateway commands) lives in the AIPA working tree; this page is a
+    <strong>lightweight</strong> embed for GitHub Pages. Deploy IDE with
+    <a href="https://github.com/InquiryInstitute/inqspace/blob/main/infra/code-server-gcp/README.md">inqspace → Cloud Run</a>.
+  </p>
+  <script>
+(function () {
+  var input = document.getElementById("cs-url");
+  var frame = document.getElementById("cs-frame");
+  function load() {
+    var u = (input.value || "").trim() || "http://127.0.0.1:18180/";
+    if (!/^https?:\/\//i.test(u)) u = "http://" + u;
+    if (!/\/$/.test(u)) u += "/";
+    frame.src = u;
+  }
+  document.getElementById("btn-load").addEventListener("click", load);
+  load();
+})();
+  </script>
+</body>
+</html>
